@@ -237,10 +237,10 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
         if (!user || !categoryName.trim()) return;
         setSubmitting(true);
         try {
-            // Parse budget value - explicitly set to null if empty
+            // Parse budget value - set to undefined if empty
             const budgetValue = categoryBudget && categoryBudget.trim()
                 ? parseFloat(categoryBudget)
-                : null;
+                : undefined;
 
             const newCategory = await api.createCategory({
                 name: categoryName.trim(),
@@ -272,10 +272,10 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
         if (!editingCategory) return;
         setSubmitting(true);
         try {
-            // Parse budget value - explicitly set to null if empty to clear the field
+            // Parse budget value - set to undefined if empty to clear the field
             const budgetValue = categoryBudget && categoryBudget.trim()
                 ? parseFloat(categoryBudget)
-                : null;
+                : undefined;
 
             const updatedCategory = await api.updateCategory(editingCategory.id, {
                 name: categoryName.trim(),
@@ -284,24 +284,23 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                 monthly_budget: budgetValue
             });
 
-            // Optimistically update the local state with the returned data
+            // Optimistically update the local state
             setCategories(prevCategories =>
                 prevCategories.map(cat =>
-                    cat.id === updatedCategory.id ? updatedCategory : cat
+                    cat.id === editingCategory.id ? updatedCategory : cat
                 )
             );
 
-            setShowEditCategory(false);
-            setEditingCategory(null);
-            resetForm();
-
-            // Reload data in background to sync any other changes
+            // Background refresh to ensure consistency
             loadData();
+
+            setEditingCategory(null);
+            setShowEditCategory(false);
         } catch (error) {
-            console.error('Failed to update category:', error);
-            alert('Failed to update category. Please try again.');
-            // Reload on error to ensure data consistency
-            await loadData();
+            console.error('Error updating category:', error);
+            alert('Failed to update category');
+            // Reload data on error to revert optimistic update
+            loadData();
         } finally {
             setSubmitting(false);
         }

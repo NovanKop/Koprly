@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { DatePicker } from '../components/ui/DatePicker';
-import { Wallet, Plus, Loader2, TrendingUp, TrendingDown, ChevronRight, DollarSign, X, Eye, EyeOff, CreditCard, Banknote } from 'lucide-react';
+import { Wallet, Plus, Loader2, TrendingUp, TrendingDown, ChevronRight, X, Eye, EyeOff, CreditCard, Banknote, Flame } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Category, Transaction, Profile, Wallet as WalletType } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
