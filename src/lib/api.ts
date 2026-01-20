@@ -6,7 +6,7 @@ export const api = {
     getProfile: async (): Promise<Profile | null> => {
         const { data, error } = await supabase
             .from('profiles')
-            .select('*')
+            .select('id, email, username, profile_picture, currency, total_budget, budget_period, theme, created_at, updated_at')
             .single();
 
         if (error) {
@@ -57,7 +57,7 @@ export const api = {
     getCategories: async (): Promise<Category[]> => {
         const { data, error } = await supabase
             .from('categories')
-            .select('*')
+            .select('id, name, icon, color, monthly_budget')
             .order('name');
 
         if (error) throw error;
@@ -136,7 +136,7 @@ export const api = {
         try {
             const { data, error } = await supabase
                 .from('wallets')
-                .select('*')
+                .select('id, user_id, name, balance, type, color, created_at')
                 .order('created_at');
 
             if (error) {
@@ -308,7 +308,7 @@ export const api = {
     getNotifications: async (limit = 20, unreadOnly = false): Promise<Notification[]> => {
         let query = supabase
             .from('notifications')
-            .select('*')
+            .select('id, user_id, type, title, message, metadata, read, created_at')
             .order('created_at', { ascending: false })
             .limit(limit);
 
@@ -419,7 +419,7 @@ export const api = {
 
         const { data, error } = await supabase
             .from('notification_preferences')
-            .select('*')
+            .select('user_id, budget_alerts, daily_summary, bill_reminders, streak_rewards, anomaly_alerts, missing_log_alerts, summary_time, created_at, updated_at')
             .eq('user_id', user.id)
             .single();
 
