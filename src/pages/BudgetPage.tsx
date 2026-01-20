@@ -59,7 +59,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     // Guidance Bubble: Track dismissed states separately for 'start' (0%) and 'partial' (1-99%)
     // This allows differentiation: dismissing "Partial" logic won't hide "Start" logic if user resets.
     const [dismissedStates, setDismissedStates] = useState<Record<string, boolean>>(() => {
-        if (typeof sessionStorage === 'undefined') return {};
+        if (typeof sessionStorage === 'undefined') return { start: false, partial: false };
         return {
             start: !!sessionStorage.getItem('budgetGuidanceDismissed_start'),
             partial: !!sessionStorage.getItem('budgetGuidanceDismissed_partial')
