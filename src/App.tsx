@@ -1,12 +1,12 @@
 import { useAuth, AuthProvider } from './context/AuthContext';
-import AuthPage from './pages/AuthPage';
-import Dashboard from './pages/Dashboard';
-
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { api } from './lib/api';
 import type { Profile } from './types';
-import OnboardingPage from './pages/OnboardingPage';
 import { useAppStore } from './store/useAppStore';
+
+const AuthPage = lazy(() => import('./pages/AuthPage'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
 
 function AppContent() {
   const { session, loading: authLoading } = useAuth();
@@ -53,14 +53,21 @@ function AppContent() {
     )
   }
 
-  if (!session) return <AuthPage />;
-
-  // If user has no profile or username, show onboarding
-  if (!profile || !profile.username) {
-    return <OnboardingPage onComplete={handleOnboardingComplete} />;
-  }
-
-  return <Dashboard />;
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+      </div>
+    }>
+      {!session ? (
+        <AuthPage />
+      ) : (!profile || !profile.username) ? (
+        <OnboardingPage onComplete={handleOnboardingComplete} />
+      ) : (
+        <Dashboard />
+      )}
+    </Suspense>
+  );
 }
 
 export default function App() {

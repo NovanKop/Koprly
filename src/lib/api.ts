@@ -224,6 +224,15 @@ export const api = {
         return data;
     },
 
+    deleteTransaction: async (id: string) => {
+        const { error } = await supabase
+            .from('transactions')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+    },
+
     // Legacy for backward compatibility
     getExpenses: async (): Promise<Transaction[]> => {
         const { data, error } = await supabase

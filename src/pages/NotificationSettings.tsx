@@ -15,6 +15,7 @@ export default function NotificationSettings({ onBack }: NotificationSettingsPro
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
+        window.scrollTo(0, 0);
         loadPreferences();
     }, []);
 

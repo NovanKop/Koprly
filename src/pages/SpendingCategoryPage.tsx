@@ -3,7 +3,7 @@ import { useAppStore } from '../store/useAppStore';
 import { api } from '../lib/api';
 import type { Category, Transaction } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ChevronDown, ChevronRight, Filter } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Filter, Loader2 } from 'lucide-react';
 import { parseISO, isWithinInterval, subDays, startOfDay, endOfDay } from 'date-fns';
 
 interface SpendingCategoryPageProps {
@@ -19,11 +19,12 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
     const [dateFilter, setDateFilter] = useState<DateFilter>('7d');
     const [showFilterMenu, setShowFilterMenu] = useState(false);
-    const currencySymbol = currency === 'IDR' ? 'Rp' : '$';
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         // Hide bottom menu when this page is active
         setBottomMenuVisible(false);
+        window.scrollTo(0, 0);
         loadData();
 
         return () => {
@@ -42,6 +43,8 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
             setTransactions(txns || []);
         } catch (error) {
             console.error('Error loading data:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -135,8 +138,8 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                                                 setShowFilterMenu(false);
                                             }}
                                             className={`w-full px-4 py-3 text-left transition-colors ${dateFilter === option.value
-                                                    ? 'bg-primary/20 text-primary'
-                                                    : 'hover:bg-surface-highlight'
+                                                ? 'bg-primary/20 text-primary'
+                                                : 'hover:bg-surface-highlight'
                                                 }`}
                                         >
                                             {option.label}
@@ -151,7 +154,11 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
 
             {/* Categories List */}
             <div className="p-4 space-y-3">
-                {categories.length === 0 ? (
+                {loading ? (
+                    <div className="flex items-center justify-center py-12">
+                        <Loader2 className="animate-spin text-primary" size={32} />
+                    </div>
+                ) : categories.length === 0 ? (
                     <div className="text-center text-text-secondary py-12">
                         No categories found
                     </div>
@@ -160,7 +167,7 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                         const isExpanded = expandedCategories.has(category.id);
                         const spending = getCategorySpending(category.id);
                         const filteredTxns = getFilteredTransactions(category.id);
-                        const budget = category.budget || 0;
+                        const budget = category.monthly_budget || 0;
                         const progress = budget > 0 ? Math.min((spending / budget) * 100, 100) : 0;
 
                         return (
@@ -182,7 +189,9 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                                     <div className="flex-1 text-left">
                                         <div className="flex items-center justify-between mb-1">
                                             <span className="font-semibold">{category.name}</span>
-                                            <span className="font-bold text-error">-{formatMoney(spending)}</span>
+                                            <span className={`font-bold ${spending > 0 ? 'text-error' : 'text-text-primary'}`}>
+                                                {spending > 0 ? '-' : ''}{formatMoney(spending)}
+                                            </span>
                                         </div>
 
                                         {budget > 0 && (

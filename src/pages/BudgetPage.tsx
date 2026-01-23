@@ -32,7 +32,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     const [categories, setCategories] = useState<Category[]>([]);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [wallets, setWallets] = useState<Wallet[]>([]);
-    const [selectedMonth, setSelectedMonth] = useState(new Date());
+    const [selectedMonth] = useState(new Date());
     const [showMonthPicker, setShowMonthPicker] = useState(false);
 
     // Category Modal States
@@ -79,6 +79,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     const currencySymbol = currency === 'IDR' ? 'Rp' : '$';
 
     useEffect(() => {
+        window.scrollTo(0, 0);
         loadData();
     }, []);
 
@@ -432,7 +433,16 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                 {/* Categories Header */}
                 <div className="flex items-center justify-between">
                     <h3 className="font-bold text-lg">Categories</h3>
-                    <span className="text-sm text-primary cursor-pointer hover:underline">See All</span>
+                    <button
+                        onClick={() => {
+                            resetForm();
+                            setShowAddCategory(true);
+                        }}
+                        className="text-sm font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+                    >
+                        <Plus size={16} />
+                        Add Category
+                    </button>
                 </div>
 
                 {/* Budget Allocation Bar */}

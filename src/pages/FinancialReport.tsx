@@ -9,9 +9,10 @@ import { DateRangePicker } from '../components/ui/DateRangePicker';
 
 interface FinancialReportProps {
     onBack: () => void;
+    onNavigate: (view: any) => void;
 }
 
-export default function FinancialReport({ onBack }: FinancialReportProps) {
+export default function FinancialReport({ onBack, onNavigate }: FinancialReportProps) {
     const { currency, firstDayOfWeek } = useAppStore();
     const [filter, setFilter] = useState<'daily' | 'weekly' | 'monthly' | 'custom'>('daily');
     const [customRange, setCustomRange] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });
@@ -389,6 +390,7 @@ export default function FinancialReport({ onBack }: FinancialReportProps) {
                     {/* Health Score */}
                     <motion.div
                         whileHover={{ scale: 1.02, y: -2 }}
+                        onClick={() => onNavigate('budget')}
                         className="p-5 rounded-[32px] bg-surface backdrop-blur-xl border border-border-color shadow-sm flex flex-col justify-between h-48 cursor-pointer hover:shadow-lg transition-shadow"
                     >
                         <div className="flex justify-between items-start">
@@ -412,6 +414,7 @@ export default function FinancialReport({ onBack }: FinancialReportProps) {
                     {/* Top Merchant */}
                     <motion.div
                         whileHover={{ scale: 1.02, y: -2 }}
+                        onClick={() => onNavigate('category')}
                         className="p-5 rounded-[32px] bg-success/20 backdrop-blur-xl border border-success/10 shadow-sm flex flex-col justify-between h-48 relative overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
                     >
                         <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-success/20 rounded-full blur-xl" />
@@ -504,7 +507,8 @@ export default function FinancialReport({ onBack }: FinancialReportProps) {
                         hidden: { opacity: 0, y: 20 },
                         visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
                     }}
-                    className="p-6 rounded-[32px] bg-surface backdrop-blur-xl border border-border-color shadow-sm"
+                    onClick={() => onNavigate('category')}
+                    className="p-6 rounded-[32px] bg-surface backdrop-blur-xl border border-border-color shadow-sm cursor-pointer hover:shadow-md transition-shadow"
                 >
                     <h3 className="font-bold mb-6">Category Breakdown</h3>
 

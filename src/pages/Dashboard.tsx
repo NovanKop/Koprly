@@ -1,23 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { DatePicker } from '../components/ui/DatePicker';
 import { Wallet, Plus, Loader2, TrendingUp, TrendingDown, ChevronRight, X, Eye, EyeOff, CreditCard, Banknote, Flame } from 'lucide-react';
 import { api } from '../lib/api';
-import type { Category, Transaction, Profile, Wallet as WalletType } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import SettingsPage from './SettingsPage';
-import FinancialReport from './FinancialReport';
-import BudgetPage from './BudgetPage';
-import SpendingCategoryPage from './SpendingCategoryPage';
-import HistoryPage from './HistoryPage';
-import NotificationSettings from './NotificationSettings';
+const SettingsPage = lazy(() => import('./SettingsPage'));
+const FinancialReport = lazy(() => import('./FinancialReport'));
+const BudgetPage = lazy(() => import('./BudgetPage'));
+const SpendingCategoryPage = lazy(() => import('./SpendingCategoryPage'));
+const HistoryPage = lazy(() => import('./HistoryPage'));
+const NotificationSettings = lazy(() => import('./NotificationSettings'));
+import { TransactionItem } from '../components/TransactionItem';
+import { CategorySelector } from '../components/CategorySelector';
+import { WalletSelector } from '../components/WalletSelector';
 import { BottomMenu } from '../components/BottomMenu';
 import { useAppStore } from '../store/useAppStore';
-import { formatDate } from '../lib/utils';
+import { formatMoney } from '../lib/utils';
+import { MAX_WALLETS, WALLET_ICONS, WALLET_COLORS } from '../lib/constants';
 import NotificationBell from '../components/NotificationBell';
-import type { Notification } from '../types';
+import { useTransactionManager } from '../hooks/useTransactionManager';
+import { EditTransactionModal } from '../components/EditTransactionModal';
+import type { Category, Transaction, Profile, Wallet as WalletType, Notification } from '../types';
 
 export default function Dashboard() {
     const { user } = useAuth();
@@ -56,24 +61,66 @@ export default function Dashboard() {
     const [showEditTransaction, setShowEditTransaction] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
-    const WALLET_ICONS = [
-        { icon: '💳', label: 'Card' },
-        { icon: '💵', label: 'Cash' },
-        { icon: '🏦', label: 'Bank' },
-        { icon: '💰', label: 'Savings' },
-        { icon: '📱', label: 'E-Wallet' },
-        { icon: '🪙', label: 'Crypto' },
-    ];
 
-    const WALLET_COLORS = ['#007AFF', '#34C759', '#FF9500', '#FF2D55', '#AF52DE', '#5856D6'];
 
-    const handleNavigate = (view: 'home' | 'report' | 'settings' | 'budget' | 'category' | 'history' | 'notifications') => {
+    // Manage Bottom Menu visibility for Dashboard (Home) View
+    useEffect(() => {
+        // Only control visibility from here if we are in 'home' view
+        // Other views (budget, settings) will handle their own visibility state
+        if (currentView === 'home') {
+            const isAnyModalOpen = showWalletModal || showAddExpense || showAddIncome || showEditTransaction;
+            setBottomMenuVisible(!isAnyModalOpen);
+        }
+    }, [currentView, showWalletModal, showAddExpense, showAddIncome, showEditTransaction, setBottomMenuVisible]);
+
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, [currentView]);
+
+    const loadData = useCallback(async () => {
+        if (!user) return;
+        try {
+            // Load profile
+            const profileData = await api.getProfile();
+            setProfile(profileData);
+
+            // Load categories
+            let cats = await api.getCategories();
+            if (cats.length === 0) {
+                await api.createDefaultCategories(user.id);
+                cats = await api.getCategories();
+            }
+            setCategories(cats);
+
+            // Load Wallets
+            const walletsData = await api.getWallets();
+            setWallets(walletsData);
+            if (walletsData.length > 0) setSelectedWallet(walletsData[0].id);
+
+            // Load transactions
+            const txns = await api.getTransactions();
+            // Sort by date descending
+            txns.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            setTransactions(txns);
+
+        } catch (error) {
+            console.error("Failed to load data", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [user]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
+
+    const handleNavigate = useCallback((view: 'home' | 'report' | 'settings' | 'budget' | 'category' | 'history' | 'notifications') => {
         setCurrentView(view);
         // Refresh data when returning to home to sync any changes from other pages
         if (view === 'home') {
             loadData();
         }
-    };
+    }, [loadData]);
 
     // Handle notification deep linking
     const handleNotificationClick = (notification: Notification) => {
@@ -94,7 +141,7 @@ export default function Dashboard() {
         }
     };
 
-    const openWalletModal = () => {
+    const openWalletModal = useCallback(() => {
         // Initialize with existing wallets
         if (wallets.length > 0) {
             setEditingWallets(wallets.map(w => ({
@@ -109,30 +156,34 @@ export default function Dashboard() {
             setEditingWallets([{ name: 'My Wallet', balance: '', icon: '💳', color: '#007AFF' }]);
         }
         setShowWalletModal(true);
-    };
+    }, [wallets]);
 
-    const addNewWallet = () => {
-        if (editingWallets.length >= 4) return;
-        setEditingWallets([...editingWallets, {
-            name: `Wallet ${editingWallets.length + 1} `,
+    const addNewWallet = useCallback(() => {
+        if (editingWallets.length >= MAX_WALLETS) return;
+        setEditingWallets(prev => [...prev, {
+            name: `Wallet ${prev.length + 1} `,
             balance: '',
             icon: '💳',
-            color: WALLET_COLORS[editingWallets.length % WALLET_COLORS.length]
+            color: WALLET_COLORS[prev.length % WALLET_COLORS.length]
         }]);
-    };
+    }, [editingWallets.length]);
 
-    const updateEditingWallet = (index: number, field: string, value: string) => {
-        const updated = [...editingWallets];
-        updated[index] = { ...updated[index], [field]: value };
-        setEditingWallets(updated);
-    };
+    const updateEditingWallet = useCallback((index: number, field: string, value: string) => {
+        setEditingWallets(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], [field]: value };
+            return updated;
+        });
+    }, []);
 
-    const removeEditingWallet = (index: number) => {
-        if (editingWallets.length <= 1) return;
-        setEditingWallets(editingWallets.filter((_, i) => i !== index));
-    };
+    const removeEditingWallet = useCallback((index: number) => {
+        setEditingWallets(prev => {
+            if (prev.length <= 1) return prev;
+            return prev.filter((_, i) => i !== index);
+        });
+    }, []);
 
-    const saveWallets = async () => {
+    const saveWallets = useCallback(async () => {
         setSubmitting(true);
         try {
             // Delete wallets that are no longer in editingWallets
@@ -172,58 +223,15 @@ export default function Dashboard() {
         } finally {
             setSubmitting(false);
         }
-    };
+    }, [editingWallets, wallets, user, loadData]);
 
     const getEditingTotal = () => {
         return editingWallets.reduce((sum, w) => sum + (parseFloat(w.balance) || 0), 0);
     };
 
-    useEffect(() => {
-        loadData();
-    }, [user]);
 
-    // Manage Bottom Menu visibility for Dashboard (Home) View
-    useEffect(() => {
-        // Only control visibility from here if we are in 'home' view
-        // Other views (budget, settings) will handle their own visibility state
-        if (currentView === 'home') {
-            const isAnyModalOpen = showWalletModal || showAddExpense || showAddIncome || showEditTransaction;
-            setBottomMenuVisible(!isAnyModalOpen);
-        }
-    }, [currentView, showWalletModal, showAddExpense, showAddIncome, showEditTransaction, setBottomMenuVisible]);
 
-    const loadData = async () => {
-        if (!user) return;
-        try {
-            // Load profile
-            const profileData = await api.getProfile();
-            setProfile(profileData);
-
-            // Load categories
-            let cats = await api.getCategories();
-            if (cats.length === 0) {
-                await api.createDefaultCategories(user.id);
-                cats = await api.getCategories();
-            }
-            setCategories(cats);
-
-            // Load Wallets
-            const walletsData = await api.getWallets();
-            setWallets(walletsData);
-            if (walletsData.length > 0) setSelectedWallet(walletsData[0].id);
-
-            // Load transactions
-            const txns = await api.getTransactions();
-            setTransactions(txns);
-
-        } catch (error) {
-            console.error("Failed to load data", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleAddExpense = async () => {
+    const handleAddExpense = useCallback(async () => {
         if (!amount || !selectedCategory) return;
         setSubmitting(true);
         try {
@@ -249,9 +257,9 @@ export default function Dashboard() {
         } finally {
             setSubmitting(false);
         }
-    };
+    }, [amount, selectedCategory, description, selectedWallet, user, transactionDate, loadData]);
 
-    const handleAddIncome = async () => {
+    const handleAddIncome = useCallback(async () => {
         if (!amount) return;
         setSubmitting(true);
         try {
@@ -275,97 +283,43 @@ export default function Dashboard() {
         } finally {
             setSubmitting(false);
         }
+    }, [amount, description, selectedWallet, user, transactionDate, loadData]);
+
+
+
+
+    const refreshData = async () => {
+        await loadData();
     };
 
+    const { updateTransaction, deleteTransaction, submitting: transactionSubmitting } = useTransactionManager({
+        wallets,
+        userId: user?.id,
+        onRefresh: refreshData
+    });
 
-    const handleEditClick = (txn: Transaction) => {
+    const handleEditClick = useCallback((txn: Transaction) => {
         setEditingTransaction(txn);
-        setAmount(txn.amount.toString());
-        setDescription(txn.description || '');
-        setTransactionDate(txn.date);
-        setSelectedWallet(txn.wallet_id || '');
-        setSelectedCategory(txn.category_id || '');
         setShowEditTransaction(true);
-    };
+    }, []);
 
-    const handleUpdateTransaction = async () => {
-        if (!editingTransaction || !amount) return;
-        setSubmitting(true);
+    const handleUpdateSubmit = async (original: Transaction, updates: any) => {
         try {
-            const oldTxn = editingTransaction;
-            const newAmount = parseFloat(amount);
-            const isExpense = oldTxn.type === 'expense';
-            const oldWalletId = oldTxn.wallet_id;
-            const newWalletId = selectedWallet;
-
-            // 1. Update Transaction
-            await api.updateTransaction(oldTxn.id, {
-                amount: newAmount,
-                description,
-                date: transactionDate,
-                category_id: isExpense ? selectedCategory : undefined,
-                wallet_id: selectedWallet || undefined
-            });
-
-            // 2. Update Wallets (Balance Management)
-            // Only if wallets are involved
-            if (oldWalletId || newWalletId) {
-                // Scenario A: Wallet Changed
-                if (oldWalletId !== newWalletId) {
-                    // Revert old wallet
-                    if (oldWalletId) {
-                        const oldWallet = wallets.find(w => w.id === oldWalletId);
-                        if (oldWallet) {
-                            const revertAmount = isExpense ? oldTxn.amount : -oldTxn.amount;
-                            await api.updateWallet(oldWalletId, {
-                                balance: Number(oldWallet.balance) + Number(revertAmount)
-                            });
-                        }
-                    }
-                    // Apply to new wallet
-                    if (newWalletId) {
-                        const newWallet = wallets.find(w => w.id === newWalletId);
-                        if (newWallet) {
-                            const applyAmount = isExpense ? -newAmount : newAmount;
-                            await api.updateWallet(newWalletId, {
-                                balance: Number(newWallet.balance) + Number(applyAmount)
-                            });
-                        }
-                    }
-                }
-                // Scenario B: Same Wallet, Amount Changed
-                else if (oldWalletId && oldWalletId === newWalletId) {
-                    if (Number(oldTxn.amount) !== newAmount) {
-                        const wallet = wallets.find(w => w.id === oldWalletId);
-                        if (wallet) {
-                            const diff = newAmount - Number(oldTxn.amount);
-                            const adjustment = isExpense ? -diff : diff; // If expense increases (diff > 0), balance decreases (adjustment < 0)
-                            await api.updateWallet(oldWalletId, {
-                                balance: Number(wallet.balance) + Number(adjustment)
-                            });
-                        }
-                    }
-                }
-            }
-
-            // Reset and Reload
+            await updateTransaction(original, updates);
             setShowEditTransaction(false);
             setEditingTransaction(null);
-            setAmount('');
-            setDescription('');
-            setTransactionDate(new Date().toISOString().split('T')[0]);
-            setSelectedCategory('');
+        } catch (error: any) {
+            alert(`Error updating transaction: ${error.message}`);
+        }
+    };
 
-            await loadData();
-        } catch (e: unknown) {
-            console.error(e);
-            if (e instanceof Error) {
-                alert(`Error updating transaction: ${e.message} `);
-            } else {
-                alert('Error updating transaction');
-            }
-        } finally {
-            setSubmitting(false);
+    const handleDeleteSubmit = async (txn: Transaction) => {
+        try {
+            await deleteTransaction(txn);
+            setShowEditTransaction(false);
+            setEditingTransaction(null);
+        } catch (error: any) {
+            alert('Failed to delete transaction');
         }
     };
 
@@ -378,39 +332,79 @@ export default function Dashboard() {
 
     // Calculate metrics
     // Live wallet balance (changes with transactions) - THIS is the Total Budget shown to user
-    const liveBalance = wallets.reduce((acc, wallet) => acc + Number(wallet.balance), 0);
+    // Calculate metrics
+    // Live wallet balance (changes with transactions) - THIS is the Total Budget shown to user
+    const liveBalance = useMemo(() => wallets.reduce((acc, wallet) => acc + Number(wallet.balance), 0), [wallets]);
 
     // Total Expenses from all transactions
-    const totalExpenses = transactions
+    const totalExpenses = useMemo(() => transactions
         .filter(t => t.type === 'expense')
-        .reduce((acc, t) => acc + Number(t.amount), 0);
+        .reduce((acc, t) => acc + Number(t.amount), 0), [transactions]);
 
     // Total Budget = live wallet balance (updates with income/expenses)
     // This matches the Budget page so both show the same value
     const totalBudget = liveBalance;
     const currentBalance = liveBalance;
 
-    const recentTxns = transactions.slice(0, 5);
-    const recentExpenses = recentTxns.filter(t => t.type === 'expense').reduce((acc, t) => acc + Number(t.amount), 0);
-    const recentIncome = recentTxns.filter(t => t.type === 'income').reduce((acc, t) => acc + Number(t.amount), 0);
+    const recentTxns = useMemo(() => transactions.slice(0, 5), [transactions]);
+    const recentExpenses = useMemo(() => recentTxns.filter(t => t.type === 'expense').reduce((acc, t) => acc + Number(t.amount), 0), [recentTxns]);
+    const recentIncome = useMemo(() => recentTxns.filter(t => t.type === 'income').reduce((acc, t) => acc + Number(t.amount), 0), [recentTxns]);
     const recentNet = recentIncome - recentExpenses;
-    const trendPercentage = totalBudget > 0 ? ((recentNet / totalBudget) * 100) : 0;
+    const trendPercentage = useMemo(() => totalBudget > 0 ? ((recentNet / totalBudget) * 100) : 0, [totalBudget, recentNet]);
     const isPositiveTrend = recentNet >= 0;
 
-    const categorySpending = categories.map(cat => {
+    const categorySpending = useMemo(() => categories.map(cat => {
         const catExpenses = transactions.filter(t => t.type === 'expense' && t.category_id === cat.id);
         const total = catExpenses.reduce((acc, curr) => acc + Number(curr.amount), 0);
         return { ...cat, spent: total, count: catExpenses.length };
-    }).filter(c => c.spent > 0).sort((a, b) => b.spent - a.spent);
+    }).filter(c => c.spent > 0).sort((a, b) => b.spent - a.spent), [categories, transactions]);
 
     const topCategory = categorySpending[0];
 
     // Calculate budget utilization
     const budgetUsed = totalBudget > 0 ? (totalExpenses / totalBudget) * 100 : 0;
 
-    const formatMoney = (amount: number) => {
-        return `${currencySymbol}${amount.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} `;
-    };
+    const chartElement = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        const todayTxns = transactions
+            .filter(t => t.date === today)
+            .slice(0, 5)
+            .reverse();
+
+        const points = todayTxns.reduce((acc, txn) => {
+            const val = txn.type === 'income' ? txn.amount : -txn.amount;
+            const prev = acc[acc.length - 1];
+            acc.push(prev + Number(val));
+            return acc;
+        }, [0] as number[]);
+
+        const netChange = points[points.length - 1];
+        const isPositive = netChange >= 0;
+
+        const generatePath = (pts: number[]) => {
+            if (pts.length < 2) return "M 0 20 L 100 20";
+            const max = Math.max(...pts);
+            const min = Math.min(...pts);
+            const range = (max - min) || 1;
+            const width = 100;
+            const height = 40;
+            const padding = 5;
+            const availableHeight = height - (padding * 2);
+
+            return pts.map((val, i) => {
+                const x = (i / (pts.length - 1)) * width;
+                const normalizedVal = (val - min) / range;
+                const y = height - padding - (normalizedVal * availableHeight);
+                return `${i === 0 ? 'M' : 'L'} ${x} ${y} `;
+            }).join(' ');
+        };
+
+        return (
+            <svg viewBox="0 0 100 40" className={`w-full h-full ${isPositive ? 'text-success' : 'text-error'}`} fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d={generatePath(points)} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+        );
+    }, [transactions]);
 
     if (loading) {
         return (
@@ -458,11 +452,10 @@ export default function Dashboard() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ type: "spring", stiffness: 300, damping: 25 }}
                         >
-                            <div className="relative p-6 rounded-[24px] backdrop-blur-2xl bg-surface border border-border-color shadow-2xl overflow-hidden">
-                                <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl"></div>
-                                <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-secondary/10 to-transparent rounded-full blur-2xl"></div>
+                            <div className="relative p-6 rounded-[24px] backdrop-blur-3xl bg-surface/90 border border-border-color shadow-2xl overflow-hidden">
+                                { /* Ambient background blobs removed */}
 
-                                <div className="relative">
+                                <div className="relative z-10">
                                     <div className="flex items-center gap-2 mb-2">
                                         <p className="text-sm text-gray-300">Total Budget</p>
                                         <button
@@ -474,65 +467,25 @@ export default function Dashboard() {
                                     </div>
                                     <h2 className="text-4xl font-bold mb-3 tracking-tight">
                                         {showPrivacy
-                                            ? formatMoney(currentBalance)
+                                            ? formatMoney(currentBalance, currency)
                                             : `${currencySymbol} ••••••••`}
                                     </h2>
 
-                                    <div className="flex items-center gap-2">
-                                        <div className={`flex items - center text - sm px - 2 py - 1 rounded - lg backdrop - blur - sm ${isPositiveTrend ? 'bg-success/10 text-success' : 'bg-error/10 text-error'
+                                    <div className="flex items-center gap-2 relative z-20">
+                                        <div className={`flex items-center text-sm px-2 py-1 rounded-lg backdrop-blur-sm ${isPositiveTrend ? 'bg-success/10 text-success' : 'bg-error/10 text-error'
                                             } `}>
                                             {isPositiveTrend ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                                             <span className="ml-1">
                                                 {showPrivacy
-                                                    ? `${isPositiveTrend ? '+' : ''}${formatMoney(Math.abs(recentNet))} (${Math.abs(trendPercentage).toFixed(1)}%)`
+                                                    ? `${isPositiveTrend ? '+' : ''}${formatMoney(Math.abs(recentNet), currency)} (${Math.abs(trendPercentage).toFixed(1)}%)`
                                                     : '•••• (%)'}
                                             </span>
                                         </div>
                                     </div>
 
                                     {/* Dynamic Chart */}
-                                    <div className="absolute bottom-0 right-0 h-16 w-32 opacity-40">
-                                        {(() => {
-                                            const today = new Date().toISOString().split('T')[0];
-                                            const todayTxns = transactions
-                                                .filter(t => t.date === today)
-                                                .slice(0, 5)
-                                                .reverse();
-
-                                            const chartDataPoints = todayTxns.reduce((acc, txn) => {
-                                                const val = txn.type === 'income' ? txn.amount : -txn.amount;
-                                                const prev = acc[acc.length - 1];
-                                                acc.push(prev + Number(val));
-                                                return acc;
-                                            }, [0] as number[]);
-
-                                            const chartNetChange = chartDataPoints[chartDataPoints.length - 1];
-                                            const isChartPositive = chartNetChange >= 0;
-
-                                            const generatePath = (points: number[]) => {
-                                                if (points.length < 2) return "M 0 20 L 100 20";
-                                                const max = Math.max(...points);
-                                                const min = Math.min(...points);
-                                                const range = (max - min) || 1;
-                                                const width = 100;
-                                                const height = 40;
-                                                const padding = 5;
-                                                const availableHeight = height - (padding * 2);
-
-                                                return points.map((val, i) => {
-                                                    const x = (i / (points.length - 1)) * width;
-                                                    const normalizedVal = (val - min) / range;
-                                                    const y = height - padding - (normalizedVal * availableHeight);
-                                                    return `${i === 0 ? 'M' : 'L'} ${x} ${y} `;
-                                                }).join(' ');
-                                            };
-
-                                            return (
-                                                <svg viewBox="0 0 100 40" className={`w - full h - full ${isChartPositive ? 'text-success' : 'text-error'} `} fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                    <path d={generatePath(chartDataPoints)} strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                            );
-                                        })()}
+                                    <div className="absolute bottom-0 right-0 h-16 w-32 opacity-40 z-0">
+                                        {chartElement}
                                     </div>
                                 </div>
                             </div>
@@ -547,20 +500,25 @@ export default function Dashboard() {
                             <div className="flex items-center justify-between mb-3">
                                 <h3 className="font-semibold text-sm uppercase tracking-wider text-gray-400">My Wallets</h3>
                             </div>
-                            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+                            <div className="flex gap-4 overflow-x-auto p-4 scrollbar-hide">
                                 {wallets.map((wallet) => (
                                     <motion.div
                                         key={wallet.id}
-                                        whileHover={{ scale: 1.02 }}
-                                        className="min-w-[160px] p-4 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color flex flex-col justify-between h-[100px]"
-                                        style={{ borderColor: wallet.color ? `${wallet.color} 40` : undefined }}
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => {
+                                            setSelectedWallet(wallet.id);
+                                            openWalletModal();
+                                        }}
+                                        className="min-w-[160px] p-4 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color flex flex-col justify-between h-[100px] shadow-sm"
+                                        style={{ backgroundColor: `${wallet.color}20`, borderColor: `${wallet.color}50` }}
                                     >
                                         <div className="flex items-center gap-2 text-gray-400">
                                             {wallet.type === 'cash' ? <Banknote size={16} /> : <CreditCard size={16} />}
                                             <span className="text-sm font-medium truncate">{wallet.name}</span>
                                         </div>
                                         <p className="text-xl font-bold">
-                                            {showPrivacy ? formatMoney(wallet.balance) : '••••'}
+                                            {showPrivacy ? formatMoney(wallet.balance, currency) : '••••'}
                                         </p>
                                     </motion.div>
                                 ))}
@@ -632,7 +590,7 @@ export default function Dashboard() {
                                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                     className="relative z-20"
                                 >
-                                    <div className="p-6 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color space-y-4">
+                                    <div className="p-6 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color space-y-4 shadow-xl">
                                         <h3 className="text-lg font-semibold text-text-primary">Expense</h3>
                                         <Input
                                             label="Amount"
@@ -654,47 +612,19 @@ export default function Dashboard() {
                                             />
                                         </div>
 
-                                        {/* Wallet Selector */}
-                                        <div>
-                                            <label className="text-xs text-gray-400 mb-2 block">Pay from</label>
-                                            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                                                {wallets.map(w => (
-                                                    <button
-                                                        key={w.id}
-                                                        onClick={() => setSelectedWallet(w.id)}
-                                                        className={`px - 3 py - 1.5 rounded - lg text - sm border transition - all whitespace - nowrap
-                                                            ${selectedWallet === w.id
-                                                                ? 'bg-primary text-white border-primary'
-                                                                : 'bg-surface border-border-color text-gray-400'
-                                                            } `}
-                                                    >
-                                                        {w.name} ({formatMoney(w.balance)})
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
+                                        <WalletSelector
+                                            wallets={wallets}
+                                            selectedWalletId={selectedWallet}
+                                            onSelect={setSelectedWallet}
+                                            label="Pay from"
+                                            currencySymbol={currencySymbol}
+                                        />
 
-                                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                                            {categories.map(cat => (
-                                                <motion.button
-                                                    key={cat.id}
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => setSelectedCategory(cat.id)}
-                                                    className={`
-flex - shrink - 0 px - 4 py - 2.5 rounded - full border transition - all backdrop - blur - md
-                        flex items - center gap - 2 whitespace - nowrap
-                        ${selectedCategory === cat.id
-                                                            ? 'bg-primary text-white border-primary shadow-lg shadow-primary/25'
-                                                            : 'bg-surface border-border-color text-text-secondary hover:border-primary/40 hover:bg-surface-highlight'
-                                                        }
-`}
-                                                >
-                                                    <span>{cat.icon}</span>
-                                                    <span className="text-sm font-medium">{cat.name}</span>
-                                                </motion.button>
-                                            ))}
-                                        </div>
+                                        <CategorySelector
+                                            categories={categories}
+                                            selectedCategoryId={selectedCategory}
+                                            onSelect={setSelectedCategory}
+                                        />
 
                                         <Button
                                             className="w-full"
@@ -719,7 +649,7 @@ flex - shrink - 0 px - 4 py - 2.5 rounded - full border transition - all backdro
                                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                     className="relative z-20"
                                 >
-                                    <div className="p-6 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color space-y-4">
+                                    <div className="p-6 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color space-y-4 shadow-xl">
                                         <h3 className="text-lg font-semibold text-text-primary">Income</h3>
                                         <Input
                                             label="Amount"
@@ -742,25 +672,13 @@ flex - shrink - 0 px - 4 py - 2.5 rounded - full border transition - all backdro
                                             />
                                         </div>
 
-                                        {/* Wallet Selector */}
-                                        <div>
-                                            <label className="text-xs text-gray-400 mb-2 block">Deposit to</label>
-                                            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                                                {wallets.map(w => (
-                                                    <button
-                                                        key={w.id}
-                                                        onClick={() => setSelectedWallet(w.id)}
-                                                        className={`px - 3 py - 1.5 rounded - lg text - sm border transition - all whitespace - nowrap
-                                                            ${selectedWallet === w.id
-                                                                ? 'bg-primary text-white border-primary'
-                                                                : 'bg-surface border-border-color text-gray-400'
-                                                            } `}
-                                                    >
-                                                        {w.name} ({formatMoney(w.balance)})
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
+                                        <WalletSelector
+                                            wallets={wallets}
+                                            selectedWalletId={selectedWallet}
+                                            onSelect={setSelectedWallet}
+                                            label="Deposit to"
+                                            currencySymbol={currencySymbol}
+                                        />
 
                                         <Button
                                             className="w-full"
@@ -776,112 +694,18 @@ flex - shrink - 0 px - 4 py - 2.5 rounded - full border transition - all backdro
                         </AnimatePresence>
 
                         {/* Edit Transaction Modal */}
-                        <AnimatePresence>
-                            {showEditTransaction && editingTransaction && (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-                                    onClick={() => setShowEditTransaction(false)}
-                                >
-                                    <motion.div
-                                        initial={{ scale: 0.9, y: 20 }}
-                                        animate={{ scale: 1, y: 0 }}
-                                        exit={{ scale: 0.9, y: 20 }}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="w-full max-w-md rounded-[24px] bg-surface border border-border-color overflow-hidden max-h-[90vh] overflow-y-auto"
-                                    >
-                                        <div className="p-6 space-y-4">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <h3 className="text-xl font-bold">Edit {editingTransaction.type === 'expense' ? 'Expense' : 'Income'}</h3>
-                                                <button
-                                                    onClick={() => setShowEditTransaction(false)}
-                                                    className="p-2 rounded-full hover:bg-white/5 transition-colors"
-                                                >
-                                                    <X size={20} />
-                                                </button>
-                                            </div>
-
-                                            <Input
-                                                label="Amount"
-                                                type="number"
-                                                value={amount}
-                                                onChange={(e) => setAmount(e.target.value)}
-                                            />
-                                            <Input
-                                                label="Description"
-                                                type="text"
-                                                value={description}
-                                                onChange={(e) => setDescription(e.target.value)}
-                                            />
-                                            <div className="relative">
-                                                <DatePicker
-                                                    label="Date"
-                                                    value={transactionDate}
-                                                    onChange={setTransactionDate}
-                                                />
-                                            </div>
-
-                                            {/* Wallet Selector */}
-                                            <div>
-                                                <label className="text-xs text-gray-400 mb-2 block">
-                                                    {editingTransaction.type === 'expense' ? 'Pay from' : 'Deposit to'}
-                                                </label>
-                                                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                                                    {wallets.map(w => (
-                                                        <button
-                                                            key={w.id}
-                                                            onClick={() => setSelectedWallet(w.id)}
-                                                            className={`px - 3 py - 1.5 rounded - lg text - sm border transition - all whitespace - nowrap
-                                                                ${selectedWallet === w.id
-                                                                    ? 'bg-primary text-white border-primary'
-                                                                    : 'bg-surface border-border-color text-gray-400'
-                                                                } `}
-                                                        >
-                                                            {w.name} ({formatMoney(w.balance)})
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            {/* Category Selector (Only for Expense) */}
-                                            {editingTransaction.type === 'expense' && (
-                                                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                                                    {categories.map(cat => (
-                                                        <button
-                                                            key={cat.id}
-                                                            onClick={() => setSelectedCategory(cat.id)}
-                                                            className={`
-flex - shrink - 0 px - 4 py - 2.5 rounded - full border transition - all backdrop - blur - md
-                                                                flex items - center gap - 2 whitespace - nowrap
-                                                                ${selectedCategory === cat.id
-                                                                    ? 'bg-primary text-white border-primary shadow-lg shadow-primary/25'
-                                                                    : 'bg-surface border-border-color text-text-secondary hover:border-primary/40 hover:bg-surface-highlight'
-                                                                }
-`}
-                                                        >
-                                                            <span>{cat.icon}</span>
-                                                            <span className="text-sm font-medium">{cat.name}</span>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            <div className="flex gap-3 mt-6">
-                                                <Button
-                                                    className="flex-1 w-full"
-                                                    isLoading={submitting}
-                                                    onClick={handleUpdateTransaction}
-                                                >
-                                                    Update
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        {/* Edit Transaction Modal */}
+                        <EditTransactionModal
+                            isOpen={showEditTransaction}
+                            onClose={() => setShowEditTransaction(false)}
+                            transaction={editingTransaction}
+                            categories={categories}
+                            wallets={wallets}
+                            currencySymbol={currencySymbol}
+                            onUpdate={handleUpdateSubmit}
+                            onDelete={handleDeleteSubmit}
+                            isLoading={transactionSubmitting}
+                        />
 
                         {/* Budget & Top Spend */}
                         <motion.div
@@ -892,10 +716,10 @@ flex - shrink - 0 px - 4 py - 2.5 rounded - full border transition - all backdro
                         >
                             {/* Budget - Clickable */}
                             <motion.button
-                                onClick={openWalletModal}
+                                onClick={() => handleNavigate('budget')}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                className="p-5 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color hover:bg-surface-highlight transition-all text-left"
+                                className="p-5 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color hover:bg-surface-highlight transition-all text-left shadow-sm"
                             >
                                 <div className="flex items-center gap-2 mb-3">
                                     <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Budget</p>
@@ -916,12 +740,15 @@ flex - shrink - 0 px - 4 py - 2.5 rounded - full border transition - all backdro
                                 </div>
                                 <p className="text-xs text-gray-500 mt-2">
                                     {showPrivacy
-                                        ? `${formatMoney(totalExpenses)} of ${formatMoney(totalBudget)} `
+                                        ? `${formatMoney(totalExpenses, currency)} of ${formatMoney(totalBudget, currency)} `
                                         : `${currencySymbol}•••••• of ${currencySymbol}••••••`}
                                 </p>
                             </motion.button>
 
-                            <div className="p-5 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color hover:bg-surface-highlight transition-all">
+                            <div
+                                className="p-5 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color hover:bg-surface-highlight transition-all shadow-sm cursor-pointer"
+                                onClick={() => handleNavigate('category')}
+                            >
                                 <div className="flex items-center gap-2 mb-3">
                                     <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Top Spend</p>
                                     <Flame size={14} className="text-warning" />
@@ -962,7 +789,7 @@ flex - shrink - 0 px - 4 py - 2.5 rounded - full border transition - all backdro
                                         transition={{ delay: 0.3 + idx * 0.1 }}
                                         whileHover={{ x: 4 }}
                                     >
-                                        <div className="p-4 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color flex items-center gap-4 hover:bg-surface-highlight transition-all cursor-pointer">
+                                        <div className="p-4 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color flex items-center gap-4 hover:bg-surface-highlight transition-all cursor-pointer shadow-sm">
                                             <div
                                                 className="h-11 w-11 rounded-xl backdrop-blur-md border border-border-color flex items-center justify-center text-xl shadow-lg"
                                                 style={{ backgroundColor: `${cat.color} 15` }}
@@ -981,7 +808,7 @@ flex - shrink - 0 px - 4 py - 2.5 rounded - full border transition - all backdro
                                                     ></motion.div>
                                                 </div>
                                             </div>
-                                            <p className="text-sm font-semibold text-text-secondary">{formatMoney(cat.spent)}</p>
+                                            <p className="text-sm font-semibold text-text-secondary">{formatMoney(cat.spent, currency)}</p>
                                         </div>
                                     </motion.div>
                                 ))}
@@ -1005,42 +832,16 @@ flex - shrink - 0 px - 4 py - 2.5 rounded - full border transition - all backdro
                                 </button>
                             </div>
                             <div className="space-y-3">
-                                {transactions.slice(0, 5).map((txn, idx) => {
-                                    const isIncome = txn.type === 'income';
-                                    return (
-                                        <motion.div
-                                            key={txn.id}
-                                            initial={{ opacity: 0, x: -20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: 0.5 + idx * 0.05, type: "spring" }}
-                                            whileHover={{ x: 4 }}
-                                            onClick={() => handleEditClick(txn)}
-                                        >
-                                            <div className={`p - 4 rounded - [20px] backdrop - blur - xl border flex items - center justify - between transition - all cursor - pointer group ${isIncome ? 'bg-success/5 border-success/30 hover:bg-success/10' : 'bg-surface border-border-color hover:bg-surface-highlight'} `}>
-                                                <div className="flex items-center gap-4">
-                                                    <div
-                                                        className={`h - 11 w - 11 rounded - xl flex items - center justify - center text - xl shadow - lg border ${isIncome ? 'border-success/30' : 'border-border-color'} `}
-                                                        style={{ backgroundColor: isIncome ? '#34C75920' : (txn.category?.color ? `${txn.category.color} 18` : '#007AFF18') }}
-                                                    >
-                                                        {isIncome ? '💰' : (txn.category?.icon || '💸')}
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-medium">{txn.description || (isIncome ? 'Income' : txn.category?.name)}</p>
-                                                        <p className={`text - xs ${isIncome ? 'text-success/70' : 'text-gray-500'} `}>
-                                                            {txn.date ? formatDate(txn.date, dateFormat) : ''} • {isIncome ? 'Income' : txn.category?.name}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <p className={`font - bold ${isIncome ? 'text-success' : 'text-error'} `}>
-                                                        {isIncome ? '+' : '-'}{formatMoney(Number(txn.amount))}
-                                                    </p>
-                                                    <ChevronRight size={16} className="text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity -mr-1" />
-                                                </div>
-                                            </div>
-                                        </motion.div>
-                                    );
-                                })}
+                                {transactions.slice(0, 5).map((txn, idx) => (
+                                    <TransactionItem
+                                        key={txn.id}
+                                        transaction={txn}
+                                        index={idx}
+                                        currency={currency}
+                                        dateFormat={dateFormat}
+                                        onClick={() => handleEditClick(txn)}
+                                    />
+                                ))}
                                 {transactions.length === 0 && (
                                     <div className="text-center py-12">
                                         <div className="h-16 w-16 rounded-full bg-surface border border-border-color flex items-center justify-center mx-auto mb-4">
@@ -1069,7 +870,7 @@ flex - shrink - 0 px - 4 py - 2.5 rounded - full border transition - all backdro
                                     animate={{ scale: 1, y: 0 }}
                                     exit={{ scale: 0.9, y: 20 }}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="w-full max-w-md rounded-[28px] bg-surface border border-border-color overflow-hidden"
+                                    className="w-full max-w-md rounded-[28px] bg-surface backdrop-blur-xl border border-border-color overflow-hidden shadow-2xl"
                                 >
                                     {/* Header with Total Budget */}
                                     <div className="p-6 bg-gradient-to-br from-primary/20 to-secondary/10 border-b border-border-color">
@@ -1077,7 +878,7 @@ flex - shrink - 0 px - 4 py - 2.5 rounded - full border transition - all backdro
                                         <p className="text-xs text-gray-400 text-center mb-4">Max 4 wallets</p>
                                         <div className="text-center">
                                             <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Total Budget</p>
-                                            <p className="text-3xl font-bold text-primary">{formatMoney(getEditingTotal())}</p>
+                                            <p className="text-3xl font-bold text-primary">{formatMoney(getEditingTotal(), currency)}</p>
                                         </div>
                                     </div>
 
@@ -1096,7 +897,7 @@ flex - shrink - 0 px - 4 py - 2.5 rounded - full border transition - all backdro
                                                         <button className="w-12 h-12 rounded-xl bg-surface flex items-center justify-center text-2xl border border-border-color hover:border-primary transition-colors">
                                                             {wallet.icon}
                                                         </button>
-                                                        <div className="absolute top-full left-0 mt-1 p-2 bg-surface border border-border-color rounded-xl hidden group-hover:grid grid-cols-3 gap-1 z-10 shadow-xl">
+                                                        <div className="absolute top-full left-0 mt-1 p-2 bg-surface backdrop-blur-xl border border-border-color rounded-xl hidden group-hover:grid grid-cols-3 gap-1 z-10 shadow-xl">
                                                             {WALLET_ICONS.map(({ icon }) => (
                                                                 <button
                                                                     key={icon}
@@ -1195,63 +996,74 @@ flex - shrink - 0 px - 4 py - 2.5 rounded - full border transition - all backdro
 
             {
                 currentView === 'settings' && (
-                    <SettingsPage
-                        onBack={() => {
-                            handleNavigate('home');
-                            loadData();
-                        }}
-                        onNavigateToNotifications={() => handleNavigate('notifications')}
-                    />
+                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
+                        <SettingsPage
+                            onBack={() => {
+                                handleNavigate('home');
+                                loadData();
+                            }}
+                            onNavigateToNotifications={() => handleNavigate('notifications')}
+                        />
+                    </Suspense>
                 )
             }
 
             {
                 currentView === 'notifications' && (
-                    <NotificationSettings onBack={() => handleNavigate('settings')} />
+                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
+                        <NotificationSettings onBack={() => handleNavigate('settings')} />
+                    </Suspense>
                 )
             }
 
             {
                 currentView === 'report' && (
-                    <FinancialReport onBack={() => handleNavigate('home')} />
+                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
+                        <FinancialReport onBack={() => handleNavigate('home')} onNavigate={handleNavigate} />
+                    </Suspense>
                 )
             }
 
             {
                 currentView === 'budget' && (
-                    <BudgetPage onBack={() => {
-                        handleNavigate('home');
-                        loadData();
-                    }} />
+                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
+                        <BudgetPage onBack={() => {
+                            handleNavigate('home');
+                            loadData();
+                        }} />
+                    </Suspense>
                 )
             }
 
             {
                 currentView === 'category' && (
-                    <SpendingCategoryPage onBack={() => handleNavigate('home')} />
+                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
+                        <SpendingCategoryPage onBack={() => handleNavigate('home')} />
+                    </Suspense>
                 )
             }
 
             {
                 currentView === 'history' && (
-                    <HistoryPage onBack={() => handleNavigate('home')} />
+                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
+                        <HistoryPage onBack={() => handleNavigate('home')} />
+                    </Suspense>
                 )
             }
 
-            {/* Persistent Bottom Menu */}
-            <AnimatePresence>
-                {isBottomMenuVisible && (
-                    <motion.div
-                        initial={{ y: 100, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: 100, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: 'easeInOut' }}
-                        className="fixed bottom-0 left-0 right-0 z-[50]"
-                    >
-                        <BottomMenu currentView={currentView} onNavigate={handleNavigate} />
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Persistent Bottom Menu - Always mounted to preserve layout animation state */}
+            <motion.div
+                initial={{ y: 100, opacity: 0 }}
+                animate={{
+                    y: isBottomMenuVisible ? 0 : 100,
+                    opacity: isBottomMenuVisible ? 1 : 0,
+                    pointerEvents: isBottomMenuVisible ? 'auto' : 'none'
+                }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="fixed bottom-0 left-0 right-0 z-[50]"
+            >
+                <BottomMenu currentView={currentView} onNavigate={handleNavigate} />
+            </motion.div>
         </div >
     );
 }

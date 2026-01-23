@@ -52,12 +52,12 @@
   --success: #34C759;
   --warning: #FF9500;
   --error: #FF3B30;
-  --background: #F5F5F7;
-  --surface: rgba(255, 255, 255, 0.65);
-  --border-color: rgba(0, 0, 0, 0.05);
+  --background: #F0F0F5; /* Slightly darker for better card contrast */
+  --surface: rgba(255, 255, 255, 0.85); /* More opaque for readability */
+  --border-color: rgba(0, 0, 0, 0.08); /* Stronger border */
 
   --text-primary: #1D1D1F;
-  --text-secondary: #86868B;
+  --text-secondary: #6e6e73; /* Darker secondary text for readability */
 }
 
 :root.dark {
@@ -67,12 +67,11 @@
   --success: #30D158;
   --warning: #FF9F0A;
   --error: #FF453A;
-  --background: #0A0B0D;
-  --surface: rgba(255, 255, 255, 0.05);
-  --border-color: rgba(255, 255, 255, 0.1);
+  --background: #000000; /* Deep black */
+  --surface: rgba(28, 28, 30, 0.75); /* Dark grey surface instead of white alpha */
+  --border-color: rgba(255, 255, 255, 0.12);
 
-  --text-primary: #FFFFF0;
-  /* Slightly warmer white for better readability */
+  --text-primary: #FFFFFF;
   --text-secondary: #98989D;
 }
 

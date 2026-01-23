@@ -1,10 +1,13 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { useAppStore } from '../store/useAppStore';
 import { api } from '../lib/api';
-import type { Transaction, Category } from '../types';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Search, ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
+import type { Transaction, Category, Wallet } from '../types';
+import { TransactionItem } from '../components/TransactionItem';
+import { ArrowLeft, Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { parseISO } from 'date-fns';
+import { EditTransactionModal } from '../components/EditTransactionModal';
+import { useTransactionManager } from '../hooks/useTransactionManager';
 
 interface HistoryPageProps {
     onBack: () => void;
@@ -13,28 +16,28 @@ interface HistoryPageProps {
 const ITEMS_PER_PAGE = 30;
 
 export default function HistoryPage({ onBack }: HistoryPageProps) {
+    const { user } = useAuth();
     const { currency, setBottomMenuVisible } = useAppStore();
+
+    // Data State
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [wallets, setWallets] = useState<Wallet[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    // UI State
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-
-    useEffect(() => {
-        // Hide bottom menu when this page is active
-        setBottomMenuVisible(false);
-        loadData();
-
-        return () => {
-            // Restore bottom menu when leaving
-            setBottomMenuVisible(true);
-        };
-    }, [setBottomMenuVisible]);
+    const [showEditTransaction, setShowEditTransaction] = useState(false);
+    const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
     const loadData = async () => {
+        if (!user) return;
         try {
-            const [txns, cats] = await Promise.all([
+            const [txns, cats, walletsData] = await Promise.all([
                 api.getTransactions(),
-                api.getCategories()
+                api.getCategories(),
+                api.getWallets()
             ]);
             // Sort by date descending (newest first)
             const sorted = (txns || []).sort((a, b) =>
@@ -42,21 +45,56 @@ export default function HistoryPage({ onBack }: HistoryPageProps) {
             );
             setTransactions(sorted);
             setCategories(cats || []);
+            setWallets(walletsData || []);
         } catch (error) {
             console.error('Error loading data:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const getCategoryName = (categoryId: string | null | undefined) => {
-        if (!categoryId) return 'General';
-        const category = categories.find(c => c.id === categoryId);
-        return category ? category.name : 'Unknown';
+    const { updateTransaction, deleteTransaction, submitting: transactionSubmitting } = useTransactionManager({
+        wallets,
+        userId: user?.id,
+        onRefresh: loadData
+    });
+
+    useEffect(() => {
+        // Hide bottom menu when this page is active
+        setBottomMenuVisible(false);
+        window.scrollTo(0, 0);
+        loadData();
+
+        return () => {
+            // Restore bottom menu when leaving
+            setBottomMenuVisible(true);
+        };
+    }, [setBottomMenuVisible, user]);
+
+    // Handle Edit Actions
+    const handleEditClick = (txn: Transaction) => {
+        setEditingTransaction(txn);
+        setShowEditTransaction(true);
     };
 
-    const getCategoryIcon = (categoryId: string | null | undefined) => {
-        if (!categoryId) return '💰';
-        const category = categories.find(c => c.id === categoryId);
-        return category ? category.icon : '💰';
+    const handleUpdateSubmit = async (original: Transaction, updates: any) => {
+        try {
+            await updateTransaction(original, updates);
+            setShowEditTransaction(false);
+            setEditingTransaction(null);
+        } catch (error: any) {
+            alert(`Error updating transaction: ${error.message}`);
+        }
+    };
+
+    const handleDeleteSubmit = async (txn: Transaction) => {
+        try {
+            await deleteTransaction(txn);
+            setShowEditTransaction(false);
+            setEditingTransaction(null);
+        } catch (error: any) {
+            alert('Failed to delete transaction');
+        }
     };
 
     // Filter and search transactions
@@ -67,7 +105,8 @@ export default function HistoryPage({ onBack }: HistoryPageProps) {
         return transactions.filter(txn => {
             const description = (txn.description || '').toLowerCase();
             const amount = txn.amount.toString();
-            const categoryName = getCategoryName(txn.category_id).toLowerCase();
+            const category = categories.find(c => c.id === txn.category_id);
+            const categoryName = (category?.name || 'General').toLowerCase();
 
             return description.includes(query) ||
                 amount.includes(query) ||
@@ -88,30 +127,6 @@ export default function HistoryPage({ onBack }: HistoryPageProps) {
         setCurrentPage(1);
     }, [searchQuery]);
 
-    const formatMoney = (amount: number) => {
-        if (currency === 'IDR') {
-            return `Rp${amount.toLocaleString('id-ID')}`;
-        }
-        return `$${amount.toLocaleString('en-US')}`;
-    };
-
-    const formatDate = (dateString: string) => {
-        const date = parseISO(dateString);
-        return date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
-    };
-
-    const formatTime = (dateString: string) => {
-        const date = parseISO(dateString);
-        return date.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
     const goToPage = (page: number) => {
         if (page >= 1 && page <= totalPages) {
             setCurrentPage(page);
@@ -119,7 +134,7 @@ export default function HistoryPage({ onBack }: HistoryPageProps) {
     };
 
     return (
-        <div className="min-h-screen bg-background text-text-primary pb-6">
+        <div className="min-h-screen bg-background text-text-primary pb-6 relative">
             {/* Header */}
             <div className="sticky top-0 z-20 backdrop-blur-xl bg-background/80 border-b border-border-color">
                 <div className="p-4 space-y-4">
@@ -149,56 +164,32 @@ export default function HistoryPage({ onBack }: HistoryPageProps) {
 
             {/* Transaction List */}
             <div className="p-4">
-                {filteredTransactions.length === 0 ? (
+                {loading ? (
+                    <div className="flex items-center justify-center py-12">
+                        <Loader2 className="animate-spin text-primary" size={32} />
+                    </div>
+                ) : filteredTransactions.length === 0 ? (
                     <div className="text-center text-text-secondary py-12">
                         {searchQuery ? 'No transactions found' : 'No transaction history'}
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {paginatedTransactions.map((txn) => {
-                            const isIncome = txn.type === 'income';
+                        {paginatedTransactions.map((txn, idx) => {
+                            // Enriched transaction with category object for the component
+                            const txnWithCategory = {
+                                ...txn,
+                                category: categories.find(c => c.id === txn.category_id)
+                            };
 
                             return (
-                                <motion.div
+                                <TransactionItem
                                     key={txn.id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="backdrop-blur-xl bg-surface border border-border-color rounded-[20px] p-4"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        {/* Icon */}
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${isIncome ? 'bg-success/20' : 'bg-surface-highlight'
-                                            }`}>
-                                            {isIncome ? (
-                                                <TrendingUp className="text-success" size={24} />
-                                            ) : (
-                                                <span>{getCategoryIcon(txn.category_id)}</span>
-                                            )}
-                                        </div>
-
-                                        {/* Details */}
-                                        <div className="flex-1">
-                                            <div className="flex items-start justify-between">
-                                                <div>
-                                                    <div className="font-semibold">
-                                                        {txn.description || (isIncome ? 'Income' : getCategoryName(txn.category_id))}
-                                                    </div>
-                                                    <div className="text-xs text-text-secondary mt-1">
-                                                        {formatDate(txn.date)} • {formatTime(txn.date)}
-                                                        {!isIncome && txn.category_id && (
-                                                            <span> • {getCategoryName(txn.category_id)}</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {/* Amount */}
-                                                <div className={`font-bold ${isIncome ? 'text-success' : 'text-error'}`}>
-                                                    {isIncome ? '+' : '-'}{formatMoney(txn.amount)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </motion.div>
+                                    transaction={txnWithCategory}
+                                    currency={currency}
+                                    variant="history"
+                                    index={idx}
+                                    onEdit={() => handleEditClick(txn)}
+                                />
                             );
                         })}
                     </div>
@@ -258,6 +249,19 @@ export default function HistoryPage({ onBack }: HistoryPageProps) {
                     Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredTransactions.length)} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredTransactions.length)} of {filteredTransactions.length} transactions
                 </div>
             </div>
+
+            {/* Edit Modal */}
+            <EditTransactionModal
+                isOpen={showEditTransaction}
+                onClose={() => setShowEditTransaction(false)}
+                transaction={editingTransaction}
+                categories={categories}
+                wallets={wallets}
+                currencySymbol={currency === 'IDR' ? 'Rp' : '$'}
+                onUpdate={handleUpdateSubmit}
+                onDelete={handleDeleteSubmit}
+                isLoading={transactionSubmitting}
+            />
         </div>
     );
 }

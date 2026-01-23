@@ -23,3 +23,18 @@ export function formatDate(date: string | Date, format: 'DD/MM/YYYY' | 'MM/DD/YY
     }
     return `${day}/${month}/${year}`;
 }
+
+export function formatMoney(amount: number, currency: string = 'IDR'): string {
+    if (currency === 'IDR') {
+        return `Rp${amount.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    }
+    return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+export function formatTime(date: string | Date): string {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}

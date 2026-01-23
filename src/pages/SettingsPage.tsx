@@ -84,6 +84,7 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
     };
 
     useEffect(() => {
+        window.scrollTo(0, 0);
         loadProfile();
     }, []);
 
@@ -271,7 +272,7 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
 
                         {/* Date Format */}
                         <div
-                            className="p-4 flex items-center justify-between hover:bg-surface-highlight transition-colors cursor-pointer"
+                            className="p-4 flex items-center justify-between hover:bg-surface-highlight transition-colors cursor-pointer border-b border-border-color"
                             onClick={() => setDateFormat(dateFormat === 'DD/MM/YYYY' ? 'MM/DD/YYYY' : 'DD/MM/YYYY')}
                         >
                             <div className="flex items-center gap-4">
@@ -297,10 +298,13 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
                                 </div>
                                 <div>
                                     <p className="font-medium">Notifications</p>
-                                    <p className="text-xs text-gray-400">Manage alerts & reminders</p>
+                                    <p className="text-xs text-gray-400">Alerts & reminders.</p>
                                 </div>
                             </div>
-                            <ChevronRight size={16} className="text-gray-400" />
+                            <div className="flex items-center gap-2 text-gray-400">
+                                <span className="text-sm">Manage</span>
+                                <ChevronRight size={16} />
+                            </div>
                         </div>
                     </div>
                 </div>
