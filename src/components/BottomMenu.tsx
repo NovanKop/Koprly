@@ -35,7 +35,7 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
 
     return (
         <motion.div
-            className="backdrop-blur-3xl bg-surface/80 border border-white/20 rounded-full px-2 py-2 flex items-center gap-2 shadow-2xl ring-1 ring-black/5"
+            className="relative overflow-hidden backdrop-blur-3xl bg-surface/80 border border-white/20 rounded-full px-2 py-2 flex items-center gap-2 shadow-2xl ring-1 ring-black/5"
         >
             {menuItems.map((item) => {
                 const isActive = currentView === item.id;
