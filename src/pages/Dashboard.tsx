@@ -1027,9 +1027,11 @@ export default function Dashboard() {
                     pointerEvents: isBottomMenuVisible ? 'auto' : 'none'
                 }}
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
-                className="fixed bottom-0 left-0 right-0 z-[50]"
+                className="fixed bottom-0 left-0 right-0 z-[50] flex justify-center pb-8 pointer-events-none"
             >
-                <BottomMenu currentView={currentView} onNavigate={handleNavigate} />
+                <div className="pointer-events-auto">
+                    <BottomMenu currentView={currentView} onNavigate={handleNavigate} />
+                </div>
             </motion.div>
         </div >
     );
