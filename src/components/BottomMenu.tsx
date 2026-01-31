@@ -35,7 +35,7 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
 
     return (
         <motion.div
-            className="relative overflow-hidden backdrop-blur-3xl bg-surface/80 border border-white/20 rounded-full px-2 py-2 flex items-center gap-2 shadow-2xl ring-1 ring-black/5"
+            className="relative overflow-hidden glass-panel rounded-full px-2 py-2 flex items-center justify-between gap-1 shadow-2xl transition-all duration-300 hover:shadow-primary/5 min-w-[320px]"
         >
             {menuItems.map((item) => {
                 const isActive = currentView === item.id;
@@ -43,24 +43,38 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
                     <motion.button
                         key={item.id}
                         onClick={() => onNavigate(item.id as any)}
-                        className="relative p-4 rounded-full flex items-center justify-center outline-none"
-                        whileHover={{ scale: 1.2 }}
-                        whileTap={{ scale: 0.9 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                        className="relative p-4 rounded-full flex items-center justify-center outline-none flex-1 group"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
                     >
-                        {/* Sliding Active Background */}
+                        {/* Glow Effect behind Active Item */}
+                        {isActive && (
+                            <motion.div
+                                layoutId="activeGlow"
+                                className="absolute inset-0 bg-primary/20 blur-xl rounded-full"
+                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                            />
+                        )}
+
+                        {/* Sliding Active Background (The Green Circle) */}
                         {isActive && (
                             <motion.div
                                 layoutId="activeBubble"
-                                className="absolute inset-0 bg-gradient-to-br from-primary via-primary/80 to-secondary rounded-full shadow-lg shadow-primary/30"
+                                className="absolute inset-0 bg-primary rounded-full shadow-[0_0_20px_rgba(34,197,94,0.6)] dark:shadow-[0_0_25px_rgba(34,197,94,0.8)]"
                                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                             />
                         )}
 
                         {/* Icon */}
-                        <span className={`relative z-10 transition-colors duration-200 ${isActive ? 'text-white' : 'text-text-secondary mix-blend-overlay'}`}>
-                            {item.icon}
-                        </span>
+                        <div className="relative z-10 flex flex-col items-center gap-1">
+                            <span className={`transition-all duration-300 ${isActive ? 'text-white scale-110' : 'text-text-secondary group-hover:text-text-primary'}`}>
+                                {item.icon}
+                            </span>
+                            {/* Optional: Tiny dot if they really meant a dot *in addition* or *instead*, but keeping bubble as main based on context. 
+                                Adding a tiny dot below icon for extra "tech" feel if active? 
+                                User asked for "Glowing dot indicator". Let's stick to the bubble being the main indicator as "Green Circle".
+                            */}
+                        </div>
                     </motion.button>
                 );
             })}

@@ -34,65 +34,99 @@
   }
 }
 
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 .animate-blob {
   animation: blob 7s infinite;
 }
 
-.animation-delay-2000 {
-  animation-delay: 2s;
-}
-
-.animation-delay-4000 {
-  animation-delay: 4s;
-}
-
+/* Light Mode (Default) */
 :root {
-  /* Light Mode Fallback (Not focus of this refactor but kept for safety) */
   --primary: #22C55E;
   --secondary: #3B82F6;
   --success: #22C55E;
   --warning: #F59E0B;
   --error: #EF4444;
-  --background: #F0F0F5;
-  --surface: rgba(255, 255, 255, 0.85);
-  --border-color: rgba(0, 0, 0, 0.08);
+
+  /* Dual Theme Specs - Light */
+  --background: #F5F7F8;
+  --surface: rgba(255, 255, 255, 0.75);
+  --border-color: rgba(255, 255, 255, 0.4);
+
   --text-primary: #1D1D1F;
   --text-secondary: #6e6e73;
+  --glass-blur: 25px;
 }
 
+/* Dark Mode */
 :root.dark {
-  /* Liquid Glass Theme - Dark Mode Specification */
-
-  /* Palette */
-  --primary: #22C55E;
-  /* Neon Green */
-  --secondary: #3B82F6;
-  /* Wallet Blue */
-  --success: #22C55E;
-  --warning: #F59E0B;
-  --error: #EF4444;
-
-  /* Backgrounds */
-  --background: #0B0E11;
-  /* Deep Charcoal/Black */
-
-  /* Glass Surfaces */
+  /* Dual Theme Specs - Dark */
+  --background: #0B1218;
   --surface: rgba(23, 31, 41, 0.55);
-  --surface-highlight: rgba(255, 255, 255, 0.03);
-
-  /* Borders */
   --border-color: rgba(255, 255, 255, 0.1);
 
-  /* Text */
   --text-primary: #FFFFFF;
   --text-secondary: #94A3B8;
 }
-
 
 body {
   @apply bg-background text-text-primary antialiased;
   font-family: 'Manrope', sans-serif;
   font-feature-settings: "tnum";
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Typography Utilities */
+.font-numeric {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* Glass Utilities - Dynamic based on variables */
+.glass-panel {
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border-color);
+  background-color: var(--surface);
+  transition: all 0.3s ease;
+}
+
+.glass-card {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  background-color: var(--surface);
+  transition: all 0.3s ease;
+}
+
+/* Neon Glow - Dark Mode Only */
+:root.dark .glow-text-green {
+  text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+}
+
+:root.dark .glow-box-green {
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+}
+
+/* Liquid Progress Bar */
+.progress-liquid {
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-liquid::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 2s infinite;
 }
 
 .scrollbar-hide::-webkit-scrollbar {
@@ -102,53 +136,6 @@ body {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
-}
-
-/* Glass Utilities */
-.glass-panel {
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: rgba(23, 31, 41, 0.55);
-}
-
-.glass-card {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  background-color: rgba(23, 31, 41, 0.4);
-}
-
-/* Neon Glow Utilities */
-.glow-text-green {
-  text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
-}
-
-.glow-box-green {
-  box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
-}
-
-/* Date Picker Dark Mode Styles */
-:root.dark input[type="date"] {
-  color-scheme: dark;
-}
-
-:root:not(.dark) input[type="date"] {
-  color-scheme: light;
-}
-
-input[type="date"]::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-}
-
-:root.dark input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-}
-
-input[type="date"]::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
 }
 
 input[type="date"]::-webkit-datetime-edit {

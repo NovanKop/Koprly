@@ -393,8 +393,8 @@ export default function Dashboard() {
                                 {profile?.username?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase() || 'G'}
                             </div>
                             <div className="text-left">
-                                <p className="text-xs text-gray-400 font-medium mb-0.5">{getCurrentTime()}</p>
-                                <p className="font-bold text-lg text-white leading-tight">{profile?.username || 'G is my name'}</p>
+                                <p className="text-xs text-text-secondary font-medium mb-0.5 uppercase tracking-wider">{getCurrentTime()}</p>
+                                <p className="font-bold text-xl text-text-primary leading-tight">{profile?.username || 'G is my name'}</p>
                             </div>
                         </motion.button>
                         <NotificationBell onNotificationClick={handleNotificationClick} />
@@ -408,40 +408,42 @@ export default function Dashboard() {
                             animate={{ opacity: 1, scale: 1 }}
                             className="px-6"
                         >
-                            <div className="relative p-6 rounded-[32px] overflow-hidden glass-panel shadow-2xl">
-                                {/* Background Gradient Mesh */}
-                                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-blue-600/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
+                            <div className="relative p-7 rounded-[32px] overflow-hidden glass-panel shadow-2xl transition-all duration-300 hover:shadow-primary/10">
+                                {/* Background Gradient Mesh - Dynamic based on theme */}
+                                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-blue-600/20 dark:bg-blue-600/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
+                                <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-green-500/20 dark:bg-green-500/10 rounded-full blur-[60px] translate-y-1/3 -translate-x-1/3" />
 
                                 <div className="relative z-10">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <p className="text-sm font-medium text-gray-400">Total Budget</p>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <p className="text-sm font-semibold text-text-secondary uppercase tracking-tight">Total Budget</p>
                                         <button
                                             onClick={() => setShowPrivacy(!showPrivacy)}
-                                            className="text-gray-500 hover:text-white transition-colors"
+                                            className="text-text-secondary hover:text-text-primary transition-colors"
                                         >
                                             {showPrivacy ? <Eye size={16} /> : <EyeOff size={16} />}
                                         </button>
                                     </div>
-                                    <h2 className="text-4xl font-extrabold text-white mb-4 tracking-tight">
+                                    <h2 className="text-[42px] leading-none font-numeric text-text-primary mb-6 tracking-tight">
                                         {showPrivacy
                                             ? formatMoney(currentBalance, currency)
                                             : `${currencySymbol} ••••••••`}
                                     </h2>
 
-                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 mb-6">
+                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface border border-border-color mb-6 backdrop-blur-md">
                                         {isPositiveTrend ? <TrendingUp size={14} className="text-green-500" /> : <TrendingDown size={14} className="text-red-500" />}
-                                        <span className={`text-sm font-medium ${isPositiveTrend ? 'text-green-500' : 'text-red-500'}`}>
-                                            {formatMoney(Math.abs(recentNet), currency)} ({Math.abs(trendPercentage).toFixed(1)}%)
+                                        <span className={`text-sm font-bold ${isPositiveTrend ? 'text-green-500' : 'text-red-500'}`}>
+                                            {formatMoney(Math.abs(recentNet), currency)}
+                                            <span className="opacity-70 font-normal ml-1">({Math.abs(trendPercentage).toFixed(1)}%)</span>
                                         </span>
                                     </div>
 
                                     {/* Progress Bar */}
-                                    <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                                    <div className="h-3 bg-black/5 dark:bg-white/10 rounded-full overflow-hidden p-[2px]">
                                         <motion.div
                                             initial={{ width: 0 }}
                                             animate={{ width: `${Math.min((Math.max(0, currentBalance) / totalBudget) * 100, 100)}%` }}
                                             transition={{ duration: 1, ease: "easeOut" }}
-                                            className="h-full bg-primary rounded-full shadow-[0_0_15px_rgba(34,197,94,0.4)]"
+                                            className="h-full bg-primary rounded-full shadow-[0_0_15px_rgba(34,197,94,0.4)] progress-liquid"
                                         ></motion.div>
                                     </div>
                                 </div>
@@ -452,41 +454,55 @@ export default function Dashboard() {
                         {/* Wallets Section */}
                         <div className="mt-8">
                             <div className="px-6 mb-4">
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">MY WALLETS</h3>
+                                <h3 className="text-xs font-bold text-text-secondary uppercase tracking-widest">MY WALLETS</h3>
                             </div>
                             <div className="flex gap-4 overflow-x-auto px-6 pb-4 scrollbar-hide snap-x">
-                                {wallets.map((wallet) => (
-                                    <motion.div
-                                        key={wallet.id}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => {
-                                            setSelectedWallet(wallet.id);
-                                            openWalletModal();
-                                        }}
-                                        className="min-w-[160px] p-5 rounded-[20px] bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-white/10 snap-start flex flex-col justify-between h-[110px] relative overflow-hidden group"
-                                    >
-                                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        <div className="flex items-center gap-2 text-gray-400 relative z-10">
-                                            {wallet.type === 'cash' ? <Banknote size={18} className="text-blue-500" /> : <CreditCard size={18} className="text-green-500" />}
-                                            <span className="text-sm font-semibold truncate">{wallet.name}</span>
-                                        </div>
-                                        <div className="relative z-10">
-                                            <p className="text-xl font-bold text-white mb-1">
-                                                {showPrivacy ? formatMoney(wallet.balance, currency) : '••••'}
-                                            </p>
-                                            {/* Mini Progress Bar for visual flair */}
-                                            <div className="h-1 bg-gray-700/50 rounded-full overflow-hidden w-2/3">
-                                                <div className="h-full bg-blue-500 rounded-full" style={{ width: '60%' }} />
+                                {wallets.map((wallet) => {
+                                    // Determine gradient based on wallet name/type
+                                    const isBCA = wallet.name.toLowerCase().includes('bca');
+                                    const isJago = wallet.name.toLowerCase().includes('jago');
+
+                                    let gradientClass = "bg-gradient-to-br from-gray-800 to-gray-900"; // Default Dark
+                                    if (isBCA) gradientClass = "bg-gradient-to-br from-blue-600 to-blue-900";
+                                    else if (isJago) gradientClass = "bg-gradient-to-br from-emerald-500 to-emerald-800";
+
+                                    // Light mode override classes could be handled better, but strict gradient was requested.
+                                    // We'll use the specific gradients as they look good in both modes usually, 
+                                    // or we could add dark: prefixes if needed. 
+                                    // For now, let's Stick to rich gradients for these specific cards.
+
+                                    return (
+                                        <motion.div
+                                            key={wallet.id}
+                                            whileTap={{ scale: 0.98 }}
+                                            onClick={() => {
+                                                setSelectedWallet(wallet.id);
+                                                openWalletModal();
+                                            }}
+                                            className={`min-w-[160px] p-5 rounded-[20px] ${gradientClass} border border-white/10 snap-start flex flex-col justify-between h-[110px] relative overflow-hidden group shadow-lg`}
+                                        >
+                                            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <div className="flex items-center gap-2 text-white/90 relative z-10">
+                                                {wallet.type === 'cash' ? <Banknote size={18} /> : <CreditCard size={18} />}
+                                                <span className="text-sm font-bold truncate">{wallet.name}</span>
                                             </div>
-                                        </div>
-                                    </motion.div>
-                                ))}
+                                            <div className="relative z-10">
+                                                <p className="text-xl font-numeric text-white mb-2">
+                                                    {showPrivacy ? formatMoney(wallet.balance, currency) : '••••'}
+                                                </p>
+                                                <div className="h-1 bg-black/20 rounded-full overflow-hidden w-full">
+                                                    <div className="h-full bg-white/40 backdrop-blur-sm rounded-full" style={{ width: '60%' }} />
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })}
                                 <motion.button
                                     whileTap={{ scale: 0.98 }}
                                     onClick={openWalletModal}
-                                    className="min-w-[60px] rounded-[24px] bg-white/5 border border-white/5 flex items-center justify-center snap-start"
+                                    className="min-w-[60px] rounded-[24px] bg-surface border border-border-color flex items-center justify-center snap-start hover:bg-surface/80 transition-colors"
                                 >
-                                    <Plus size={24} className="text-gray-400" />
+                                    <Plus size={24} className="text-text-secondary" />
                                 </motion.button>
                             </div>
                         </div>
@@ -501,16 +517,15 @@ export default function Dashboard() {
                                     setShowEditTransaction(false);
                                     setShowAddExpense(!showAddExpense);
                                 }}
-                                className="flex-1 h-16 rounded-[20px] bg-gradient-to-br from-[#1e293b] via-[#1e293b] to-green-900/20 border border-green-500/20 flex flex-col items-center justify-center relative overflow-hidden group"
+                                className="flex-1 h-16 rounded-[20px] glass-panel border-green-500/30 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-green-500/10 transition-colors"
                             >
-                                <div className="absolute inset-0 bg-green-500/5 group-hover:bg-green-500/10 transition-colors" />
-                                <div className="flex items-center gap-2 text-white font-semibold z-10">
-                                    <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white">
-                                        <Plus size={18} />
+                                <div className="flex items-center gap-3 z-10">
+                                    <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center shadow-lg shadow-green-500/20">
+                                        <Plus size={20} />
                                     </div>
-                                    <div className="text-left leading-tight">
-                                        <span className="block text-[10px] text-green-500/80 font-bold uppercase tracking-wider">ADD</span>
-                                        <span className="text-sm">Expense</span>
+                                    <div className="text-left">
+                                        <span className="block text-[10px] text-green-500 font-extrabold uppercase tracking-widest">ADD</span>
+                                        <span className="text-sm font-bold text-text-primary">Expense</span>
                                     </div>
                                 </div>
                             </motion.button>
@@ -522,16 +537,15 @@ export default function Dashboard() {
                                     setShowEditTransaction(false);
                                     setShowAddIncome(!showAddIncome);
                                 }}
-                                className="flex-1 h-16 rounded-[20px] bg-gradient-to-br from-[#1e293b] via-[#1e293b] to-blue-900/20 border border-blue-500/20 flex flex-col items-center justify-center relative overflow-hidden group"
+                                className="flex-1 h-16 rounded-[20px] glass-panel border-blue-500/30 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-blue-500/10 transition-colors"
                             >
-                                <div className="absolute inset-0 bg-blue-500/5 group-hover:bg-blue-500/10 transition-colors" />
-                                <div className="flex items-center gap-2 text-white font-semibold z-10">
-                                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
-                                        <Plus size={18} />
+                                <div className="flex items-center gap-3 z-10">
+                                    <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                        <Plus size={20} />
                                     </div>
-                                    <div className="text-left leading-tight">
-                                        <span className="block text-[10px] text-blue-500/80 font-bold uppercase tracking-wider">ADD</span>
-                                        <span className="text-sm">Income</span>
+                                    <div className="text-left">
+                                        <span className="block text-[10px] text-blue-500 font-extrabold uppercase tracking-widest">ADD</span>
+                                        <span className="text-sm font-bold text-text-primary">Income</span>
                                     </div>
                                 </div>
                             </motion.button>
@@ -671,28 +685,29 @@ export default function Dashboard() {
                             <motion.button
                                 onClick={() => handleNavigate('budget')}
                                 whileTap={{ scale: 0.98 }}
-                                className="p-5 rounded-[20px] glass-card flex flex-col justify-between h-[180px] relative overflow-hidden"
+                                className="p-5 rounded-[20px] glass-card flex flex-col justify-between h-[180px] relative overflow-hidden group"
                             >
-                                <div className="flex justify-between items-start w-full">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">BUDGET</p>
-                                    <Wallet size={16} className="text-gray-500" />
+                                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="flex justify-between items-start w-full relative z-10">
+                                    <p className="text-[10px] font-extrabold text-text-secondary uppercase tracking-widest">BUDGET</p>
+                                    <Wallet size={16} className="text-text-secondary" />
                                 </div>
 
-                                <div className="mt-2">
-                                    <p className="text-4xl font-bold text-white leading-none">
+                                <div className="mt-2 relative z-10">
+                                    <p className="text-4xl font-numeric text-text-primary leading-none">
                                         {showPrivacy ? `${budgetUsed.toFixed(0)}%` : '••%'}
                                     </p>
-                                    <p className="text-xs text-gray-500 mt-1">Used</p>
+                                    <p className="text-xs text-text-secondary mt-1">Used</p>
                                 </div>
 
-                                <div className="w-full mt-auto">
-                                    <div className="flex justify-between text-[10px] text-gray-500 mb-1 font-mono">
-                                        <span>{showPrivacy ? formatMoney(totalExpenses, currency) : '•••'}</span>
-                                        <span>{showPrivacy ? formatMoney(totalBudget, currency) : '•••'}</span>
+                                <div className="w-full mt-auto relative z-10">
+                                    <div className="flex justify-between text-[10px] text-text-secondary mb-2 font-mono">
+                                        <span className="font-bold">{showPrivacy ? formatMoney(totalExpenses, currency) : '•••'}</span>
+                                        <span className="opacity-70">{showPrivacy ? formatMoney(totalBudget, currency) : '•••'}</span>
                                     </div>
-                                    <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                                    <div className="h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
                                         <div
-                                            className="h-full bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.3)]"
+                                            className="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(34,197,94,0.3)]"
                                             style={{ width: `${Math.min(budgetUsed, 100)}%` }}
                                         />
                                     </div>
@@ -702,29 +717,30 @@ export default function Dashboard() {
                             {/* Top Spend Card */}
                             <div
                                 onClick={() => handleNavigate('category')}
-                                className="p-5 rounded-[20px] glass-card flex flex-col justify-between h-[180px] relative overflow-hidden cursor-pointer"
+                                className="p-5 rounded-[20px] glass-card flex flex-col justify-between h-[180px] relative overflow-hidden cursor-pointer group"
                             >
-                                <div className="flex justify-between items-start w-full">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">TOP SPEND</p>
+                                <div className="absolute inset-0 bg-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="flex justify-between items-start w-full relative z-10">
+                                    <p className="text-[10px] font-extrabold text-text-secondary uppercase tracking-widest">TOP SPEND</p>
                                     <Flame size={16} className="text-orange-500" />
                                 </div>
 
-                                <div className="mt-2 flex-1 flex flex-col justify-center">
+                                <div className="mt-2 flex-1 flex flex-col justify-center relative z-10">
                                     {topCategory ? (
                                         <>
-                                            <p className="text-2xl font-bold text-white leading-tight mb-2">{topCategory.name}</p>
+                                            <p className="text-2xl font-bold text-text-primary leading-tight mb-2 line-clamp-2">{topCategory.name}</p>
                                             <div className="flex -space-x-2">
-                                                <div className="w-8 h-8 rounded-full bg-white/10 border border-[#151c2f] flex items-center justify-center text-sm">
+                                                <div className="w-8 h-8 rounded-full bg-surface border border-border-color flex items-center justify-center text-sm shadow-sm">
                                                     {topCategory.icon}
                                                 </div>
-                                                <div className="w-8 h-8 rounded-full bg-white/5 border border-[#151c2f] flex items-center justify-center text-[10px] text-gray-400">
+                                                <div className="w-8 h-8 rounded-full bg-surface border border-border-color flex items-center justify-center text-[10px] font-bold text-text-secondary shadow-sm">
                                                     +{topCategory.count}
                                                 </div>
                                             </div>
-                                            <p className="text-xs text-gray-500 mt-2">{topCategory.count} transactions</p>
+                                            <p className="text-xs text-text-secondary mt-2 font-medium">{topCategory.count} transactions</p>
                                         </>
                                     ) : (
-                                        <p className="text-sm text-gray-500">No data</p>
+                                        <p className="text-sm text-text-secondary">No data</p>
                                     )}
                                 </div>
                             </div>
@@ -734,7 +750,7 @@ export default function Dashboard() {
                         {/* Spending Categories */}
                         <div className="px-6 mt-8">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">SPENDING CATEGORIES</h3>
+                                <h3 className="text-xs font-bold text-text-secondary uppercase tracking-widest">SPENDING CATEGORIES</h3>
                                 <button
                                     onClick={() => handleNavigate('category')}
                                     className="text-xs text-blue-500 font-semibold flex items-center gap-1 hover:gap-2 transition-all"
@@ -750,10 +766,10 @@ export default function Dashboard() {
                                         initial={{ opacity: 0, x: -20 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: 0.1 * idx }}
-                                        className="p-4 rounded-[20px] glass-card flex items-center gap-4"
+                                        className="p-4 rounded-[20px] glass-card flex items-center gap-4 hover:bg-surface/80 transition-colors"
                                     >
                                         <div
-                                            className="h-12 w-12 rounded-[18px] flex items-center justify-center text-xl bg-[#0B1120] border border-white/5 shadow-inner"
+                                            className="h-12 w-12 rounded-[18px] flex items-center justify-center text-xl bg-surface border border-border-color shadow-sm"
                                             style={{ color: cat.color }}
                                         >
                                             <span style={{ filter: 'drop-shadow(0 0 10px currentColor)' }}>
@@ -763,10 +779,10 @@ export default function Dashboard() {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-center mb-2">
-                                                <p className="font-bold text-white truncate">{cat.name}</p>
-                                                <p className="text-sm font-bold text-white">{formatMoney(cat.spent, currency)}</p>
+                                                <p className="font-bold text-text-primary truncate">{cat.name}</p>
+                                                <p className="text-sm font-numeric text-text-primary">{formatMoney(cat.spent, currency)}</p>
                                             </div>
-                                            <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                                            <div className="h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
                                                 <div
                                                     className="h-full rounded-full shadow-[0_0_8px_currentColor]"
                                                     style={{
@@ -785,7 +801,7 @@ export default function Dashboard() {
                         {/* Recent Activity */}
                         <div className="px-6 mt-8">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">RECENT ACTIVITY</h3>
+                                <h3 className="text-xs font-bold text-text-secondary uppercase tracking-widest">RECENT ACTIVITY</h3>
                                 <button
                                     onClick={() => handleNavigate('history')}
                                     className="text-xs text-blue-500 font-semibold flex items-center gap-1 hover:gap-2 transition-all"
@@ -799,22 +815,22 @@ export default function Dashboard() {
                                     <div
                                         key={txn.id}
                                         onClick={() => handleEditClick(txn)}
-                                        className="p-4 rounded-[20px] glass-card flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
+                                        className="p-4 rounded-[20px] glass-card flex items-center justify-between cursor-pointer hover:bg-surface/80 transition-colors group"
                                     >
                                         <div className="flex items-center gap-4">
-                                            <div className="h-10 w-10 rounded-full border border-white/10 flex items-center justify-center text-lg bg-[#0B1120]">
+                                            <div className="h-10 w-10 rounded-full border border-border-color flex items-center justify-center text-xl bg-surface group-hover:scale-110 transition-transform">
                                                 {txn.category?.icon || (txn.type === 'income' ? '💰' : '💸')}
                                             </div>
                                             <div>
-                                                <p className="font-bold text-white text-sm">{txn.description}</p>
-                                                <p className="text-xs text-gray-500">{new Date(txn.date).toLocaleDateString()}</p>
+                                                <p className="font-bold text-text-primary text-sm">{txn.description}</p>
+                                                <p className="text-xs text-text-secondary">{new Date(txn.date).toLocaleDateString()}</p>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className={`font-bold text-sm ${txn.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
+                                            <p className={`font-numeric text-sm ${txn.type === 'income' ? 'text-green-500' : 'text-text-primary'}`}>
                                                 {txn.type === 'income' ? '+' : '-'}{formatMoney(txn.amount, currency)}
                                             </p>
-                                            <ChevronRight size={14} className="ml-auto text-gray-600 mt-1" />
+                                            <ChevronRight size={14} className="ml-auto text-text-secondary mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         </div>
                                     </div>
                                 ))}
