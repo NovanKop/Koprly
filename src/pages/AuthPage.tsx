@@ -4,9 +4,10 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { AppLayout } from '../layouts/AppLayout';
-import { Droplets, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../lib/api';
+import { useAppStore } from '../store/useAppStore';
 
 // Google Icon Component
 const GoogleIcon = () => (
@@ -41,6 +42,7 @@ export default function AuthPage() {
     const [isForgotPassword, setIsForgotPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
+    const { theme, setTheme } = useAppStore();
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -63,11 +65,15 @@ export default function AuthPage() {
                 if (error) throw error;
                 setMessage('Check your email for the confirmation link!');
             } else {
-                const { error } = await supabase.auth.signInWithPassword({
+                const { error, data } = await supabase.auth.signInWithPassword({
                     email,
                     password,
                 });
                 if (error) throw error;
+                // Sync theme preference to profile on login
+                if (data.user) {
+                    await api.updateProfile({ theme });
+                }
             }
         } catch (err: any) {
             console.error('Auth error:', err);
@@ -111,7 +117,39 @@ export default function AuthPage() {
 
     return (
         <AppLayout>
-            <div className="flex flex-col items-center justify-center min-h-[80vh]">
+            <div className="flex flex-col items-center justify-center min-h-[80vh] relative">
+                {/* Theme Toggle */}
+                <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    className="absolute top-0 right-4 p-3 rounded-full bg-surface border border-border-color shadow-lg hover:bg-surface/80 transition-all backdrop-blur-md z-50 group"
+                >
+                    <AnimatePresence mode="wait">
+                        {theme === 'dark' ? (
+                            <motion.div
+                                key="sun"
+                                initial={{ rotate: -90, opacity: 0 }}
+                                animate={{ rotate: 0, opacity: 1 }}
+                                exit={{ rotate: 90, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <Sun size={20} className="text-yellow-400 group-hover:text-yellow-300" />
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="moon"
+                                initial={{ rotate: 90, opacity: 0 }}
+                                animate={{ rotate: 0, opacity: 1 }}
+                                exit={{ rotate: -90, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <Moon size={20} className="text-blue-500 group-hover:text-blue-400" />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </motion.button>
+
                 {/* Logo Section */}
                 <motion.div
                     initial={{ scale: 0.9, opacity: 0 }}
@@ -119,11 +157,11 @@ export default function AuthPage() {
                     transition={{ duration: 0.5 }}
                     className="mb-8 flex flex-col items-center"
                 >
-                    <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-4 backdrop-blur-md">
-                        <Droplets size={40} />
+                    <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-4 backdrop-blur-md overflow-hidden">
+                        <img src="/logo.png" alt="Koprly" className="w-full h-full object-cover" />
                     </div>
-                    <h1 className="text-4xl font-bold tracking-tight text-center">Kopr</h1>
-                    <p className="text-text-secondary mt-2">Financial clarity, reimagined.</p>
+                    <h1 className="text-4xl font-bold tracking-tight text-center">Koprly</h1>
+                    <p className="text-text-secondary mt-2">Your money’s best friend.</p>
                 </motion.div>
 
                 <Card className="w-full max-w-md p-0 overflow-hidden" glass>

@@ -6,6 +6,8 @@ import { ArrowLeft, Edit2, Calendar, Moon, ChevronRight, Check, Pencil, Camera, 
 import { useAppStore } from '../store/useAppStore';
 import { api } from '../lib/api';
 import type { Profile } from '../types';
+import { GlassCard } from '../components/glass/GlassCard';
+import { GlassButton } from '../components/glass/GlassButton';
 
 interface SettingsPageProps {
     onBack: () => void;
@@ -141,7 +143,7 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
             </div>
 
             {/* Profile Info */}
-            <div className="flex flex-col items-center mt-4 mb-8">
+            <GlassCard variant="elevated" className="flex flex-col items-center mx-5 mt-4 mb-8 p-6 rounded-[32px]">
                 {/* Hidden file inputs */}
                 <input
                     type="file"
@@ -226,13 +228,12 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
                 </div>
                 <h2 className="mt-4 text-xl font-bold relative z-0">{profile?.username || 'User'}</h2>
                 <p className="text-sm text-primary font-medium tracking-wide relative z-0">Pro Member</p>
-            </div>
+            </GlassCard>
 
             <div className="px-5 space-y-8">
-                {/* Preferences */}
                 <div>
                     <h3 className="text-xs font-bold text-primary mb-3 uppercase tracking-wider pl-1">Preferences</h3>
-                    <div className="rounded-[24px] bg-surface border border-border-color overflow-hidden">
+                    <GlassCard className="rounded-[20px] overflow-hidden">
                         {/* Currency */}
                         <div
                             className="p-4 flex items-center justify-between hover:bg-surface-highlight transition-colors cursor-pointer border-b border-border-color"
@@ -240,7 +241,7 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
                         >
                             <div className="flex items-center gap-4">
                                 <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-400">
-                                    <span className="font-bold text-lg">$</span>
+                                    <span className="font-bold text-lg max-w-[24px] flex justify-center">$</span>
                                 </div>
                                 <div>
                                     <p className="font-medium">Default Currency</p>
@@ -306,13 +307,13 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
                                 <ChevronRight size={16} />
                             </div>
                         </div>
-                    </div>
+                    </GlassCard>
                 </div>
 
                 {/* Appearance */}
                 <div>
                     <h3 className="text-xs font-bold text-primary mb-3 uppercase tracking-wider pl-1">App Appearance</h3>
-                    <div className="rounded-[24px] bg-surface border border-border-color overflow-hidden">
+                    <GlassCard className="rounded-[20px] overflow-hidden">
                         <div className="p-4 flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <div className="h-10 w-10 rounded-xl bg-gray-700/30 flex items-center justify-center text-gray-300">
@@ -320,25 +321,25 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
                                 </div>
                                 <div>
                                     <p className="font-medium">Dark Mode</p>
-                                    <p className="text-xs text-gray-400">Easy on the eyes</p>
+                                    <p className="text-xs text-text-secondary">Easy on the eyes</p>
                                 </div>
                             </div>
                             <button
                                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                                className={`w-12 h-7 rounded-full transition-colors relative ${theme === 'dark' ? 'bg-primary' : 'bg-gray-600'}`}
+                                className={`w-12 h-7 rounded-full transition-all duration-300 relative ${theme === 'dark' ? 'bg-primary shadow-[0_0_15px_rgba(34,197,94,0.4)]' : 'bg-gray-400/50'}`}
                             >
-                                <div className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${theme === 'dark' ? 'translate-x-5' : 'translate-x-0'}`} />
+                                <div className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform duration-300 ${theme === 'dark' ? 'translate-x-5' : 'translate-x-0'}`} />
                             </button>
                         </div>
-                    </div>
+                    </GlassCard>
                 </div>
 
                 {/* Language */}
                 <div>
                     <h3 className="text-xs font-bold text-primary mb-3 uppercase tracking-wider pl-1">Language</h3>
-                    <div className="p-1.5 rounded-[18px] bg-surface border border-border-color flex relative">
+                    <GlassCard className="p-1.5 rounded-[20px] flex relative">
                         {/* Background slider */}
-                        <div className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] rounded-[14px] bg-surface-highlight border border-border-color transition-all duration-300 ${language === 'en' ? 'translate-x-full left-auto right-1.5' : 'left-1.5'}`} />
+                        <div className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] rounded-[14px] bg-surface-highlight border border-border-color transition-all duration-300 ${language === 'en' ? 'translate-x-[102%] left-1.5' : 'left-1.5'}`} />
 
                         <button
                             onClick={() => setLanguage('id')}
@@ -355,7 +356,7 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
                             <span className="text-lg">🇺🇸</span>
                             <span className="text-sm font-medium">English</span>
                         </button>
-                    </div>
+                    </GlassCard>
                     <p className="text-center text-xs text-gray-500 mt-3 px-8">
                         Language changes will require an app restart to take full effect.
                     </p>
@@ -364,7 +365,7 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
                 {/* Danger Zone */}
                 <div>
                     <h3 className="text-xs font-bold text-error mb-3 uppercase tracking-wider pl-1">Danger Zone</h3>
-                    <div className="rounded-[24px] bg-error/5 border border-error/20 overflow-hidden">
+                    <GlassCard className="rounded-[20px] bg-error/5 border border-error/20 overflow-hidden">
                         <div
                             className="p-4 flex items-center justify-between hover:bg-error/10 transition-colors cursor-pointer"
                             onClick={() => setShowResetConfirm(true)}
@@ -380,17 +381,18 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
                             </div>
                             <ChevronRight size={16} className="text-error" />
                         </div>
-                    </div>
+                    </GlassCard>
                 </div>
 
                 {/* Sign Out */}
                 <div className="pt-4 flex justify-center">
-                    <button
+                    <GlassButton
                         onClick={() => setShowSignOutConfirm(true)}
-                        className="text-text-secondary font-medium hover:text-primary transition-colors"
+                        variant="ghost"
+                        className="text-text-secondary hover:text-error"
                     >
                         Sign Out
-                    </button>
+                    </GlassButton>
                 </div>
 
                 <div className="text-center pb-8">

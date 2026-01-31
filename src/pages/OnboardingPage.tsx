@@ -135,7 +135,7 @@ export default function OnboardingPage({ onComplete }: { onComplete: () => void 
                     className="w-full max-w-lg"
                 >
                     <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold mb-2">Welcome to Kopr</h1>
+                        <h1 className="text-3xl font-bold mb-2">Welcome to Koprly</h1>
                         <p className="text-gray-400">Let's set up your financial profile.</p>
                     </div>
 

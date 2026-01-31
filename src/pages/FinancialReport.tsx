@@ -6,6 +6,8 @@ import { api } from '../lib/api';
 import { useAppStore } from '../store/useAppStore';
 import type { Transaction, Category, Profile } from '../types';
 import { DateRangePicker } from '../components/ui/DateRangePicker';
+import { GlassCard } from '../components/glass/GlassCard';
+import { ProgressBarGlow } from '../components/glass/ProgressBarGlow';
 
 interface FinancialReportProps {
     onBack: () => void;
@@ -368,15 +370,16 @@ export default function FinancialReport({ onBack, onNavigate }: FinancialReportP
                         visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
                     }}
                     whileHover={{ scale: 1.02 }}
-                    className="p-6 rounded-[32px] bg-surface backdrop-blur-xl border border-border-color shadow-sm"
                 >
-                    <p className="text-text-secondary text-sm mb-1">Total Outflow</p>
-                    <h2 className="text-3xl font-bold mb-2">{formatMoney(totalOutflow)}</h2>
-                    <div className="flex items-center gap-1 text-success text-sm font-medium">
-                        <TrendingUp size={16} className="rotate-180" />
-                        <span>12%</span>
-                        <span className="text-text-secondary font-normal">vs last month</span>
-                    </div>
+                    <GlassCard variant="elevated" className="p-6 rounded-[32px]">
+                        <p className="text-text-secondary text-sm mb-1">Total Outflow</p>
+                        <h2 className="text-3xl font-numeric mb-2">{formatMoney(totalOutflow)}</h2>
+                        <div className="flex items-center gap-1 text-success text-sm font-medium">
+                            <TrendingUp size={16} className="rotate-180" />
+                            <span>12%</span>
+                            <span className="text-text-secondary font-normal">vs last month</span>
+                        </div>
+                    </GlassCard>
                 </motion.div>
 
                 {/* Health & Top Merchant Grid */}
@@ -388,47 +391,49 @@ export default function FinancialReport({ onBack, onNavigate }: FinancialReportP
                     className="grid grid-cols-2 gap-4"
                 >
                     {/* Health Score */}
-                    <motion.div
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        onClick={() => onNavigate('budget')}
-                        className="p-5 rounded-[32px] bg-surface backdrop-blur-xl border border-border-color shadow-sm flex flex-col justify-between h-48 cursor-pointer hover:shadow-lg transition-shadow"
-                    >
-                        <div className="flex justify-between items-start">
-                            <span className="text-text-secondary text-sm font-medium">Health</span>
-                            <Heart className="text-success fill-success" size={20} />
-                        </div>
-                        <div>
-                            <div className="text-3xl font-bold mb-1">{healthScore}/100</div>
-                            <p className="text-xs text-text-secondary">Great job!</p>
-                            <div className="mt-3 h-1.5 bg-border-color rounded-full overflow-hidden">
-                                <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${Math.min((totalOutflow / (profile?.total_budget || 1)) * 100, 100)}%` }}
-                                    transition={{ duration: 1, delay: 0.5 }}
-                                    className="h-full bg-success opacity-80"
+                    <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
+                        <GlassCard
+                            onClick={() => onNavigate('budget')}
+                            className="p-5 h-48 flex flex-col justify-between rounded-[32px]"
+                            variant="elevated"
+                        >
+                            <div className="flex justify-between items-start">
+                                <span className="text-text-secondary text-sm font-medium">Health</span>
+                                <Heart className="text-success fill-success" size={20} />
+                            </div>
+                            <div>
+                                <div className="text-[48px] font-numeric leading-none mb-2 text-primary drop-shadow-[0_0_10px_rgba(34,197,94,0.4)]">
+                                    {healthScore}<span className="text-2xl text-text-secondary/50 font-bold">/100</span>
+                                </div>
+                                <p className="text-xs text-text-secondary mb-3">Great job!</p>
+                                <ProgressBarGlow
+                                    progress={Math.min((totalOutflow / (profile?.total_budget || 1)) * 100, 100)}
+                                    color="var(--success)"
+                                    height={8}
                                 />
                             </div>
-                        </div>
+                        </GlassCard>
                     </motion.div>
 
                     {/* Top Merchant */}
-                    <motion.div
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        onClick={() => onNavigate('category')}
-                        className="p-5 rounded-[32px] bg-success/20 backdrop-blur-xl border border-success/10 shadow-sm flex flex-col justify-between h-48 relative overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
-                    >
-                        <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-success/20 rounded-full blur-xl" />
+                    <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
+                        <GlassCard
+                            onClick={() => onNavigate('category')}
+                            className="p-5 h-48 flex flex-col justify-between rounded-[32px] !bg-success/10 border-success/20"
+                        >
+                            <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-success/20 rounded-full blur-xl" />
 
-                        <span className="text-success text-[10px] font-bold uppercase tracking-wider">Top Merchant</span>
+                            <span className="text-success text-[10px] font-bold uppercase tracking-wider">Top Merchant</span>
 
-                        <div className="text-right relative z-10">
-                            <p className="text-xs text-success/80 font-medium mb-1 truncate max-w-[100px]">{topMerchantName}</p>
-                            <p className="text-xl font-bold text-success">{formatMoney(topMerchantAmount)}</p>
-                        </div>
+                            <div className="text-right relative z-10">
+                                <p className="text-xs text-success/80 font-medium mb-1 truncate max-w-[100px]">{topMerchantName}</p>
+                                <p className="text-xl font-numeric text-success">{formatMoney(topMerchantAmount)}</p>
+                            </div>
 
-                        <div className="h-10 w-10 rounded-full border-2 border-success/30 flex items-center justify-center">
-                            <div className="h-4 w-4 bg-success rounded-full" />
-                        </div>
+                            <div className="h-10 w-10 rounded-full border-2 border-success/30 flex items-center justify-center">
+                                <div className="h-4 w-4 bg-success rounded-full shadow-[0_0_10px_var(--success)]" />
+                            </div>
+                        </GlassCard>
                     </motion.div>
                 </motion.div>
 
@@ -439,49 +444,55 @@ export default function FinancialReport({ onBack, onNavigate }: FinancialReportP
                         visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
                     }}
                     whileHover={{ scale: 1.01 }}
-                    className="p-6 rounded-[32px] bg-surface backdrop-blur-xl border border-border-color shadow-sm"
                 >
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="font-bold">Spending Trends</h3>
-                        <span className="px-3 py-1 rounded-full bg-background border border-border-color text-xs font-medium capitalize">
-                            {filter === 'custom'
-                                ? (customRange.start && customRange.end
-                                    ? `${format(new Date(customRange.start), 'd MMM')} - ${format(new Date(customRange.end), 'd MMM')}`
-                                    : 'Custom')
-                                : filter}
-                        </span>
-                    </div>
-
-                    {/* SVG Chart */}
-                    <div className="h-32 w-full flex items-end justify-between px-2 relative pt-4">
-                        {/* Y-Axis Labels (Min/Max) */}
-                        <div className="absolute left-0 top-4 bottom-0 flex flex-col justify-between text-[10px] text-text-secondary font-medium pointer-events-none z-10 opacity-70">
-                            <span>{formatCompactMoney(maxDataValue)}</span>
-                            <span>{formatCompactMoney(minDataValue)}</span>
+                    <GlassCard className="p-6 rounded-[32px]">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="font-bold">Spending Trends</h3>
+                            <span className="px-3 py-1 rounded-full glass-panel text-xs font-medium capitalize">
+                                {filter === 'custom'
+                                    ? (customRange.start && customRange.end
+                                        ? `${format(new Date(customRange.start), 'd MMM')} - ${format(new Date(customRange.end), 'd MMM')}`
+                                        : 'Custom')
+                                    : filter}
+                            </span>
                         </div>
 
-                        <div className="absolute inset-x-8 bottom-0 top-4 border-t border-dashed border-border-color/50" />
+                        {/* SVG Chart */}
+                        <div className="h-32 w-full flex items-end justify-between px-2 relative pt-4">
+                            {/* Grid Lines */}
+                            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                                <div className="border-t border-dashed border-text-secondary/10 w-full h-full" />
+                                <div className="border-t border-dashed border-text-secondary/10 w-full h-full" />
+                                <div className="border-t border-dashed border-text-secondary/10 w-full h-full" />
+                            </div>
 
-                        <svg className="w-full h-full overflow-visible ml-6" preserveAspectRatio="none" viewBox="0 0 100 100">
-                            <motion.path
-                                initial={{ pathLength: 0, opacity: 0 }}
-                                animate={{ pathLength: 1, opacity: 1 }}
-                                transition={{ duration: 1.5, ease: "easeInOut", delay: 0.5 }}
-                                d={generateSmoothPath(sparklineData, 100, 100)}
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                className="text-primary opacity-80"
-                            />
-                        </svg>
-                    </div>
+                            {/* Y-Axis Labels (Min/Max) */}
+                            <div className="absolute left-0 top-4 bottom-0 flex flex-col justify-between text-[10px] text-text-secondary font-numeric font-medium pointer-events-none z-10 opacity-70">
+                                <span>{formatCompactMoney(maxDataValue)}</span>
+                                <span>{formatCompactMoney(minDataValue)}</span>
+                            </div>
 
-                    <div className="flex justify-between mt-4 text-xs text-text-secondary font-medium px-2 pl-8">
-                        {chartLabels.map((label, i) => (
-                            <span key={i} className={i === chartLabels.length - 1 ? "text-primary font-bold" : ""}>{label}</span>
-                        ))}
-                    </div>
+                            <svg className="w-full h-full overflow-visible ml-6 z-10" preserveAspectRatio="none" viewBox="0 0 100 100">
+                                <motion.path
+                                    initial={{ pathLength: 0, opacity: 0 }}
+                                    animate={{ pathLength: 1, opacity: 1 }}
+                                    transition={{ duration: 1.5, ease: "easeInOut", delay: 0.5 }}
+                                    d={generateSmoothPath(sparklineData, 100, 100)}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    className="text-primary opacity-80 drop-shadow-[0_4px_8px_rgba(var(--primary-rgb),0.3)]"
+                                />
+                            </svg>
+                        </div>
+
+                        <div className="flex justify-between mt-4 text-xs text-text-secondary font-medium px-2 pl-8">
+                            {chartLabels.map((label, i) => (
+                                <span key={i} className={i === chartLabels.length - 1 ? "text-primary font-bold" : ""}>{label}</span>
+                            ))}
+                        </div>
+                    </GlassCard>
                 </motion.div>
 
                 {/* Insight Tip */}
@@ -491,14 +502,15 @@ export default function FinancialReport({ onBack, onNavigate }: FinancialReportP
                         visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
                     }}
                     whileHover={{ scale: 1.02 }}
-                    className="p-4 rounded-[24px] bg-surface backdrop-blur-xl border border-border-color shadow-sm flex items-center gap-4"
                 >
-                    <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center text-success shrink-0">
-                        <Lightbulb size={20} />
-                    </div>
-                    <p className="text-sm">
-                        Total outflow for this period is <span className="text-primary font-bold">{formatMoney(totalOutflow)}</span>.
-                    </p>
+                    <GlassCard className="p-4 rounded-[20px] flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center text-success shrink-0">
+                            <Lightbulb size={20} />
+                        </div>
+                        <p className="text-sm">
+                            Total outflow for this period is <span className="text-primary font-bold font-numeric">{formatMoney(totalOutflow)}</span>.
+                        </p>
+                    </GlassCard>
                 </motion.div>
 
                 {/* Category Breakdown */}
@@ -507,90 +519,90 @@ export default function FinancialReport({ onBack, onNavigate }: FinancialReportP
                         hidden: { opacity: 0, y: 20 },
                         visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
                     }}
-                    onClick={() => onNavigate('category')}
-                    className="p-6 rounded-[32px] bg-surface backdrop-blur-xl border border-border-color shadow-sm cursor-pointer hover:shadow-md transition-shadow"
                 >
-                    <h3 className="font-bold mb-6">Category Breakdown</h3>
+                    <GlassCard
+                        onClick={() => onNavigate('category')}
+                        className="p-6 rounded-[32px]"
+                    >
+                        <h3 className="font-bold mb-6">Category Breakdown</h3>
 
-                    <div className="flex items-center justify-center py-6 relative">
-                        {/* Donut Chart Placeholder - SVG with animation */}
-                        <div className="relative w-40 h-40">
-                            <svg viewBox="0 0 100 100" className="rotate-[-90deg]">
-                                <AnimatePresence mode='wait'>
-                                    {categoryStats.map((cat, i) => {
-                                        const prevTotal = categoryStats.slice(0, i).reduce((sum, c) => sum + c.total, 0);
-                                        const startPercent = totalOutflow > 0 ? prevTotal / totalOutflow : 0;
-                                        const percent = totalOutflow > 0 ? cat.total / totalOutflow : 0;
+                        <div className="flex items-center justify-center py-6 relative">
+                            {/* Donut Chart Placeholder - SVG with animation */}
+                            <div className="relative w-40 h-40">
+                                <svg viewBox="0 0 100 100" className="rotate-[-90deg]">
+                                    <AnimatePresence mode='wait'>
+                                        {categoryStats.map((cat, i) => {
+                                            const prevTotal = categoryStats.slice(0, i).reduce((sum, c) => sum + c.total, 0);
+                                            const startPercent = totalOutflow > 0 ? prevTotal / totalOutflow : 0;
+                                            const percent = totalOutflow > 0 ? cat.total / totalOutflow : 0;
 
-                                        const circumference = 2 * Math.PI * 40;
-                                        const strokeDasharray = `${percent * circumference} ${circumference}`;
-                                        const strokeDashoffset = -startPercent * circumference;
+                                            const circumference = 2 * Math.PI * 40;
+                                            const strokeDasharray = `${percent * circumference} ${circumference}`;
+                                            const strokeDashoffset = -startPercent * circumference;
 
-                                        return (
-                                            <motion.circle
-                                                key={`${filter}-${cat.id}`}
-                                                initial={{ opacity: 0, strokeDasharray: `0 ${circumference}` }}
-                                                animate={{ opacity: 1, strokeDasharray }}
-                                                transition={{ duration: 1, delay: 0.2 + (i * 0.1), ease: "easeOut" }}
-                                                cx="50" cy="50" r="40"
-                                                fill="none"
-                                                stroke={cat.color}
-                                                strokeWidth="10"
-                                                strokeDashoffset={strokeDashoffset}
-                                            />
-                                        );
-                                    })}
-                                </AnimatePresence>
-                                {categoryStats.length === 0 && (
-                                    <motion.circle
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 0.3 }}
-                                        cx="50" cy="50" r="40" fill="none" stroke="var(--border-color)" strokeWidth="10"
-                                    />
-                                )}
-                            </svg>
-                            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                                <span className="text-[10px] text-text-secondary">Top</span>
-                                <motion.span
-                                    key={filter}
-                                    initial={{ opacity: 0, y: 5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="text-sm font-bold truncate max-w-[80px]"
-                                    style={{ color: categoryStats[0]?.color || 'var(--text-primary)' }}
-                                >
-                                    {categoryStats[0]?.name || '-'}
-                                </motion.span>
+                                            return (
+                                                <motion.circle
+                                                    key={`${filter}-${cat.id}`}
+                                                    initial={{ opacity: 0, strokeDasharray: `0 ${circumference}` }}
+                                                    animate={{ opacity: 1, strokeDasharray }}
+                                                    transition={{ duration: 1, delay: 0.2 + (i * 0.1), ease: "easeOut" }}
+                                                    cx="50" cy="50" r="40"
+                                                    fill="none"
+                                                    stroke={cat.color}
+                                                    strokeWidth="10"
+                                                    strokeDashoffset={strokeDashoffset}
+                                                />
+                                            );
+                                        })}
+                                    </AnimatePresence>
+                                    {categoryStats.length === 0 && (
+                                        <motion.circle
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 0.3 }}
+                                            cx="50" cy="50" r="40" fill="none" stroke="var(--border-color)" strokeWidth="10"
+                                        />
+                                    )}
+                                </svg>
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                    <span className="text-[10px] text-text-secondary">Top</span>
+                                    <motion.span
+                                        key={filter}
+                                        initial={{ opacity: 0, y: 5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="text-sm font-bold truncate max-w-[80px]"
+                                        style={{ color: categoryStats[0]?.color || 'var(--text-primary)' }}
+                                    >
+                                        {categoryStats[0]?.name || '-'}
+                                    </motion.span>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="space-y-6 mt-4">
-                        {categoryStats.slice(0, 4).map((cat, i) => (
-                            <motion.div
-                                key={`${filter}-${cat.id}`}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.4 + (i * 0.1) }}
-                            >
-                                <div className="flex justify-between text-sm font-medium mb-2">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
-                                        <span>{cat.name}</span>
+                        <div className="space-y-6 mt-4">
+                            {categoryStats.slice(0, 4).map((cat, i) => (
+                                <motion.div
+                                    key={`${filter}-${cat.id}`}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 0.4 + (i * 0.1) }}
+                                >
+                                    <div className="flex justify-between text-sm font-medium mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                                            <span>{cat.name}</span>
+                                        </div>
+                                        <span className="font-numeric">{formatMoney(cat.total)}</span>
                                     </div>
-                                    <span>{formatMoney(cat.total)}</span>
-                                </div>
-                                <div className="h-1.5 bg-border-color rounded-full overflow-hidden">
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${(cat.total / totalOutflow) * 100}%` }}
-                                        transition={{ duration: 1, delay: 0.6 + (i * 0.1) }}
-                                        className="h-full rounded-full"
-                                        style={{ backgroundColor: cat.color }}
+                                    <ProgressBarGlow
+                                        progress={(cat.total / totalOutflow) * 100}
+                                        color={cat.color}
+                                        height={6}
+                                        className="bg-surface/50"
                                     />
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </GlassCard>
                 </motion.div>
             </motion.div>
 

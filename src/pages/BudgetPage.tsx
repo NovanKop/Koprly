@@ -7,6 +7,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Plus, ChevronDown, AlertTriangle, Trash2, X, ChevronRight } from 'lucide-react';
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval, format } from 'date-fns';
 import { Button } from '../components/ui/Button';
+import { GlassCard } from '../components/glass/GlassCard';
+import { GlassButton } from '../components/glass/GlassButton';
+import { ProgressBarGlow } from '../components/glass/ProgressBarGlow';
 
 interface BudgetPageProps {
     onBack: () => void;
@@ -389,45 +392,47 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                         hidden: { opacity: 0, y: 20 },
                         visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
                     }}
-                    onClick={openWalletModal}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    className="p-6 rounded-[32px] bg-surface backdrop-blur-xl border border-border-color shadow-sm cursor-pointer hover:bg-surface-highlight transition-colors"
                 >
-                    <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                                <p className="text-xs text-text-secondary uppercase tracking-wider">Total Budget</p>
-                                <ChevronRight size={14} className="text-text-secondary" />
+                    <GlassCard
+                        onClick={openWalletModal}
+                        variant="elevated"
+                        className="p-6 rounded-[32px] cursor-pointer"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <p className="text-xs text-text-secondary uppercase tracking-wider">Total Budget</p>
+                                    <ChevronRight size={14} className="text-text-secondary" />
+                                </div>
+                                <h2 className="text-3xl font-bold font-numeric">
+                                    {formatMoney(totalBudget)}
+                                </h2>
+                                <p className="text-sm text-text-secondary mt-1">
+                                    {formatMoney(totalSpent)} spent • {formatMoney(totalRemaining)} remaining
+                                </p>
                             </div>
-                            <h2 className="text-3xl font-bold">
-                                {formatMoney(totalBudget)}
-                            </h2>
-                            <p className="text-sm text-text-secondary mt-1">
-                                {formatMoney(totalSpent)} spent • {formatMoney(totalRemaining)} remaining
-                            </p>
+                            {/* Circular Progress */}
+                            {totalBudget > 0 && (
+                                <div className="relative w-16 h-16">
+                                    <svg viewBox="0 0 36 36" className="rotate-[-90deg]">
+                                        <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--border-color)" strokeWidth="3" />
+                                        <motion.circle
+                                            initial={{ strokeDasharray: "0 100" }}
+                                            animate={{ strokeDasharray: `${Math.min(usedPercent, 100)} 100` }}
+                                            transition={{ duration: 1, delay: 0.5 }}
+                                            cx="18" cy="18" r="15.5" fill="none"
+                                            stroke={usedPercent > 100 ? '#FF3B30' : usedPercent > 80 ? '#FF9500' : '#34C759'}
+                                            strokeWidth="3"
+                                            strokeLinecap="round"
+                                        />
+                                    </svg>
+                                    <span className="absolute inset-0 flex items-center justify-center text-xs font-bold font-numeric">
+                                        {usedPercent}%
+                                    </span>
+                                </div>
+                            )}
                         </div>
-                        {/* Circular Progress */}
-                        {totalBudget > 0 && (
-                            <div className="relative w-16 h-16">
-                                <svg viewBox="0 0 36 36" className="rotate-[-90deg]">
-                                    <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--border-color)" strokeWidth="3" />
-                                    <motion.circle
-                                        initial={{ strokeDasharray: "0 100" }}
-                                        animate={{ strokeDasharray: `${Math.min(usedPercent, 100)} 100` }}
-                                        transition={{ duration: 1, delay: 0.5 }}
-                                        cx="18" cy="18" r="15.5" fill="none"
-                                        stroke={usedPercent > 100 ? '#FF3B30' : usedPercent > 80 ? '#FF9500' : '#34C759'}
-                                        strokeWidth="3"
-                                        strokeLinecap="round"
-                                    />
-                                </svg>
-                                <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">
-                                    {usedPercent}%
-                                </span>
-                            </div>
-                        )}
-                    </div>
+                    </GlassCard>
                 </motion.div>
 
                 {/* Categories Header */}
@@ -450,9 +455,9 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`relative p-4 rounded-[20px] border ${isBudgetOverAllocated ? 'bg-error/10 border-error/30' : 'bg-surface border-border-color'}`}
+                        className="relative z-20"
                     >
-                        {/* Guidance Bubble */}
+                        {/* Guidance Bubble - Moved outside GlassCard to prevent clipping */}
                         {(() => {
                             const isPartial = budgetAllocationPercent > 0;
                             const guidanceKey = isPartial ? 'partial' : 'start';
@@ -463,12 +468,12 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
 
                             return (
                                 <motion.div
-                                    key={guidanceKey} // Animate when switching between messages
+                                    key={guidanceKey}
                                     initial={{ opacity: 0, scale: 0.9, y: 10 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    className="absolute -top-16 left-0 right-0 z-10 mx-auto w-[90%] md:w-[400px]"
+                                    className="absolute -top-16 left-0 right-0 z-30 mx-auto w-[90%] md:w-[400px]"
                                 >
-                                    <div className="bg-[#2A2A40] text-white p-3 rounded-2xl shadow-xl border border-primary/30 flex items-center justify-between gap-3 relative">
+                                    <div className="bg-[#2A2A40] text-white p-3 rounded-2xl shadow-xl border border-primary/30 flex items-center justify-center gap-3 relative">
                                         {/* Triangle pointer */}
                                         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#2A2A40] border-r border-b border-primary/30 rotate-45"></div>
 
@@ -494,38 +499,37 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                             );
                         })()}
 
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-text-secondary uppercase tracking-wider">Budget Allocation</span>
-                            <span className={`text-xs font-semibold ${isBudgetOverAllocated ? 'text-error' : 'text-text-secondary'}`}>
-                                {budgetAllocationPercent}% allocated
-                            </span>
-                        </div>
-                        <div className="h-3 bg-border-color rounded-full overflow-hidden mb-2">
-                            <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${Math.min(budgetAllocationPercent, 100)}%` }}
-                                transition={{ duration: 0.8 }}
-                                className="h-full rounded-full"
-                                style={{ backgroundColor: isBudgetOverAllocated ? '#FF3B30' : budgetAllocationPercent > 80 ? '#FF9500' : '#34C759' }}
-                            />
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                            <span className={isBudgetOverAllocated ? 'text-error font-semibold' : 'text-text-secondary'}>
-                                {formatMoney(totalCategoryBudgets)} allocated
-                            </span>
-                            <span className={isBudgetOverAllocated ? 'text-error font-semibold' : 'text-success font-semibold'}>
-                                {isBudgetOverAllocated
-                                    ? `-${formatMoney(Math.abs(budgetAllocationRemaining))} over`
-                                    : `${formatMoney(budgetAllocationRemaining)} remaining`
-                                }
-                            </span>
-                        </div>
-                        {isBudgetOverAllocated && (
-                            <div className="flex items-center gap-2 mt-2 p-2 bg-error/20 rounded-lg">
-                                <AlertTriangle size={16} className="text-error" />
-                                <span className="text-xs text-error">Category budgets exceed your total budget!</span>
+                        <GlassCard className={`p-4 rounded-[20px] ${isBudgetOverAllocated ? '!bg-error/10 !border-error/30' : ''}`}>
+
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs text-text-secondary uppercase tracking-wider">Budget Allocation</span>
+                                <span className={`text-xs font-semibold ${isBudgetOverAllocated ? 'text-error' : 'text-text-secondary'}`}>
+                                    {budgetAllocationPercent}% allocated
+                                </span>
                             </div>
-                        )}
+                            <ProgressBarGlow
+                                progress={budgetAllocationPercent}
+                                color={isBudgetOverAllocated ? '#FF3B30' : budgetAllocationPercent > 80 ? '#FF9500' : '#34C759'}
+                                height={12}
+                            />
+                            <div className="flex items-center justify-between text-sm mt-2">
+                                <span className={`${isBudgetOverAllocated ? 'text-error font-semibold' : 'text-text-secondary'} font-numeric`}>
+                                    {formatMoney(totalCategoryBudgets)} allocated
+                                </span>
+                                <span className={`${isBudgetOverAllocated ? 'text-error font-semibold' : 'text-success font-semibold'} font-numeric`}>
+                                    {isBudgetOverAllocated
+                                        ? `-${formatMoney(Math.abs(budgetAllocationRemaining))} over`
+                                        : `${formatMoney(budgetAllocationRemaining)} remaining`
+                                    }
+                                </span>
+                            </div>
+                            {isBudgetOverAllocated && (
+                                <div className="flex items-center gap-2 mt-2 p-2 bg-error/20 rounded-lg">
+                                    <AlertTriangle size={16} className="text-error" />
+                                    <span className="text-xs text-error">Category budgets exceed your total budget!</span>
+                                </div>
+                            )}
+                        </GlassCard>
                     </motion.div>
                 )}
 
@@ -544,79 +548,75 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: idx * 0.05 }}
-                                onClick={() => openEditModal(cat)}
-                                className="p-4 rounded-[24px] bg-surface backdrop-blur-xl border border-border-color shadow-sm cursor-pointer hover:bg-surface-highlight transition-colors"
                             >
-                                <div className="flex items-start justify-between mb-3">
-                                    <div className="flex items-center gap-3">
-                                        <div
-                                            className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-                                            style={{ backgroundColor: `${cat.color}20` }}
-                                        >
-                                            {cat.icon}
+                                <GlassCard
+                                    onClick={() => openEditModal(cat)}
+                                    className="p-4 rounded-[20px]"
+                                >
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div
+                                                className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+                                                style={{ backgroundColor: `${cat.color}20` }}
+                                            >
+                                                {cat.icon}
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold">{cat.name}</p>
+                                                {hasBudget && (
+                                                    <p className="text-xs text-text-secondary font-numeric">{formatMoney(cat.monthly_budget!)} Limit</p>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="font-semibold">{cat.name}</p>
-                                            {hasBudget && (
-                                                <p className="text-xs text-text-secondary">{formatMoney(cat.monthly_budget!)} Limit</p>
+                                        <div className="text-right">
+                                            {hasBudget ? (
+                                                <p className={`font-bold font-numeric ${isOver ? 'text-error' : 'text-success'}`}>
+                                                    {isOver ? `-${formatMoney(Math.abs(remaining))} over` : `${formatMoney(remaining)} left`}
+                                                </p>
+                                            ) : (
+                                                <p className="font-bold font-numeric">{formatMoney(cat.spent)}</p>
                                             )}
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        {hasBudget ? (
-                                            <p className={`font-bold ${isOver ? 'text-error' : 'text-success'}`}>
-                                                {isOver ? `-${formatMoney(Math.abs(remaining))} over` : `${formatMoney(remaining)} left`}
-                                            </p>
-                                        ) : (
-                                            <p className="font-bold">{formatMoney(cat.spent)}</p>
-                                        )}
-                                    </div>
-                                </div>
 
-                                {/* Progress Bar (only if budget set) */}
-                                {hasBudget && (
-                                    <>
-                                        <div className="flex items-center justify-between text-xs text-text-secondary mb-1">
-                                            <span>{formatMoney(cat.spent)} spent</span>
-                                            <span>{Math.round(usedPct)}%</span>
-                                        </div>
-                                        <div className="h-2 bg-border-color rounded-full overflow-hidden">
-                                            <motion.div
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${Math.min(usedPct, 100)}%` }}
-                                                transition={{ duration: 0.8, delay: 0.2 }}
-                                                className="h-full rounded-full"
-                                                style={{
-                                                    backgroundColor: isOver ? '#FF3B30' : isWarning ? '#FF9500' : cat.color
-                                                }}
-                                            />
-                                        </div>
-                                        {isWarning && !isOver && (
-                                            <div className="flex items-center gap-1 mt-2 text-xs text-warning">
-                                                <AlertTriangle size={12} />
-                                                <span>Approaching limit</span>
+                                    {/* Progress Bar (only if budget set) */}
+                                    {hasBudget && (
+                                        <>
+                                            <div className="flex items-center justify-between text-xs text-text-secondary mb-1">
+                                                <span>{formatMoney(cat.spent)} spent</span>
+                                                <span>{Math.round(usedPct)}%</span>
                                             </div>
-                                        )}
-                                    </>
-                                )}
+                                            <ProgressBarGlow
+                                                progress={usedPct}
+                                                color={isOver ? '#FF3B30' : isWarning ? '#FF9500' : cat.color}
+                                                height={8}
+                                            />
+                                            {isWarning && !isOver && (
+                                                <div className="flex items-center gap-1 mt-2 text-xs text-warning">
+                                                    <AlertTriangle size={12} />
+                                                    <span>Approaching limit</span>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </GlassCard>
                             </motion.div>
                         );
                     })}
                 </div>
 
                 {/* Add Category Button */}
-                <motion.button
+                <GlassButton
                     onClick={() => {
                         resetForm();
                         setShowAddCategory(true);
                     }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full py-4 rounded-[24px] bg-primary/20 border border-primary/30 text-primary font-semibold flex items-center justify-center gap-2 hover:bg-primary/30 transition-colors"
+                    className="w-full h-16 rounded-[20px] bg-primary/20 border-primary/30 text-primary hover:bg-primary/30"
+                    variant="ghost"
+                    icon={<Plus size={20} />}
                 >
-                    <Plus size={20} />
                     Add Category
-                </motion.button>
+                </GlassButton>
             </motion.div>
 
             {/* Add/Edit Category Modal */}

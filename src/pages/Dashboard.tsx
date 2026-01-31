@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, lazy, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -400,13 +401,14 @@ export default function Dashboard() {
                         <NotificationBell onNotificationClick={handleNotificationClick} />
                     </div>
 
-                    <div className="px-6 space-y-6">
+                    <div className="space-y-6 pb-24">
+                        {/* Total Budget Card */}
                         {/* Total Budget Card */}
                         {/* Total Budget Card */}
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="px-6"
+                            className="px-8"
                         >
                             <div className="relative p-7 rounded-[32px] overflow-hidden glass-panel shadow-2xl transition-all duration-300 hover:shadow-primary/10">
                                 {/* Background Gradient Mesh - Dynamic based on theme */}
@@ -453,63 +455,70 @@ export default function Dashboard() {
                         {/* Wallets Section */}
                         {/* Wallets Section */}
                         <div className="mt-8">
-                            <div className="px-6 mb-4">
+                            <div className="px-8 mb-4">
                                 <h3 className="text-xs font-bold text-text-secondary uppercase tracking-widest">MY WALLETS</h3>
                             </div>
-                            <div className="flex gap-4 overflow-x-auto px-6 pb-4 scrollbar-hide snap-x">
-                                {wallets.map((wallet) => {
-                                    // Determine gradient based on wallet name/type
-                                    const isBCA = wallet.name.toLowerCase().includes('bca');
-                                    const isJago = wallet.name.toLowerCase().includes('jago');
 
-                                    let gradientClass = "bg-gradient-to-br from-gray-800 to-gray-900"; // Default Dark
-                                    if (isBCA) gradientClass = "bg-gradient-to-br from-blue-600 to-blue-900";
-                                    else if (isJago) gradientClass = "bg-gradient-to-br from-emerald-500 to-emerald-800";
+                            {/* Scroll Container Wrapper with Fade Effect */}
+                            <div className="relative group">
+                                <div className="flex gap-4 overflow-x-auto px-0 pb-4 scrollbar-hide snap-x relative z-10 w-full">
+                                    <div className="min-w-[2rem] snap-start shrink-0" />
+                                    {wallets.map((wallet) => {
+                                        // Determine gradient based on wallet name/type
+                                        const isBCA = wallet.name.toLowerCase().includes('bca');
+                                        const isJago = wallet.name.toLowerCase().includes('jago');
 
-                                    // Light mode override classes could be handled better, but strict gradient was requested.
-                                    // We'll use the specific gradients as they look good in both modes usually, 
-                                    // or we could add dark: prefixes if needed. 
-                                    // For now, let's Stick to rich gradients for these specific cards.
+                                        let gradientClass = "bg-gradient-to-br from-gray-800 to-gray-900"; // Default Dark
+                                        if (isBCA) gradientClass = "bg-gradient-to-br from-blue-600 to-blue-900";
+                                        else if (isJago) gradientClass = "bg-gradient-to-br from-emerald-500 to-emerald-800";
 
-                                    return (
-                                        <motion.div
-                                            key={wallet.id}
-                                            whileTap={{ scale: 0.98 }}
-                                            onClick={() => {
-                                                setSelectedWallet(wallet.id);
-                                                openWalletModal();
-                                            }}
-                                            className={`min-w-[160px] p-5 rounded-[20px] ${gradientClass} border border-white/10 snap-start flex flex-col justify-between h-[110px] relative overflow-hidden group shadow-lg`}
-                                        >
-                                            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            <div className="flex items-center gap-2 text-white/90 relative z-10">
-                                                {wallet.type === 'cash' ? <Banknote size={18} /> : <CreditCard size={18} />}
-                                                <span className="text-sm font-bold truncate">{wallet.name}</span>
-                                            </div>
-                                            <div className="relative z-10">
-                                                <p className="text-xl font-numeric text-white mb-2">
-                                                    {showPrivacy ? formatMoney(wallet.balance, currency) : '••••'}
-                                                </p>
-                                                <div className="h-1 bg-black/20 rounded-full overflow-hidden w-full">
-                                                    <div className="h-full bg-white/40 backdrop-blur-sm rounded-full" style={{ width: '60%' }} />
+                                        // Light mode override classes could be handled better, but strict gradient was requested.
+                                        // We'll use the specific gradients as they look good in both modes usually, 
+                                        // or we could add dark: prefixes if needed. 
+                                        // For now, let's Stick to rich gradients for these specific cards.
+
+                                        return (
+                                            <motion.div
+                                                key={wallet.id}
+                                                whileTap={{ scale: 0.98 }}
+                                                onClick={() => {
+                                                    setSelectedWallet(wallet.id);
+                                                    openWalletModal();
+                                                }}
+                                                className={`min-w-[160px] p-5 rounded-[20px] ${gradientClass} border border-white/10 snap-start flex flex-col justify-between h-[110px] relative overflow-hidden group shadow-lg`}
+                                            >
+                                                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                <div className="flex items-center gap-2 text-white/90 relative z-10">
+                                                    {wallet.type === 'cash' ? <Banknote size={18} /> : <CreditCard size={18} />}
+                                                    <span className="text-sm font-bold truncate">{wallet.name}</span>
                                                 </div>
-                                            </div>
-                                        </motion.div>
-                                    );
-                                })}
-                                <motion.button
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={openWalletModal}
-                                    className="min-w-[60px] rounded-[24px] bg-surface border border-border-color flex items-center justify-center snap-start hover:bg-surface/80 transition-colors"
-                                >
-                                    <Plus size={24} className="text-text-secondary" />
-                                </motion.button>
+                                                <div className="relative z-10">
+                                                    <p className="text-xl font-numeric text-white mb-2">
+                                                        {showPrivacy ? formatMoney(wallet.balance, currency) : '••••'}
+                                                    </p>
+                                                    <div className="h-1 bg-black/20 rounded-full overflow-hidden w-full">
+                                                        <div className="h-full bg-white/40 backdrop-blur-sm rounded-full" style={{ width: '60%' }} />
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        );
+                                    })}
+                                    <motion.button
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={openWalletModal}
+                                        className="min-w-[60px] rounded-[24px] bg-surface border border-border-color flex items-center justify-center snap-start hover:bg-surface/80 transition-colors"
+                                    >
+                                        <Plus size={24} className="text-text-secondary" />
+                                    </motion.button>
+                                    <div className="min-w-[2rem] snap-start shrink-0" />
+                                </div>
+                                <div className="absolute right-0 top-0 bottom-4 w-16 bg-gradient-to-l from-background to-transparent z-20 pointer-events-none" />
                             </div>
                         </div>
 
                         {/* Action Buttons */}
                         {/* Action Buttons */}
-                        <div className="px-6 flex gap-4 mt-2">
+                        <div className="px-8 flex gap-4 mt-2">
                             <motion.button
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => {
@@ -517,7 +526,7 @@ export default function Dashboard() {
                                     setShowEditTransaction(false);
                                     setShowAddExpense(!showAddExpense);
                                 }}
-                                className="flex-1 h-16 rounded-[20px] glass-panel border-green-500/30 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-green-500/10 transition-colors"
+                                className="flex-1 h-16 rounded-[20px] glass-panel border border-white/40 dark:border-white/10 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-green-500/10 transition-colors"
                             >
                                 <div className="flex items-center gap-3 z-10">
                                     <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center shadow-lg shadow-green-500/20">
@@ -537,7 +546,7 @@ export default function Dashboard() {
                                     setShowEditTransaction(false);
                                     setShowAddIncome(!showAddIncome);
                                 }}
-                                className="flex-1 h-16 rounded-[20px] glass-panel border-blue-500/30 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-blue-500/10 transition-colors"
+                                className="flex-1 h-16 rounded-[20px] glass-panel border border-white/40 dark:border-white/10 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-blue-500/10 transition-colors"
                             >
                                 <div className="flex items-center gap-3 z-10">
                                     <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
@@ -559,7 +568,7 @@ export default function Dashboard() {
                                     animate={{ opacity: 1, height: 'auto', y: 0 }}
                                     exit={{ opacity: 0, height: 0, y: -10 }}
                                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                    className="relative z-20"
+                                    className="relative z-20 px-8"
                                 >
                                     <div className="p-6 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color space-y-4 shadow-xl">
                                         <h3 className="text-lg font-semibold text-text-primary">Expense</h3>
@@ -618,7 +627,7 @@ export default function Dashboard() {
                                     animate={{ opacity: 1, height: 'auto', y: 0 }}
                                     exit={{ opacity: 0, height: 0, y: -10 }}
                                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                    className="relative z-20"
+                                    className="relative z-20 px-8"
                                 >
                                     <div className="p-6 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color space-y-4 shadow-xl">
                                         <h3 className="text-lg font-semibold text-text-primary">Income</h3>
@@ -680,7 +689,7 @@ export default function Dashboard() {
 
                         {/* Budget & Top Spend */}
                         {/* Budget & Top Spend */}
-                        <div className="px-6 mt-8 grid grid-cols-2 gap-4">
+                        <div className="px-8 mt-8 grid grid-cols-2 gap-4">
                             {/* Budget Card */}
                             <motion.button
                                 onClick={() => handleNavigate('budget')}
@@ -1034,20 +1043,24 @@ export default function Dashboard() {
                 )
             }
 
-            {/* Persistent Bottom Menu - Always mounted to preserve layout animation state */}
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{
-                    opacity: isBottomMenuVisible ? 1 : 0,
-                    pointerEvents: isBottomMenuVisible ? 'auto' : 'none'
-                }}
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
-                className="fixed bottom-0 left-0 right-0 z-[50] flex justify-center pb-8 pointer-events-none"
-            >
-                <div className="pointer-events-auto">
-                    <BottomMenu currentView={currentView} onNavigate={handleNavigate} />
-                </div>
-            </motion.div>
+            {/* Persistent Bottom Menu - Using Portal to escape parent transforms */}
+            {createPortal(
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{
+                        opacity: isBottomMenuVisible ? 1 : 0,
+                        pointerEvents: isBottomMenuVisible ? 'auto' : 'none'
+                    }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="fixed bottom-0 left-0 right-0 z-[999] flex justify-center pb-8 pointer-events-none"
+                    style={{ position: 'fixed' }} // Force fixed
+                >
+                    <div className="pointer-events-auto">
+                        <BottomMenu currentView={currentView} onNavigate={handleNavigate} />
+                    </div>
+                </motion.div>,
+                document.body
+            )}
         </div >
     );
 }
