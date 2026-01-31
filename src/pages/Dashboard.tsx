@@ -1,5 +1,4 @@
 import { useEffect, useState, useMemo, useCallback, lazy, Suspense } from 'react';
-import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -1044,23 +1043,12 @@ export default function Dashboard() {
             }
 
             {/* Persistent Bottom Menu - Using Portal to escape parent transforms */}
-            {createPortal(
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{
-                        opacity: isBottomMenuVisible ? 1 : 0,
-                        pointerEvents: isBottomMenuVisible ? 'auto' : 'none'
-                    }}
-                    transition={{ duration: 0.3, ease: 'easeInOut' }}
-                    className="fixed bottom-0 left-0 right-0 z-[999] flex justify-center pb-8 pointer-events-none"
-                    style={{ position: 'fixed' }} // Force fixed
-                >
-                    <div className="pointer-events-auto">
-                        <BottomMenu currentView={currentView} onNavigate={handleNavigate} />
-                    </div>
-                </motion.div>,
-                document.body
-            )}
+            {/* Persistent Bottom Menu */}
+            <AnimatePresence>
+                {isBottomMenuVisible && (
+                    <BottomMenu currentView={currentView} onNavigate={handleNavigate} />
+                )}
+            </AnimatePresence>
         </div >
     );
 }
