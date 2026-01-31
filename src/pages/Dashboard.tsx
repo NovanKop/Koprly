@@ -1020,9 +1020,8 @@ export default function Dashboard() {
 
             {/* Persistent Bottom Menu - Always mounted to preserve layout animation state */}
             <motion.div
-                initial={{ y: 100, opacity: 0 }}
+                initial={{ opacity: 0 }}
                 animate={{
-                    y: isBottomMenuVisible ? 0 : 100,
                     opacity: isBottomMenuVisible ? 1 : 0,
                     pointerEvents: isBottomMenuVisible ? 'auto' : 'none'
                 }}
