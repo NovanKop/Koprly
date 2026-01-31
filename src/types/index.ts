@@ -4,6 +4,7 @@ export interface Category {
     icon: string;
     color: string;
     monthly_budget?: number;
+    user_id?: string;
 }
 
 export interface Wallet {
@@ -25,6 +26,7 @@ export interface Transaction {
     category_id?: string; // Optional for income
     wallet_id?: string; // Link to wallet
     created_at: string;
+    user_id?: string;
     category?: Category; // Joined data
     wallet?: Wallet; // Joined data
 }

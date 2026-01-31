@@ -12,7 +12,8 @@
   --color-text-secondary: var(--text-secondary);
   --color-border-color: var(--border-color);
 
-  --font-sans: 'SF Pro Display', 'Inter', -apple-system, system-ui, sans-serif;
+  --font-display: 'Manrope', 'Inter', sans-serif;
+  --font-sans: 'Manrope', 'Inter', -apple-system, system-ui, sans-serif;
 }
 
 @keyframes blob {
@@ -46,40 +47,52 @@
 }
 
 :root {
-  /* Light Mode (White Liquid Glass) */
-  --primary: #007AFF;
-  --secondary: #5856D6;
-  --success: #34C759;
-  --warning: #FF9500;
-  --error: #FF3B30;
-  --background: #F0F0F5; /* Slightly darker for better card contrast */
-  --surface: rgba(255, 255, 255, 0.85); /* More opaque for readability */
-  --border-color: rgba(0, 0, 0, 0.08); /* Stronger border */
-
+  /* Light Mode Fallback (Not focus of this refactor but kept for safety) */
+  --primary: #22C55E;
+  --secondary: #3B82F6;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --background: #F0F0F5;
+  --surface: rgba(255, 255, 255, 0.85);
+  --border-color: rgba(0, 0, 0, 0.08);
   --text-primary: #1D1D1F;
-  --text-secondary: #6e6e73; /* Darker secondary text for readability */
+  --text-secondary: #6e6e73;
 }
 
 :root.dark {
-  /* Dark Mode */
-  --primary: #0A84FF;
-  --secondary: #5E5CE6;
-  --success: #30D158;
-  --warning: #FF9F0A;
-  --error: #FF453A;
-  --background: #000000; /* Deep black */
-  --surface: rgba(28, 28, 30, 0.75); /* Dark grey surface instead of white alpha */
-  --border-color: rgba(255, 255, 255, 0.12);
+  /* Liquid Glass Theme - Dark Mode Specification */
 
+  /* Palette */
+  --primary: #22C55E;
+  /* Neon Green */
+  --secondary: #3B82F6;
+  /* Wallet Blue */
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --error: #EF4444;
+
+  /* Backgrounds */
+  --background: #0B0E11;
+  /* Deep Charcoal/Black */
+
+  /* Glass Surfaces */
+  --surface: rgba(23, 31, 41, 0.55);
+  --surface-highlight: rgba(255, 255, 255, 0.03);
+
+  /* Borders */
+  --border-color: rgba(255, 255, 255, 0.1);
+
+  /* Text */
   --text-primary: #FFFFFF;
-  --text-secondary: #98989D;
+  --text-secondary: #94A3B8;
 }
 
 
 body {
   @apply bg-background text-text-primary antialiased;
+  font-family: 'Manrope', sans-serif;
   font-feature-settings: "tnum";
-  /* Tabular numbers as per brand guide */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
@@ -91,7 +104,31 @@ body {
   scrollbar-width: none;
 }
 
-/* Dark Mode Date Picker Styling */
+/* Glass Utilities */
+.glass-panel {
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(23, 31, 41, 0.55);
+}
+
+.glass-card {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background-color: rgba(23, 31, 41, 0.4);
+}
+
+/* Neon Glow Utilities */
+.glow-text-green {
+  text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+}
+
+.glow-box-green {
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+}
+
+/* Date Picker Dark Mode Styles */
 :root.dark input[type="date"] {
   color-scheme: dark;
 }
@@ -114,7 +151,6 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
 
-/* Date input specific styling for better dark mode appearance */
 input[type="date"]::-webkit-datetime-edit {
   color: var(--text-primary);
 }
@@ -140,7 +176,7 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 input[type="date"]::-webkit-datetime-edit-month-field:focus,
 input[type="date"]::-webkit-datetime-edit-day-field:focus,
 input[type="date"]::-webkit-datetime-edit-year-field:focus {
-  background-color: rgba(0, 122, 255, 0.2);
+  background-color: rgba(34, 197, 94, 0.2);
   color: var(--primary);
   outline: none;
 }

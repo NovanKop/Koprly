@@ -12,7 +12,6 @@ const BudgetPage = lazy(() => import('./BudgetPage'));
 const SpendingCategoryPage = lazy(() => import('./SpendingCategoryPage'));
 const HistoryPage = lazy(() => import('./HistoryPage'));
 const NotificationSettings = lazy(() => import('./NotificationSettings'));
-import { TransactionItem } from '../components/TransactionItem';
 import { CategorySelector } from '../components/CategorySelector';
 import { WalletSelector } from '../components/WalletSelector';
 import { BottomMenu } from '../components/BottomMenu';
@@ -26,7 +25,7 @@ import type { Category, Transaction, Profile, Wallet as WalletType, Notification
 
 export default function Dashboard() {
     const { user } = useAuth();
-    const { currency, dateFormat, isBottomMenuVisible, setBottomMenuVisible } = useAppStore();
+    const { currency, isBottomMenuVisible, setBottomMenuVisible } = useAppStore();
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -364,47 +363,7 @@ export default function Dashboard() {
     // Calculate budget utilization
     const budgetUsed = totalBudget > 0 ? (totalExpenses / totalBudget) * 100 : 0;
 
-    const chartElement = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0];
-        const todayTxns = transactions
-            .filter(t => t.date === today)
-            .slice(0, 5)
-            .reverse();
 
-        const points = todayTxns.reduce((acc, txn) => {
-            const val = txn.type === 'income' ? txn.amount : -txn.amount;
-            const prev = acc[acc.length - 1];
-            acc.push(prev + Number(val));
-            return acc;
-        }, [0] as number[]);
-
-        const netChange = points[points.length - 1];
-        const isPositive = netChange >= 0;
-
-        const generatePath = (pts: number[]) => {
-            if (pts.length < 2) return "M 0 20 L 100 20";
-            const max = Math.max(...pts);
-            const min = Math.min(...pts);
-            const range = (max - min) || 1;
-            const width = 100;
-            const height = 40;
-            const padding = 5;
-            const availableHeight = height - (padding * 2);
-
-            return pts.map((val, i) => {
-                const x = (i / (pts.length - 1)) * width;
-                const normalizedVal = (val - min) / range;
-                const y = height - padding - (normalizedVal * availableHeight);
-                return `${i === 0 ? 'M' : 'L'} ${x} ${y} `;
-            }).join(' ');
-        };
-
-        return (
-            <svg viewBox="0 0 100 40" className={`w-full h-full ${isPositive ? 'text-success' : 'text-error'}`} fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d={generatePath(points)} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-        );
-    }, [transactions]);
 
     if (loading) {
         return (
@@ -425,21 +384,17 @@ export default function Dashboard() {
             {currentView === 'home' && (
                 <>
                     {/* Header - Profile Section */}
-                    <div className="px-6 pt-8 pb-6 flex items-center justify-between">
+                    <div className="px-6 pt-12 pb-6 flex items-center justify-between">
                         <motion.button
                             onClick={() => handleNavigate('settings')}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="flex items-center gap-3 cursor-pointer"
+                            className="flex items-center gap-4 group"
                         >
-                            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold shadow-lg">
-                                {profile?.username?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase() || 'U'}
+                            <div className="h-12 w-12 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-blue-900/20 ring-4 ring-white/5 group-hover:scale-105 transition-transform">
+                                {profile?.username?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase() || 'G'}
                             </div>
                             <div className="text-left">
-                                <p className="text-sm text-gray-400">{getCurrentTime()}</p>
-                                <p className="font-semibold text-base">{profile?.username || user?.email?.split('@')[0] || 'User'}</p>
+                                <p className="text-xs text-gray-400 font-medium mb-0.5">{getCurrentTime()}</p>
+                                <p className="font-bold text-lg text-white leading-tight">{profile?.username || 'G is my name'}</p>
                             </div>
                         </motion.button>
                         <NotificationBell onNotificationClick={handleNotificationClick} />
@@ -447,138 +402,140 @@ export default function Dashboard() {
 
                     <div className="px-6 space-y-6">
                         {/* Total Budget Card */}
+                        {/* Total Budget Card */}
                         <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="px-6"
                         >
-                            <div className="relative p-6 rounded-[24px] backdrop-blur-3xl bg-surface/90 border border-border-color shadow-2xl overflow-hidden">
-                                { /* Ambient background blobs removed */}
+                            <div className="relative p-6 rounded-[32px] overflow-hidden glass-panel shadow-2xl">
+                                {/* Background Gradient Mesh */}
+                                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-blue-600/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
 
                                 <div className="relative z-10">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <p className="text-sm text-gray-300">Total Budget</p>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <p className="text-sm font-medium text-gray-400">Total Budget</p>
                                         <button
                                             onClick={() => setShowPrivacy(!showPrivacy)}
-                                            className="text-text-secondary hover:text-text-primary transition-colors"
+                                            className="text-gray-500 hover:text-white transition-colors"
                                         >
                                             {showPrivacy ? <Eye size={16} /> : <EyeOff size={16} />}
                                         </button>
                                     </div>
-                                    <h2 className="text-4xl font-bold mb-3 tracking-tight">
+                                    <h2 className="text-4xl font-extrabold text-white mb-4 tracking-tight">
                                         {showPrivacy
                                             ? formatMoney(currentBalance, currency)
                                             : `${currencySymbol} ••••••••`}
                                     </h2>
 
-                                    <div className="flex items-center gap-2 relative z-20">
-                                        <div className={`flex items-center text-sm px-2 py-1 rounded-lg backdrop-blur-sm ${isPositiveTrend ? 'bg-success/10 text-success' : 'bg-error/10 text-error'
-                                            } `}>
-                                            {isPositiveTrend ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                            <span className="ml-1">
-                                                {showPrivacy
-                                                    ? `${isPositiveTrend ? '+' : ''}${formatMoney(Math.abs(recentNet), currency)} (${Math.abs(trendPercentage).toFixed(1)}%)`
-                                                    : '•••• (%)'}
-                                            </span>
-                                        </div>
+                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 mb-6">
+                                        {isPositiveTrend ? <TrendingUp size={14} className="text-green-500" /> : <TrendingDown size={14} className="text-red-500" />}
+                                        <span className={`text-sm font-medium ${isPositiveTrend ? 'text-green-500' : 'text-red-500'}`}>
+                                            {formatMoney(Math.abs(recentNet), currency)} ({Math.abs(trendPercentage).toFixed(1)}%)
+                                        </span>
                                     </div>
 
-                                    {/* Dynamic Chart */}
-                                    <div className="absolute bottom-0 right-0 h-16 w-32 opacity-40 z-0">
-                                        {chartElement}
+                                    {/* Progress Bar */}
+                                    <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${Math.min((Math.max(0, currentBalance) / totalBudget) * 100, 100)}%` }}
+                                            transition={{ duration: 1, ease: "easeOut" }}
+                                            className="h-full bg-primary rounded-full shadow-[0_0_15px_rgba(34,197,94,0.4)]"
+                                        ></motion.div>
                                     </div>
                                 </div>
                             </div>
                         </motion.div>
 
                         {/* Wallets Section */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.15 }}
-                        >
-                            <div className="flex items-center justify-between mb-3">
-                                <h3 className="font-semibold text-sm uppercase tracking-wider text-gray-400">My Wallets</h3>
+                        {/* Wallets Section */}
+                        <div className="mt-8">
+                            <div className="px-6 mb-4">
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">MY WALLETS</h3>
                             </div>
-                            <div className="flex gap-4 overflow-x-auto p-4 scrollbar-hide">
+                            <div className="flex gap-4 overflow-x-auto px-6 pb-4 scrollbar-hide snap-x">
                                 {wallets.map((wallet) => (
                                     <motion.div
                                         key={wallet.id}
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
+                                        whileTap={{ scale: 0.98 }}
                                         onClick={() => {
                                             setSelectedWallet(wallet.id);
                                             openWalletModal();
                                         }}
-                                        className="min-w-[160px] p-4 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color flex flex-col justify-between h-[100px] shadow-sm"
-                                        style={{ backgroundColor: `${wallet.color}20`, borderColor: `${wallet.color}50` }}
+                                        className="min-w-[160px] p-5 rounded-[20px] bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-white/10 snap-start flex flex-col justify-between h-[110px] relative overflow-hidden group"
                                     >
-                                        <div className="flex items-center gap-2 text-gray-400">
-                                            {wallet.type === 'cash' ? <Banknote size={16} /> : <CreditCard size={16} />}
-                                            <span className="text-sm font-medium truncate">{wallet.name}</span>
+                                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        <div className="flex items-center gap-2 text-gray-400 relative z-10">
+                                            {wallet.type === 'cash' ? <Banknote size={18} className="text-blue-500" /> : <CreditCard size={18} className="text-green-500" />}
+                                            <span className="text-sm font-semibold truncate">{wallet.name}</span>
                                         </div>
-                                        <p className="text-xl font-bold">
-                                            {showPrivacy ? formatMoney(wallet.balance, currency) : '••••'}
-                                        </p>
+                                        <div className="relative z-10">
+                                            <p className="text-xl font-bold text-white mb-1">
+                                                {showPrivacy ? formatMoney(wallet.balance, currency) : '••••'}
+                                            </p>
+                                            {/* Mini Progress Bar for visual flair */}
+                                            <div className="h-1 bg-gray-700/50 rounded-full overflow-hidden w-2/3">
+                                                <div className="h-full bg-blue-500 rounded-full" style={{ width: '60%' }} />
+                                            </div>
+                                        </div>
                                     </motion.div>
                                 ))}
-                                <Button
-                                    variant="secondary"
-                                    className="min-w-[50px] rounded-[20px] h-[100px] border-dashed border-2 flex items-center justify-center"
+                                <motion.button
+                                    whileTap={{ scale: 0.98 }}
                                     onClick={openWalletModal}
+                                    className="min-w-[60px] rounded-[24px] bg-white/5 border border-white/5 flex items-center justify-center snap-start"
                                 >
-                                    <Plus size={20} className="text-gray-400" />
-                                </Button>
+                                    <Plus size={24} className="text-gray-400" />
+                                </motion.button>
                             </div>
-                        </motion.div>
+                        </div>
 
                         {/* Action Buttons */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.1 }}
-                            className="flex gap-4"
-                        >
-                            <Button
-                                className="flex-1 bg-success hover:bg-success/90 text-white border-none shadow-lg hover:shadow-xl transition-shadow"
+                        {/* Action Buttons */}
+                        <div className="px-6 flex gap-4 mt-2">
+                            <motion.button
+                                whileTap={{ scale: 0.98 }}
                                 onClick={() => {
                                     setShowAddIncome(false);
                                     setShowEditTransaction(false);
                                     setShowAddExpense(!showAddExpense);
                                 }}
+                                className="flex-1 h-16 rounded-[20px] bg-gradient-to-br from-[#1e293b] via-[#1e293b] to-green-900/20 border border-green-500/20 flex flex-col items-center justify-center relative overflow-hidden group"
                             >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect x="2" y="6" width="20" height="14" rx="3" />
-                                    <circle cx="12" cy="13" r="3" />
-                                    <circle cx="6" cy="10" r="1" fill="currentColor" />
-                                    <circle cx="18" cy="10" r="1" fill="currentColor" />
-                                    <circle cx="6" cy="16" r="1" fill="currentColor" />
-                                    <circle cx="18" cy="16" r="1" fill="currentColor" />
-                                    <path d="M12 3v4m0 0l-3-3m3 3l3-3" />
-                                </svg>
-                                Add Expense
-                            </Button>
-                            <Button
-                                variant="secondary"
-                                className="flex-1 backdrop-blur-xl bg-surface border-border-color hover:bg-surface-highlight"
+                                <div className="absolute inset-0 bg-green-500/5 group-hover:bg-green-500/10 transition-colors" />
+                                <div className="flex items-center gap-2 text-white font-semibold z-10">
+                                    <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white">
+                                        <Plus size={18} />
+                                    </div>
+                                    <div className="text-left leading-tight">
+                                        <span className="block text-[10px] text-green-500/80 font-bold uppercase tracking-wider">ADD</span>
+                                        <span className="text-sm">Expense</span>
+                                    </div>
+                                </div>
+                            </motion.button>
+
+                            <motion.button
+                                whileTap={{ scale: 0.98 }}
                                 onClick={() => {
                                     setShowAddExpense(false);
                                     setShowEditTransaction(false);
                                     setShowAddIncome(!showAddIncome);
                                 }}
+                                className="flex-1 h-16 rounded-[20px] bg-gradient-to-br from-[#1e293b] via-[#1e293b] to-blue-900/20 border border-blue-500/20 flex flex-col items-center justify-center relative overflow-hidden group"
                             >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect x="2" y="6" width="20" height="14" rx="3" />
-                                    <circle cx="12" cy="13" r="3" />
-                                    <circle cx="6" cy="10" r="1" fill="currentColor" />
-                                    <circle cx="18" cy="10" r="1" fill="currentColor" />
-                                    <circle cx="6" cy="16" r="1" fill="currentColor" />
-                                    <circle cx="18" cy="16" r="1" fill="currentColor" />
-                                    <path d="M12 17v4m0 0l3-3m0 3l-3-3" />
-                                </svg>
-                                Income
-                            </Button>
-                        </motion.div>
+                                <div className="absolute inset-0 bg-blue-500/5 group-hover:bg-blue-500/10 transition-colors" />
+                                <div className="flex items-center gap-2 text-white font-semibold z-10">
+                                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                                        <Plus size={18} />
+                                    </div>
+                                    <div className="text-left leading-tight">
+                                        <span className="block text-[10px] text-blue-500/80 font-bold uppercase tracking-wider">ADD</span>
+                                        <span className="text-sm">Income</span>
+                                    </div>
+                                </div>
+                            </motion.button>
+                        </div>
 
                         {/* Add Expense Form */}
                         <AnimatePresence>
@@ -708,76 +665,82 @@ export default function Dashboard() {
                         />
 
                         {/* Budget & Top Spend */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
-                            className="grid grid-cols-2 gap-4"
-                        >
-                            {/* Budget - Clickable */}
+                        {/* Budget & Top Spend */}
+                        <div className="px-6 mt-8 grid grid-cols-2 gap-4">
+                            {/* Budget Card */}
                             <motion.button
                                 onClick={() => handleNavigate('budget')}
-                                whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                className="p-5 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color hover:bg-surface-highlight transition-all text-left shadow-sm"
+                                className="p-5 rounded-[20px] glass-card flex flex-col justify-between h-[180px] relative overflow-hidden"
                             >
-                                <div className="flex items-center gap-2 mb-3">
-                                    <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Budget</p>
-                                    <Wallet size={14} className="text-gray-500" />
+                                <div className="flex justify-between items-start w-full">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">BUDGET</p>
+                                    <Wallet size={16} className="text-gray-500" />
                                 </div>
-                                <p className="text-2xl font-bold mb-2">
-                                    {showPrivacy ? `${budgetUsed.toFixed(0)}% ` : '•••%'}
-                                </p>
-                                <p className="text-xs text-gray-500 mb-3">Used</p>
-                                <div className="h-1.5 bg-border-color rounded-full overflow-hidden backdrop-blur-sm">
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${Math.min(budgetUsed, 100)}% ` }}
-                                        transition={{ duration: 1, ease: "easeOut" }}
-                                        className={`h - full rounded - full ${budgetUsed > 90 ? 'bg-error' : budgetUsed > 70 ? 'bg-warning' : 'bg-gradient-to-r from-success to-warning'
-                                            } `}
-                                    ></motion.div>
+
+                                <div className="mt-2">
+                                    <p className="text-4xl font-bold text-white leading-none">
+                                        {showPrivacy ? `${budgetUsed.toFixed(0)}%` : '••%'}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">Used</p>
                                 </div>
-                                <p className="text-xs text-gray-500 mt-2">
-                                    {showPrivacy
-                                        ? `${formatMoney(totalExpenses, currency)} of ${formatMoney(totalBudget, currency)} `
-                                        : `${currencySymbol}•••••• of ${currencySymbol}••••••`}
-                                </p>
+
+                                <div className="w-full mt-auto">
+                                    <div className="flex justify-between text-[10px] text-gray-500 mb-1 font-mono">
+                                        <span>{showPrivacy ? formatMoney(totalExpenses, currency) : '•••'}</span>
+                                        <span>{showPrivacy ? formatMoney(totalBudget, currency) : '•••'}</span>
+                                    </div>
+                                    <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.3)]"
+                                            style={{ width: `${Math.min(budgetUsed, 100)}%` }}
+                                        />
+                                    </div>
+                                </div>
                             </motion.button>
 
+                            {/* Top Spend Card */}
                             <div
-                                className="p-5 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color hover:bg-surface-highlight transition-all shadow-sm cursor-pointer"
                                 onClick={() => handleNavigate('category')}
+                                className="p-5 rounded-[20px] glass-card flex flex-col justify-between h-[180px] relative overflow-hidden cursor-pointer"
                             >
-                                <div className="flex items-center gap-2 mb-3">
-                                    <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Top Spend</p>
-                                    <Flame size={14} className="text-warning" />
+                                <div className="flex justify-between items-start w-full">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">TOP SPEND</p>
+                                    <Flame size={16} className="text-orange-500" />
                                 </div>
-                                {topCategory ? (
-                                    <>
-                                        <p className="text-2xl font-bold mb-1">{topCategory.name}</p>
-                                        <p className="text-xs text-gray-500">{topCategory.count} transactions</p>
-                                    </>
-                                ) : (
-                                    <p className="text-sm text-gray-500">No data</p>
-                                )}
+
+                                <div className="mt-2 flex-1 flex flex-col justify-center">
+                                    {topCategory ? (
+                                        <>
+                                            <p className="text-2xl font-bold text-white leading-tight mb-2">{topCategory.name}</p>
+                                            <div className="flex -space-x-2">
+                                                <div className="w-8 h-8 rounded-full bg-white/10 border border-[#151c2f] flex items-center justify-center text-sm">
+                                                    {topCategory.icon}
+                                                </div>
+                                                <div className="w-8 h-8 rounded-full bg-white/5 border border-[#151c2f] flex items-center justify-center text-[10px] text-gray-400">
+                                                    +{topCategory.count}
+                                                </div>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-2">{topCategory.count} transactions</p>
+                                        </>
+                                    ) : (
+                                        <p className="text-sm text-gray-500">No data</p>
+                                    )}
+                                </div>
                             </div>
-                        </motion.div>
+                        </div>
 
                         {/* Spending Categories */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3 }}
-                        >
+                        {/* Spending Categories */}
+                        <div className="px-6 mt-8">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="font-semibold text-base">Spending Categories</h3>
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">SPENDING CATEGORIES</h3>
                                 <button
                                     onClick={() => handleNavigate('category')}
-                                    className="text-sm text-primary flex items-center gap-1 hover:gap-2 transition-all"
+                                    className="text-xs text-blue-500 font-semibold flex items-center gap-1 hover:gap-2 transition-all"
                                 >
                                     View All
-                                    <ChevronRight size={14} />
+                                    <ChevronRight size={12} />
                                 </button>
                             </div>
                             <div className="space-y-3">
@@ -786,73 +749,77 @@ export default function Dashboard() {
                                         key={cat.id}
                                         initial={{ opacity: 0, x: -20 }}
                                         animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: 0.3 + idx * 0.1 }}
-                                        whileHover={{ x: 4 }}
+                                        transition={{ delay: 0.1 * idx }}
+                                        className="p-4 rounded-[20px] glass-card flex items-center gap-4"
                                     >
-                                        <div className="p-4 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color flex items-center gap-4 hover:bg-surface-highlight transition-all cursor-pointer shadow-sm">
-                                            <div
-                                                className="h-11 w-11 rounded-xl backdrop-blur-md border border-border-color flex items-center justify-center text-xl shadow-lg"
-                                                style={{ backgroundColor: `${cat.color} 15` }}
-                                            >
-                                                {cat.icon}
+                                        <div
+                                            className="h-12 w-12 rounded-[18px] flex items-center justify-center text-xl bg-[#0B1120] border border-white/5 shadow-inner"
+                                            style={{ color: cat.color }}
+                                        >
+                                            <span style={{ filter: 'drop-shadow(0 0 10px currentColor)' }}>
+                                                {/* Fallback icon if mapped icon is missing */}
+                                                {cat.icon || '🛍️'}
+                                            </span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <p className="font-bold text-white truncate">{cat.name}</p>
+                                                <p className="text-sm font-bold text-white">{formatMoney(cat.spent, currency)}</p>
                                             </div>
-                                            <div className="flex-1">
-                                                <p className="font-medium mb-1.5">{cat.name}</p>
-                                                <div className="h-1.5 bg-border-color rounded-full overflow-hidden backdrop-blur-sm">
-                                                    <motion.div
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${Math.min((cat.spent / totalExpenses) * 100, 100)}% ` }}
-                                                        transition={{ duration: 0.8, delay: 0.4 + idx * 0.1 }}
-                                                        className="h-full rounded-full"
-                                                        style={{ backgroundColor: cat.color || '#007AFF' }}
-                                                    ></motion.div>
-                                                </div>
+                                            <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full rounded-full shadow-[0_0_8px_currentColor]"
+                                                    style={{
+                                                        width: `${Math.min((cat.spent / totalExpenses) * 100, 100)}%`,
+                                                        backgroundColor: cat.color || '#3B82F6',
+                                                    }}
+                                                />
                                             </div>
-                                            <p className="text-sm font-semibold text-text-secondary">{formatMoney(cat.spent, currency)}</p>
                                         </div>
                                     </motion.div>
                                 ))}
                             </div>
-                        </motion.div>
+                        </div>
 
                         {/* Recent Activity */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.4 }}
-                        >
+                        {/* Recent Activity */}
+                        <div className="px-6 mt-8">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="font-semibold text-sm uppercase tracking-wider text-gray-400">Recent Activity</h3>
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">RECENT ACTIVITY</h3>
                                 <button
                                     onClick={() => handleNavigate('history')}
-                                    className="text-sm text-primary flex items-center gap-1 hover:gap-2 transition-all"
+                                    className="text-xs text-blue-500 font-semibold flex items-center gap-1 hover:gap-2 transition-all"
                                 >
                                     History
-                                    <ChevronRight size={14} />
+                                    <ChevronRight size={12} />
                                 </button>
                             </div>
                             <div className="space-y-3">
-                                {transactions.slice(0, 5).map((txn, idx) => (
-                                    <TransactionItem
+                                {transactions.slice(0, 5).map((txn) => (
+                                    <div
                                         key={txn.id}
-                                        transaction={txn}
-                                        index={idx}
-                                        currency={currency}
-                                        dateFormat={dateFormat}
                                         onClick={() => handleEditClick(txn)}
-                                    />
-                                ))}
-                                {transactions.length === 0 && (
-                                    <div className="text-center py-12">
-                                        <div className="h-16 w-16 rounded-full bg-surface border border-border-color flex items-center justify-center mx-auto mb-4">
-                                            <Wallet size={28} className="text-gray-500" />
+                                        className="p-4 rounded-[20px] glass-card flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-10 w-10 rounded-full border border-white/10 flex items-center justify-center text-lg bg-[#0B1120]">
+                                                {txn.category?.icon || (txn.type === 'income' ? '💰' : '💸')}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-white text-sm">{txn.description}</p>
+                                                <p className="text-xs text-gray-500">{new Date(txn.date).toLocaleDateString()}</p>
+                                            </div>
                                         </div>
-                                        <p className="text-gray-500">No transactions yet.</p>
-                                        <p className="text-sm text-gray-600 mt-1">Start by adding your first expense or income!</p>
+                                        <div className="text-right">
+                                            <p className={`font-bold text-sm ${txn.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
+                                                {txn.type === 'income' ? '+' : '-'}{formatMoney(txn.amount, currency)}
+                                            </p>
+                                            <ChevronRight size={14} className="ml-auto text-gray-600 mt-1" />
+                                        </div>
                                     </div>
-                                )}
+                                ))}
                             </div>
-                        </motion.div>
+                        </div>
                     </div>
 
                     {/* Wallet Management Modal */}
