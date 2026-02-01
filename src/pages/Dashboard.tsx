@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { DatePicker } from '../components/ui/DatePicker';
-import { Wallet, Plus, Loader2, TrendingUp, TrendingDown, ChevronRight, X, Eye, EyeOff, CreditCard, Banknote, Flame, Pencil } from 'lucide-react';
+import { Wallet, Plus, Loader2, TrendingUp, TrendingDown, ChevronRight, X, Eye, EyeOff, CreditCard, Flame, Pencil } from 'lucide-react';
 import { MiniSparkline } from '../components/ui/MiniSparkline';
 import { api } from '../lib/api';
 import confetti from 'canvas-confetti';

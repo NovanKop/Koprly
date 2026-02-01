@@ -5,7 +5,7 @@ import { api } from '../lib/api';
 import { useAppStore } from '../store/useAppStore';
 import type { Category, Transaction, Wallet, Profile } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Plus, ChevronDown, AlertTriangle, Trash2, X, Pencil, Calendar, Check } from 'lucide-react';
+import { ArrowLeft, Plus, ChevronDown, AlertTriangle, Trash2, X, Pencil } from 'lucide-react';
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval, format } from 'date-fns';
 import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/glass/GlassCard';
