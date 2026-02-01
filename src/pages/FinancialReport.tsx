@@ -8,6 +8,7 @@ import type { Transaction, Category, Profile } from '../types';
 import { DateRangePicker } from '../components/ui/DateRangePicker';
 import { GlassCard } from '../components/glass/GlassCard';
 import { ProgressBarGlow } from '../components/glass/ProgressBarGlow';
+import { ReportSkeleton } from '../components/skeletons/ReportSkeleton';
 
 interface FinancialReportProps {
     onBack: () => void;
@@ -264,12 +265,9 @@ export default function FinancialReport({ onBack, onNavigate }: FinancialReportP
         }
     };
 
+
     if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-background">
-                <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
-            </div>
-        )
+        return <ReportSkeleton />;
     }
 
     return (

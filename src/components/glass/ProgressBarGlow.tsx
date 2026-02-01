@@ -20,7 +20,7 @@ export const ProgressBarGlow: React.FC<ProgressBarGlowProps> = ({
 
     return (
         <div
-            className={`w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden ${className}`}
+            className={`w-full bg-black/10 dark:bg-white/10 rounded-full overflow-hidden ${className}`}
             style={{ height }}
         >
             <div className="h-full relative w-full">

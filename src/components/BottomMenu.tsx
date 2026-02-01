@@ -37,7 +37,7 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
 
     return (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999]">
-            <div className="relative glass-panel rounded-full p-2 flex items-center shadow-2xl transition-all duration-300 hover:shadow-primary/5 min-w-[320px]">
+            <div className="relative glass-panel rounded-full p-2 flex items-center shadow-2xl transition-all duration-300 hover:shadow-primary/5 min-w-[320px] !bg-white dark:!bg-[#171F29]/30">
 
                 {/* Inner Relative Container for Perfect Alignment */}
                 <div className="relative flex flex-1 w-full items-center">
@@ -74,7 +74,7 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
                             >
                                 {/* Icon */}
                                 <div className="relative flex items-center justify-center">
-                                    <span className={`transition-all duration-300 ${isActive ? 'text-white scale-110' : 'text-text-secondary group-hover:text-text-primary'}`}>
+                                    <span className={`transition-all duration-300 ${isActive ? 'text-white scale-110' : 'text-gray-500 dark:text-text-secondary group-hover:text-gray-900 dark:group-hover:text-white'}`}>
                                         {item.icon}
                                     </span>
                                 </div>

@@ -61,7 +61,7 @@ function AppContent() {
     }>
       {!session ? (
         <AuthPage />
-      ) : (!profile || !profile.username) ? (
+      ) : (!profile || !profile.username || typeof profile.total_budget !== 'number' || profile.total_budget <= 0) ? (
         <OnboardingPage onComplete={handleOnboardingComplete} />
       ) : (
         <Dashboard />

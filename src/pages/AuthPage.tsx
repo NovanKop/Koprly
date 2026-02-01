@@ -4,7 +4,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { AppLayout } from '../layouts/AppLayout';
-import { ArrowLeft, Sun, Moon } from 'lucide-react';
+import { ArrowLeft, Sun, Moon, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../lib/api';
 import { useAppStore } from '../store/useAppStore';
@@ -42,6 +42,7 @@ export default function AuthPage() {
     const [isForgotPassword, setIsForgotPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
     const { theme, setTheme } = useAppStore();
 
     const handleAuth = async (e: React.FormEvent) => {
@@ -288,11 +289,21 @@ export default function AuthPage() {
                                     >
                                         <Input
                                             label="Password"
-                                            type="password"
+                                            type={showPassword ? "text" : "password"}
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             required={!isForgotPassword}
                                             minLength={6}
+                                            rightIcon={
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                    className="focus:outline-none text-text-secondary hover:text-primary transition-colors cursor-pointer"
+                                                    tabIndex={-1}
+                                                >
+                                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                                </button>
+                                            }
                                         />
                                     </motion.div>
                                 )}

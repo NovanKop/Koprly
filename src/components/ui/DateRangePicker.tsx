@@ -147,11 +147,11 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 10 }}
                             transition={{ duration: 0.2, ease: "easeOut" }}
-                            className="bg-white dark:bg-[#1C1C1E] text-black dark:text-white rounded-[32px] shadow-[0_30px_60px_rgba(0,0,0,0.25)] w-full max-w-sm overflow-hidden border border-black/5 dark:border-white/10 pointer-events-auto"
+                            className="bg-white dark:bg-[#1C1C1E] !text-black dark:!text-white rounded-[32px] shadow-[0_30px_60px_rgba(0,0,0,0.25)] w-full max-w-sm overflow-hidden border border-black/5 dark:border-white/10 pointer-events-auto !bg-white dark:!bg-[#1C1C1E]"
                         >
                             {/* Header */}
                             <div className="flex items-center justify-between p-4 border-b border-black/5 dark:border-white/5">
-                                <h3 className="font-bold text-lg">Select Range</h3>
+                                <h3 className="font-bold text-lg !text-black dark:!text-white">Select Range</h3>
                                 <button onClick={onClose} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
                                     <X size={20} />
                                 </button>
@@ -159,7 +159,7 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
 
                             {/* Calendar Header aka Month Nav */}
                             <div className="flex items-center justify-between px-4 py-3">
-                                <h3 className="font-bold text-base">
+                                <h3 className="font-bold text-base !text-black dark:!text-white">
                                     {format(currentMonth, 'MMMM yyyy')}
                                 </h3>
                                 <div className="flex gap-1">
@@ -186,7 +186,7 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                             )}
 
                             {/* Days Header */}
-                            <div className="grid grid-cols-7 mb-2 text-center text-xs font-medium text-text-secondary uppercase tracking-wider px-4">
+                            <div className="grid grid-cols-7 mb-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider px-4">
                                 {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
                                     <div key={d} className="py-1">{d}</div>
                                 ))}
@@ -240,8 +240,8 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                             </div>
 
                             {/* Actions */}
-                            <div className="p-4 border-t border-black/5 dark:border-white/5 flex flex-col gap-2 bg-surface/50">
-                                <div className="flex justify-between text-xs text-text-secondary">
+                            <div className="p-4 border-t border-black/10 dark:border-white/5 flex flex-col gap-2 bg-gray-50 dark:bg-[#2C2C2E]">
+                                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
                                     <span>Start: {tempStart ? format(new Date(tempStart), 'MMM d') : '-'}</span>
                                     <span>End: {tempEnd ? format(new Date(tempEnd), 'MMM d') : '-'}</span>
                                 </div>

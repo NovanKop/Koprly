@@ -16,8 +16,8 @@ export const GlassCard: React.FC<GlassCardProps> = ({
 }) => {
     const baseStyles = "backdrop-blur-[25px] bg-surface border border-border-color transition-all duration-300";
     const variantStyles = variant === 'elevated'
-        ? "shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.4)]"
-        : "shadow-[0_4px_24px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.15)] hover:bg-surface-highlight";
+        ? "shadow-[0_2px_8px_0_rgba(0,0,0,0.04)] dark:shadow-2xl hover:-translate-y-1 hover:shadow-primary/10 transition-all duration-300"
+        : "shadow-[0_2px_8px_0_rgba(0,0,0,0.04)] hover:shadow hover:bg-surface-highlight transition-all duration-300";
 
     // Default radius is handled by className usually, but we set a sensible default if not provided
     // However, to allow override, we append className last. 

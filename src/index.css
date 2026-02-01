@@ -8,6 +8,7 @@
   --color-error: var(--error);
   --color-background: var(--background);
   --color-surface: var(--surface);
+  --color-surface-highlight: var(--surface-highlight);
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-border-color: var(--border-color);
@@ -54,19 +55,21 @@
 
   /* Dual Theme Specs - Light */
   --background: #F5F7F8;
-  --surface: rgba(255, 255, 255, 0.75);
+  --surface: rgba(255, 255, 255, 0.6);
+  --surface-highlight: rgba(0, 0, 0, 0.05);
   --border-color: rgba(255, 255, 255, 0.4);
 
   --text-primary: #1D1D1F;
   --text-secondary: #6e6e73;
-  --glass-blur: 25px;
+  --glass-blur: 40px;
 }
 
 /* Dark Mode */
 :root.dark {
   /* Dual Theme Specs - Dark */
   --background: #0B1218;
-  --surface: rgba(23, 31, 41, 0.55);
+  --surface: rgba(23, 31, 41, 0.4);
+  --surface-highlight: rgba(255, 255, 255, 0.05);
   --border-color: rgba(255, 255, 255, 0.1);
 
   --text-primary: #FFFFFF;

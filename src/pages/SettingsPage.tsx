@@ -130,7 +130,20 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
     };
 
     return (
-        <div className="min-h-screen bg-transparent text-text-primary pb-28 relative z-0">
+        <motion.div
+            className="min-h-screen bg-transparent text-text-primary pb-28 relative z-0"
+            initial="hidden"
+            animate="visible"
+            variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                    opacity: 1,
+                    transition: {
+                        staggerChildren: 0.1
+                    }
+                }
+            }}
+        >
             {/* Header */}
             <div className="px-6 pt-8 pb-4 flex items-center">
                 <button
@@ -143,94 +156,99 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
             </div>
 
             {/* Profile Info */}
-            <GlassCard variant="elevated" className="flex flex-col items-center mx-5 mt-4 mb-8 p-6 rounded-[32px]">
-                {/* Hidden file inputs */}
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileSelect}
-                    accept="image/*"
-                    className="hidden"
-                />
-                <input
-                    type="file"
-                    ref={cameraInputRef}
-                    onChange={handleFileSelect}
-                    accept="image/*"
-                    capture="user"
-                    className="hidden"
-                />
+            <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } } }}>
+                <GlassCard variant="elevated" className="flex flex-col items-center mx-5 mt-4 mb-8 p-6 rounded-[32px] !overflow-visible">
+                    {/* Hidden file inputs */}
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileSelect}
+                        accept="image/*"
+                        className="hidden"
+                    />
+                    <input
+                        type="file"
+                        ref={cameraInputRef}
+                        onChange={handleFileSelect}
+                        accept="image/*"
+                        capture="user"
+                        className="hidden"
+                    />
 
-                <div className="relative z-[100]">
-                    <div
-                        className="h-24 w-24 rounded-full bg-gradient-to-br from-[#FFD1D1] to-[#FFE4C4] border-4 border-background flex items-center justify-center p-1 overflow-hidden cursor-pointer transition-transform hover:scale-105"
-                        onClick={() => setShowPhotoOptions(!showPhotoOptions)}
-                    >
-                        {profilePicture ? (
-                            <img
-                                src={profilePicture}
-                                alt="Profile"
-                                className="w-full h-full rounded-full object-cover"
-                            />
-                        ) : (
-                            <div className="h-full w-full rounded-full bg-primary/20 flex items-center justify-center text-3xl font-bold text-gray-800">
-                                {profile?.username?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase()}
-                            </div>
-                        )}
+                    <div className="relative z-[100]">
+                        <div
+                            className="h-24 w-24 rounded-full bg-gradient-to-br from-[#FFD1D1] to-[#FFE4C4] border-4 border-background flex items-center justify-center p-1 overflow-hidden cursor-pointer transition-transform hover:scale-105"
+                            onClick={() => setShowPhotoOptions(!showPhotoOptions)}
+                        >
+                            {profilePicture ? (
+                                <img
+                                    src={profilePicture}
+                                    alt="Profile"
+                                    className="w-full h-full rounded-full object-cover"
+                                />
+                            ) : (
+                                <div className="h-full w-full rounded-full bg-primary/20 flex items-center justify-center text-3xl font-bold text-gray-800">
+                                    {profile?.username?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase()}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Pencil Icon Overlay */}
+                        <button
+                            onClick={() => setShowPhotoOptions(!showPhotoOptions)}
+                            className="absolute bottom-0 right-0 p-2 rounded-full bg-primary text-white border-[3px] border-background shadow-lg hover:bg-primary/90 transition-colors"
+                            disabled={isUploadingPhoto}
+                        >
+                            {isUploadingPhoto ? (
+                                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                                <Pencil size={12} />
+                            )}
+                        </button>
+
+                        {/* Photo Options Dropdown */}
+                        <AnimatePresence>
+                            {showPhotoOptions && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                    className="absolute top-full left-1/2 -translate-x-1/2 mt-3 !bg-[#ffffff] dark:!bg-[#1a1a2e] !text-[#1D1D1F] dark:!text-white border border-border-color rounded-xl shadow-2xl overflow-hidden z-[100] min-w-[180px]"
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            fileInputRef.current?.click();
+                                        }}
+                                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-surface-highlight transition-colors text-left"
+                                    >
+                                        <ImageIcon size={18} className="text-primary" />
+                                        <span className="text-sm font-medium">Choose from Gallery</span>
+                                    </button>
+                                    <div className="h-px bg-border-color" />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            cameraInputRef.current?.click();
+                                        }}
+                                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-surface-highlight transition-colors text-left"
+                                    >
+                                        <Camera size={18} className="text-primary" />
+                                        <span className="text-sm font-medium">Take a Photo</span>
+                                    </button>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
+                    <h2 className="mt-4 text-xl font-bold relative z-0">{profile?.username || 'User'}</h2>
+                    <p className="text-sm text-primary font-medium tracking-wide relative z-0">Pro Member</p>
+                </GlassCard>
+            </motion.div>
 
-                    {/* Pencil Icon Overlay */}
-                    <button
-                        onClick={() => setShowPhotoOptions(!showPhotoOptions)}
-                        className="absolute bottom-0 right-0 p-2 rounded-full bg-primary text-white border-[3px] border-background shadow-lg hover:bg-primary/90 transition-colors"
-                        disabled={isUploadingPhoto}
-                    >
-                        {isUploadingPhoto ? (
-                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                            <Pencil size={12} />
-                        )}
-                    </button>
-
-                    {/* Photo Options Dropdown */}
-                    <AnimatePresence>
-                        {showPhotoOptions && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                className="absolute top-full left-1/2 -translate-x-1/2 mt-3 bg-[#1a1a2e] border border-border-color rounded-xl shadow-2xl overflow-hidden z-[100] min-w-[180px]"
-                            >
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        fileInputRef.current?.click();
-                                    }}
-                                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-surface-highlight transition-colors text-left"
-                                >
-                                    <ImageIcon size={18} className="text-primary" />
-                                    <span className="text-sm font-medium">Choose from Gallery</span>
-                                </button>
-                                <div className="h-px bg-border-color" />
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        cameraInputRef.current?.click();
-                                    }}
-                                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-surface-highlight transition-colors text-left"
-                                >
-                                    <Camera size={18} className="text-primary" />
-                                    <span className="text-sm font-medium">Take a Photo</span>
-                                </button>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-                <h2 className="mt-4 text-xl font-bold relative z-0">{profile?.username || 'User'}</h2>
-                <p className="text-sm text-primary font-medium tracking-wide relative z-0">Pro Member</p>
-            </GlassCard>
-
-            <div className="px-5 space-y-8">
+            <motion.div
+                className="px-5 space-y-8"
+                variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } } }}
+            >
                 <div>
                     <h3 className="text-xs font-bold text-primary mb-3 uppercase tracking-wider pl-1">Preferences</h3>
                     <GlassCard className="rounded-[20px] overflow-hidden">
@@ -339,22 +357,22 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
                     <h3 className="text-xs font-bold text-primary mb-3 uppercase tracking-wider pl-1">Language</h3>
                     <GlassCard className="p-1.5 rounded-[20px] flex relative">
                         {/* Background slider */}
-                        <div className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] rounded-[14px] bg-surface-highlight border border-border-color transition-all duration-300 ${language === 'en' ? 'translate-x-[102%] left-1.5' : 'left-1.5'}`} />
+                        <div className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] rounded-[14px] bg-green-500 border border-border-color transition-all duration-300 ${language === 'en' ? 'translate-x-[102%] left-1.5' : 'left-1.5'}`} />
 
                         <button
                             onClick={() => setLanguage('id')}
-                            className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-[14px] transition-colors relative z-10 ${language === 'id' ? 'text-white' : 'text-gray-500'}`}
+                            className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-[14px] transition-colors relative z-10 ${language === 'id' ? 'text-white' : 'text-text-secondary'}`}
                         >
                             <span className="text-lg">🇮🇩</span>
-                            <span className="text-sm font-medium">Bahasa ID</span>
-                            {language === 'id' && <Check size={14} className="text-primary hidden" />}
+                            <span className="text-sm font-bold">Bahasa ID</span>
+                            {language === 'id' && <Check size={14} className="text-white hidden" />}
                         </button>
                         <button
                             onClick={() => setLanguage('en')}
-                            className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-[14px] transition-colors relative z-10 ${language === 'en' ? 'text-white' : 'text-gray-500'}`}
+                            className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-[14px] transition-colors relative z-10 ${language === 'en' ? 'text-white' : 'text-text-secondary'}`}
                         >
                             <span className="text-lg">🇺🇸</span>
-                            <span className="text-sm font-medium">English</span>
+                            <span className="text-sm font-bold">English</span>
                         </button>
                     </GlassCard>
                     <p className="text-center text-xs text-gray-500 mt-3 px-8">
@@ -398,7 +416,7 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
                 <div className="text-center pb-8">
                     <p className="text-[10px] text-gray-600 font-bold tracking-widest uppercase">Version 2.4.0 (Build 302)</p>
                 </div>
-            </div>
+            </motion.div>
 
             {/* Modals */}
             <AnimatePresence>
@@ -419,7 +437,7 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
                             className="w-full max-w-sm p-6 rounded-[32px] bg-surface border border-border-color text-center"
                         >
                             <h3 className="text-xl font-bold mb-2">Sign Out?</h3>
-                            <p className="text-gray-400 text-sm mb-8 px-4">
+                            <p className="!text-black dark:!text-white text-sm mb-8 px-4">
                                 Are you sure you want to sign out of your account? You will need to log in again to access your data.
                             </p>
 
@@ -568,6 +586,6 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </motion.div>
     );
 }

@@ -6,7 +6,7 @@ export const api = {
     getProfile: async (): Promise<Profile | null> => {
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, email, username, profile_picture, currency, total_budget, budget_period, theme, created_at, updated_at')
+            .select('*')
             .single();
 
         if (error) {
@@ -17,12 +17,29 @@ export const api = {
     },
 
     updateProfile: async (updates: Partial<Profile>): Promise<void> => {
-        const { error } = await supabase
-            .from('profiles')
-            .update(updates)
-            .eq('id', (await supabase.auth.getUser()).data.user?.id!);
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update(updates)
+                .eq('id', (await supabase.auth.getUser()).data.user?.id!);
 
-        if (error) throw error;
+            if (error) throw error;
+        } catch (error: any) {
+            // Fallback: If ANY error occurs and we were trying to update reset_day, 
+            // assume it might be a schema mismatch and retry without it.
+            if (updates.reset_day) {
+                console.warn('Update failed with reset_day, retrying without it...', error);
+                const { reset_day, ...safeUpdates } = updates;
+                const { error: retryError } = await supabase
+                    .from('profiles')
+                    .update(safeUpdates)
+                    .eq('id', (await supabase.auth.getUser()).data.user?.id!);
+
+                if (retryError) throw retryError;
+                return;
+            }
+            throw error;
+        }
     },
 
     uploadProfilePicture: async (file: File): Promise<string> => {

@@ -5,17 +5,19 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label: string;
     error?: string;
     icon?: React.ReactNode;
+    rightIcon?: React.ReactNode;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-    ({ className, label, error, icon, ...props }, ref) => {
+    ({ className, label, error, icon, rightIcon, ...props }, ref) => {
         return (
             <div className="relative group">
                 <input
                     ref={ref}
                     className={cn(
                         "peer w-full py-3 pt-5 pb-2 rounded-xl outline-none transition-all duration-200",
-                        icon ? "pl-11 pr-4" : "px-4",
+                        icon ? "pl-11" : "pl-4",
+                        rightIcon ? "pr-11" : "pr-4",
                         "bg-surface backdrop-blur-md border border-border-color",
                         "text-text-primary placeholder-transparent text-base",
                         "focus:border-primary focus:ring-4 focus:ring-primary/10",
@@ -30,6 +32,12 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                 {icon && (
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 peer-focus:text-primary transition-colors pointer-events-none">
                         {icon}
+                    </div>
+                )}
+
+                {rightIcon && (
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 peer-focus:text-primary transition-colors z-10">
+                        {rightIcon}
                     </div>
                 )}
 

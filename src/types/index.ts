@@ -35,10 +35,17 @@ export interface Profile {
     id: string;
     email?: string;
     username?: string;
+    display_name?: string;
     profile_picture?: string;
     currency: string;
     total_budget: number;
+    spending_limit: number;              // The stable anchor for budget allocation
     budget_period: 'monthly' | 'weekly';
+    period_type: 'monthly' | 'weekly' | 'rolling'; // Budget reset period
+    reset_day?: number;                   // Day of month to reset (1-31, or -1 for Last Day)
+    onboarding_complete: boolean;        // Track if onboarding finished
+    onboarding_koprlyst_done: boolean;   // Track if interactive guide finished
+    onboarding_step: number;             // Resume progress (1-4)
     theme: string;
     created_at: string;
     updated_at: string;

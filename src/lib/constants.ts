@@ -1,11 +1,13 @@
+import { CreditCard, Banknote, Landmark, PiggyBank, Smartphone, Bitcoin } from 'lucide-react';
+
 export const WALLET_ICONS = [
-    { icon: '💳', label: 'Card' },
-    { icon: '💵', label: 'Cash' },
-    { icon: '🏦', label: 'Bank' },
-    { icon: '💰', label: 'Savings' },
-    { icon: '📱', label: 'E-Wallet' },
-    { icon: '🪙', label: 'Crypto' },
-];
+    { type: 'card', Icon: CreditCard, label: 'Card' },
+    { type: 'cash', Icon: Banknote, label: 'Cash' },
+    { type: 'bank', Icon: Landmark, label: 'Bank' },
+    { type: 'savings', Icon: PiggyBank, label: 'Savings' },
+    { type: 'ewallet', Icon: Smartphone, label: 'E-Wallet' },
+    { type: 'crypto', Icon: Bitcoin, label: 'Crypto' },
+] as const;
 
 export const WALLET_COLORS = ['#007AFF', '#34C759', '#FF9500', '#FF2D55', '#AF52DE', '#5856D6'];
 

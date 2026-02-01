@@ -3,8 +3,10 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { DatePicker } from '../components/ui/DatePicker';
-import { Wallet, Plus, Loader2, TrendingUp, TrendingDown, ChevronRight, X, Eye, EyeOff, CreditCard, Banknote, Flame } from 'lucide-react';
+import { Wallet, Plus, Loader2, TrendingUp, TrendingDown, ChevronRight, X, Eye, EyeOff, CreditCard, Banknote, Flame, Pencil } from 'lucide-react';
+import { MiniSparkline } from '../components/ui/MiniSparkline';
 import { api } from '../lib/api';
+import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 const SettingsPage = lazy(() => import('./SettingsPage'));
 const FinancialReport = lazy(() => import('./FinancialReport'));
@@ -21,7 +23,10 @@ import { MAX_WALLETS, WALLET_ICONS, WALLET_COLORS } from '../lib/constants';
 import NotificationBell from '../components/NotificationBell';
 import { useTransactionManager } from '../hooks/useTransactionManager';
 import { EditTransactionModal } from '../components/EditTransactionModal';
+import { DashboardSkeleton } from '../components/skeletons/DashboardSkeleton';
+import { KoprlystGuide } from '../components/guide/KoprlystGuide';
 import type { Category, Transaction, Profile, Wallet as WalletType, Notification } from '../types';
+
 
 export default function Dashboard() {
     const { user } = useAuth();
@@ -39,6 +44,40 @@ export default function Dashboard() {
     const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
     const [currentView, setCurrentView] = useState<'home' | 'report' | 'settings' | 'budget' | 'category' | 'history' | 'notifications'>('home');
     const [showPrivacy, setShowPrivacy] = useState(true); // Default visible
+    const [showWelcome, setShowWelcome] = useState(false); // First-visit welcome
+    const [showKoprlyst, setShowKoprlyst] = useState(false); // Interactive guide
+
+    // Calculate Sparkline Data (Last 5 transactions)
+    const sparklineData = useMemo(() => {
+        // Assuming currentBalance is calculated elsewhere, e.g., sum of all wallet balances
+        const currentBalance = wallets.reduce((sum, wallet) => sum + wallet.balance, 0);
+
+        if (transactions.length === 0) return [0, 0, 0, 0, 0]; // Flat line if no data
+
+        // Get last 5 transactions (they are already sorted desc by date)
+        const newestFirstIso = transactions.slice(0, 5); // Index 0 is newest.
+
+        let tempBalance = currentBalance;
+        const history = [tempBalance];
+
+        for (const txn of newestFirstIso) {
+            const amount = Number(txn.amount);
+            if (txn.type === 'income') {
+                tempBalance -= amount; // Undo income
+            } else {
+                tempBalance += amount; // Undo expense
+            }
+            history.unshift(tempBalance);
+        }
+
+        // Now history is [OldestBalance, ..., CurrentBalance]
+        // If less than 5 transactions, pad with the oldest known balance? Or just flat?
+        while (history.length < 5) {
+            history.unshift(history[0]);
+        }
+
+        return history;
+    }, [transactions, wallets]);
 
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
@@ -52,13 +91,14 @@ export default function Dashboard() {
         id?: string;
         name: string;
         balance: string;
-        icon: string;
+        type: string;
         color: string;
     }[]>([]);
 
     // Edit Transaction State
     const [showEditTransaction, setShowEditTransaction] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+    const [activeIconPickerIndex, setActiveIconPickerIndex] = useState<number | null>(null);
 
 
 
@@ -113,6 +153,36 @@ export default function Dashboard() {
         loadData();
     }, [loadData]);
 
+    // Welcome animation for first visit after onboarding
+    useEffect(() => {
+        if (profile?.onboarding_complete && !loading) {
+            const hasSeenWelcome = localStorage.getItem('koprly_welcome_seen');
+            if (!hasSeenWelcome) {
+                setShowWelcome(true);
+                localStorage.setItem('koprly_welcome_seen', 'true');
+                // Fire confetti
+                confetti({
+                    particleCount: 200,
+                    spread: 100,
+                    origin: { y: 0.6 },
+                    colors: ['#34C759', '#32ADE6', '#FFCC00', '#FF9500'],
+                    disableForReducedMotion: true,
+                });
+                // Auto-dismiss after 4 seconds
+                setTimeout(() => setShowWelcome(false), 4000);
+            }
+        }
+    }, [profile?.onboarding_complete, loading]);
+
+    // Koprlyst Guide for users who completed onboarding
+    useEffect(() => {
+        if (profile?.onboarding_complete && !profile?.onboarding_koprlyst_done && !loading) {
+            // Small delay to let welcome animation finish
+            const timer = setTimeout(() => setShowKoprlyst(true), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [profile?.onboarding_complete, profile?.onboarding_koprlyst_done, loading]);
+
     const handleNavigate = useCallback((view: 'home' | 'report' | 'settings' | 'budget' | 'category' | 'history' | 'notifications') => {
         setCurrentView(view);
         // Refresh data when returning to home to sync any changes from other pages
@@ -147,12 +217,12 @@ export default function Dashboard() {
                 id: w.id,
                 name: w.name,
                 balance: String(w.balance),
-                icon: w.type === 'cash' ? '💵' : w.type === 'bank' ? '🏦' : '💳',
+                type: w.type || 'card',
                 color: w.color || '#007AFF'
             })));
         } else {
             // Add one empty wallet by default
-            setEditingWallets([{ name: 'My Wallet', balance: '', icon: '💳', color: '#007AFF' }]);
+            setEditingWallets([{ name: 'My Wallet', balance: '', type: 'card', color: '#007AFF' }]);
         }
         setShowWalletModal(true);
     }, [wallets]);
@@ -162,7 +232,7 @@ export default function Dashboard() {
         setEditingWallets(prev => [...prev, {
             name: `Wallet ${prev.length + 1} `,
             balance: '',
-            icon: '💳',
+            type: 'card',
             color: WALLET_COLORS[prev.length % WALLET_COLORS.length]
         }]);
     }, [editingWallets.length]);
@@ -187,10 +257,21 @@ export default function Dashboard() {
         try {
             // Delete wallets that are no longer in editingWallets
             const existingIds = editingWallets.filter(w => w.id).map(w => w.id);
-            for (const wallet of wallets) {
-                if (!existingIds.includes(wallet.id)) {
-                    await api.deleteWallet(wallet.id);
+            const walletsToDelete = wallets.filter(wallet => !existingIds.includes(wallet.id));
+
+            // Check if any wallet to delete has transactions
+            for (const wallet of walletsToDelete) {
+                const walletTransactions = transactions.filter(t => t.wallet_id === wallet.id);
+                if (walletTransactions.length > 0) {
+                    alert(`Cannot delete "${wallet.name}" because it has ${walletTransactions.length} transaction(s). Please reassign or delete those transactions first.`);
+                    setSubmitting(false);
+                    return;
                 }
+            }
+
+            // Now safe to delete
+            for (const wallet of walletsToDelete) {
+                await api.deleteWallet(wallet.id);
             }
 
             // Update or create wallets
@@ -198,7 +279,7 @@ export default function Dashboard() {
                 const walletData = {
                     name: wallet.name,
                     balance: parseFloat(wallet.balance) || 0,
-                    type: wallet.icon === '💵' ? 'cash' : wallet.icon === '🏦' ? 'bank' : 'general',
+                    type: wallet.type,
                     color: wallet.color,
                     user_id: user!.id
                 };
@@ -216,13 +297,15 @@ export default function Dashboard() {
             console.error(e);
             if (e.message?.includes('Could not find the table') || e.message?.includes('relation "public.wallets" does not exist')) {
                 alert('Database Setup Required: The "wallets" table is missing. Please run the provided SQL script in your Supabase Dashboard.');
+            } else if (e.message?.includes('foreign key constraint')) {
+                alert('Cannot delete this wallet because it has transactions. Please reassign or delete the transactions first.');
             } else {
                 alert(`Error saving wallets: ${e.message} `);
             }
         } finally {
             setSubmitting(false);
         }
-    }, [editingWallets, wallets, user, loadData]);
+    }, [editingWallets, wallets, transactions, user, loadData]);
 
     const getEditingTotal = () => {
         return editingWallets.reduce((sum, w) => sum + (parseFloat(w.balance) || 0), 0);
@@ -231,11 +314,12 @@ export default function Dashboard() {
 
 
     const handleAddExpense = useCallback(async () => {
-        if (!amount || !selectedCategory) return;
+        const rawAmount = amount.replace(/\./g, '');
+        if (!rawAmount || !selectedCategory) return;
         setSubmitting(true);
         try {
             await api.addExpense({
-                amount: parseFloat(amount),
+                amount: parseFloat(rawAmount),
                 description,
                 category_id: selectedCategory,
                 wallet_id: selectedWallet || undefined, // Sanitize empty string to undefined
@@ -259,11 +343,12 @@ export default function Dashboard() {
     }, [amount, selectedCategory, description, selectedWallet, user, transactionDate, loadData]);
 
     const handleAddIncome = useCallback(async () => {
-        if (!amount) return;
+        const rawAmount = amount.replace(/\./g, '');
+        if (!rawAmount) return;
         setSubmitting(true);
         try {
             await api.addIncome({
-                amount: parseFloat(amount),
+                amount: parseFloat(rawAmount),
                 description,
                 wallet_id: selectedWallet || undefined, // Sanitize empty string to undefined
                 user_id: user!.id,
@@ -365,690 +450,862 @@ export default function Dashboard() {
 
 
 
+
+
     if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-background">
-                <Loader2 className="animate-spin text-primary" size={32} />
-            </div>
-        )
+        return <DashboardSkeleton />;
     }
 
     return (
-        <div className="min-h-screen bg-background text-text-primary pb-24 relative overflow-hidden">
-            {/* Background Ambient Blobs */}
-            <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-                <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-primary/5 blur-[120px] animate-blob" />
-                <div className="absolute top-[40%] right-[-10%] w-[50%] h-[50%] rounded-full bg-secondary/5 blur-[120px] animate-blob animation-delay-2000" />
+        <div className="min-h-screen bg-transparent text-text-primary pb-24 relative overflow-hidden">
+            {/* Background Ambient Blobs - Liquid Glass Effect */}
+            {/* Background Ambient Blobs - Liquid Glass Effect */}
+            <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+                {/* Green Orb - Top Left */}
+                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-green-400/20 dark:bg-green-600/10 blur-[100px] animate-blob mix-blend-multiply dark:mix-blend-normal" />
+
+                {/* Purple Orb - Top Right */}
+                <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-400/20 dark:bg-purple-600/10 blur-[100px] animate-blob animation-delay-2000 mix-blend-multiply dark:mix-blend-normal" />
+
+                {/* Red/Pink Orb - Center Left */}
+                <div className="absolute top-[30%] left-[-15%] w-[45%] h-[45%] rounded-full bg-rose-400/20 dark:bg-rose-600/10 blur-[100px] animate-blob animation-delay-4000 mix-blend-multiply dark:mix-blend-normal" />
+
+                {/* Yellow Orb - Center Right */}
+                <div className="absolute top-[40%] right-[-5%] w-[40%] h-[40%] rounded-full bg-amber-300/20 dark:bg-amber-500/10 blur-[100px] animate-blob animation-delay-2000 mix-blend-multiply dark:mix-blend-normal" />
+
+                {/* Blue Orb - Bottom */}
+                <div className="absolute bottom-[-10%] left-[20%] w-[60%] h-[60%] rounded-full bg-blue-400/20 dark:bg-blue-600/10 blur-[120px] animate-blob animation-delay-4000 mix-blend-multiply dark:mix-blend-normal" />
             </div>
 
-            {currentView === 'home' && (
-                <>
-                    {/* Header - Profile Section */}
-                    <div className="px-6 pt-12 pb-6 flex items-center justify-between">
-                        <motion.button
-                            onClick={() => handleNavigate('settings')}
-                            className="flex items-center gap-4 group"
-                        >
-                            <div className="h-12 w-12 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-blue-900/20 ring-4 ring-white/5 group-hover:scale-105 transition-transform">
-                                {profile?.username?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase() || 'G'}
-                            </div>
-                            <div className="text-left">
-                                <p className="text-xs text-text-secondary font-medium mb-0.5 uppercase tracking-wider">{getCurrentTime()}</p>
-                                <p className="font-bold text-xl text-text-primary leading-tight">{profile?.username || 'G is my name'}</p>
-                            </div>
-                        </motion.button>
-                        <NotificationBell onNotificationClick={handleNotificationClick} />
-                    </div>
-
-                    <div className="space-y-6 pb-24">
-                        {/* Total Budget Card */}
-                        {/* Total Budget Card */}
-                        {/* Total Budget Card */}
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="px-8"
-                        >
-                            <div className="relative p-7 rounded-[32px] overflow-hidden glass-panel shadow-2xl transition-all duration-300 hover:shadow-primary/10">
-                                {/* Background Gradient Mesh - Dynamic based on theme */}
-                                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-blue-600/20 dark:bg-blue-600/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
-                                <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-green-500/20 dark:bg-green-500/10 rounded-full blur-[60px] translate-y-1/3 -translate-x-1/3" />
-
-                                <div className="relative z-10">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <p className="text-sm font-semibold text-text-secondary uppercase tracking-tight">Total Budget</p>
-                                        <button
-                                            onClick={() => setShowPrivacy(!showPrivacy)}
-                                            className="text-text-secondary hover:text-text-primary transition-colors"
-                                        >
-                                            {showPrivacy ? <Eye size={16} /> : <EyeOff size={16} />}
-                                        </button>
-                                    </div>
-                                    <h2 className="text-[42px] leading-none font-numeric text-text-primary mb-6 tracking-tight">
-                                        {showPrivacy
-                                            ? formatMoney(currentBalance, currency)
-                                            : `${currencySymbol} ••••••••`}
-                                    </h2>
-
-                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface border border-border-color mb-6 backdrop-blur-md">
-                                        {isPositiveTrend ? <TrendingUp size={14} className="text-green-500" /> : <TrendingDown size={14} className="text-red-500" />}
-                                        <span className={`text-sm font-bold ${isPositiveTrend ? 'text-green-500' : 'text-red-500'}`}>
-                                            {formatMoney(Math.abs(recentNet), currency)}
-                                            <span className="opacity-70 font-normal ml-1">({Math.abs(trendPercentage).toFixed(1)}%)</span>
-                                        </span>
-                                    </div>
-
-                                    {/* Progress Bar */}
-                                    <div className="h-3 bg-black/5 dark:bg-white/10 rounded-full overflow-hidden p-[2px]">
-                                        <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${Math.min((Math.max(0, currentBalance) / totalBudget) * 100, 100)}%` }}
-                                            transition={{ duration: 1, ease: "easeOut" }}
-                                            className="h-full bg-primary rounded-full shadow-[0_0_15px_rgba(34,197,94,0.4)] progress-liquid"
-                                        ></motion.div>
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
-
-                        {/* Wallets Section */}
-                        {/* Wallets Section */}
-                        <div className="mt-8">
-                            <div className="px-8 mb-4">
-                                <h3 className="text-xs font-bold text-text-secondary uppercase tracking-widest">MY WALLETS</h3>
-                            </div>
-
-                            {/* Scroll Container Wrapper with Fade Effect */}
-                            <div className="relative group">
-                                <div className="flex gap-4 overflow-x-auto px-0 pb-4 scrollbar-hide snap-x relative z-10 w-full">
-                                    <div className="min-w-[2rem] snap-start shrink-0" />
-                                    {wallets.map((wallet) => {
-                                        // Determine gradient based on wallet name/type
-                                        const isBCA = wallet.name.toLowerCase().includes('bca');
-                                        const isJago = wallet.name.toLowerCase().includes('jago');
-
-                                        let gradientClass = "bg-gradient-to-br from-gray-800 to-gray-900"; // Default Dark
-                                        if (isBCA) gradientClass = "bg-gradient-to-br from-blue-600 to-blue-900";
-                                        else if (isJago) gradientClass = "bg-gradient-to-br from-emerald-500 to-emerald-800";
-
-                                        // Light mode override classes could be handled better, but strict gradient was requested.
-                                        // We'll use the specific gradients as they look good in both modes usually, 
-                                        // or we could add dark: prefixes if needed. 
-                                        // For now, let's Stick to rich gradients for these specific cards.
-
-                                        return (
-                                            <motion.div
-                                                key={wallet.id}
-                                                whileTap={{ scale: 0.98 }}
-                                                onClick={() => {
-                                                    setSelectedWallet(wallet.id);
-                                                    openWalletModal();
-                                                }}
-                                                className={`min-w-[160px] p-5 rounded-[20px] ${gradientClass} border border-white/10 snap-start flex flex-col justify-between h-[110px] relative overflow-hidden group shadow-lg`}
-                                            >
-                                                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                <div className="flex items-center gap-2 text-white/90 relative z-10">
-                                                    {wallet.type === 'cash' ? <Banknote size={18} /> : <CreditCard size={18} />}
-                                                    <span className="text-sm font-bold truncate">{wallet.name}</span>
-                                                </div>
-                                                <div className="relative z-10">
-                                                    <p className="text-xl font-numeric text-white mb-2">
-                                                        {showPrivacy ? formatMoney(wallet.balance, currency) : '••••'}
-                                                    </p>
-                                                    <div className="h-1 bg-black/20 rounded-full overflow-hidden w-full">
-                                                        <div className="h-full bg-white/40 backdrop-blur-sm rounded-full" style={{ width: '60%' }} />
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        );
-                                    })}
-                                    <motion.button
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={openWalletModal}
-                                        className="min-w-[60px] rounded-[24px] bg-surface border border-border-color flex items-center justify-center snap-start hover:bg-surface/80 transition-colors"
-                                    >
-                                        <Plus size={24} className="text-text-secondary" />
-                                    </motion.button>
-                                    <div className="min-w-[2rem] snap-start shrink-0" />
-                                </div>
-                                <div className="absolute right-0 top-0 bottom-4 w-16 bg-gradient-to-l from-background to-transparent z-20 pointer-events-none" />
-                            </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        {/* Action Buttons */}
-                        <div className="px-8 flex gap-4 mt-2">
-                            <motion.button
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => {
-                                    setShowAddIncome(false);
-                                    setShowEditTransaction(false);
-                                    setShowAddExpense(!showAddExpense);
-                                }}
-                                className="flex-1 h-16 rounded-[20px] glass-panel border border-white/40 dark:border-white/10 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-green-500/10 transition-colors"
-                            >
-                                <div className="flex items-center gap-3 z-10">
-                                    <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center shadow-lg shadow-green-500/20">
-                                        <Plus size={20} />
-                                    </div>
-                                    <div className="text-left">
-                                        <span className="block text-[10px] text-green-500 font-extrabold uppercase tracking-widest">ADD</span>
-                                        <span className="text-sm font-bold text-text-primary">Expense</span>
-                                    </div>
-                                </div>
-                            </motion.button>
-
-                            <motion.button
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => {
-                                    setShowAddExpense(false);
-                                    setShowEditTransaction(false);
-                                    setShowAddIncome(!showAddIncome);
-                                }}
-                                className="flex-1 h-16 rounded-[20px] glass-panel border border-white/40 dark:border-white/10 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-blue-500/10 transition-colors"
-                            >
-                                <div className="flex items-center gap-3 z-10">
-                                    <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
-                                        <Plus size={20} />
-                                    </div>
-                                    <div className="text-left">
-                                        <span className="block text-[10px] text-blue-500 font-extrabold uppercase tracking-widest">ADD</span>
-                                        <span className="text-sm font-bold text-text-primary">Income</span>
-                                    </div>
-                                </div>
-                            </motion.button>
-                        </div>
-
-                        {/* Add Expense Form */}
+            {/* Content Wrapper - Lifts content above background blobs */}
+            <div className="relative z-10 w-full h-full">
+                {currentView === 'home' && (
+                    <>
+                        {/* Welcome Modal - First Visit After Onboarding */}
                         <AnimatePresence>
-                            {showAddExpense && (
+                            {showWelcome && (
                                 <motion.div
-                                    initial={{ opacity: 0, height: 0, y: -10 }}
-                                    animate={{ opacity: 1, height: 'auto', y: 0 }}
-                                    exit={{ opacity: 0, height: 0, y: -10 }}
-                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                    className="relative z-20 px-8"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
                                 >
-                                    <div className="p-6 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color space-y-4 shadow-xl">
-                                        <h3 className="text-lg font-semibold text-text-primary">Expense</h3>
-                                        <Input
-                                            label="Amount"
-                                            type="number"
-                                            value={amount}
-                                            onChange={(e) => setAmount(e.target.value)}
-                                        />
-                                        <Input
-                                            label="Description"
-                                            type="text"
-                                            value={description}
-                                            onChange={(e) => setDescription(e.target.value)}
-                                        />
-                                        <div className="relative">
-                                            <DatePicker
-                                                label="Date"
-                                                value={transactionDate}
-                                                onChange={setTransactionDate}
-                                            />
-                                        </div>
-
-                                        <WalletSelector
-                                            wallets={wallets}
-                                            selectedWalletId={selectedWallet}
-                                            onSelect={setSelectedWallet}
-                                            label="Pay from"
-                                            currencySymbol={currencySymbol}
-                                        />
-
-                                        <CategorySelector
-                                            categories={categories}
-                                            selectedCategoryId={selectedCategory}
-                                            onSelect={setSelectedCategory}
-                                        />
-
-                                        <Button
-                                            className="w-full"
-                                            isLoading={submitting}
-                                            onClick={handleAddExpense}
-                                            disabled={!amount || !selectedCategory}
-                                        >
-                                            Add Expense
-                                        </Button>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-
-                        {/* Add Income Form */}
-                        <AnimatePresence>
-                            {showAddIncome && (
-                                <motion.div
-                                    initial={{ opacity: 0, height: 0, y: -10 }}
-                                    animate={{ opacity: 1, height: 'auto', y: 0 }}
-                                    exit={{ opacity: 0, height: 0, y: -10 }}
-                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                    className="relative z-20 px-8"
-                                >
-                                    <div className="p-6 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color space-y-4 shadow-xl">
-                                        <h3 className="text-lg font-semibold text-text-primary">Income</h3>
-                                        <Input
-                                            label="Amount"
-                                            type="number"
-                                            value={amount}
-                                            onChange={(e) => setAmount(e.target.value)}
-                                        />
-                                        <Input
-                                            label="Description"
-                                            type="text"
-                                            value={description}
-                                            onChange={(e) => setDescription(e.target.value)}
-                                            placeholder="e.g., Salary, Freelance work"
-                                        />
-                                        <div className="relative">
-                                            <DatePicker
-                                                label="Date"
-                                                value={transactionDate}
-                                                onChange={setTransactionDate}
-                                            />
-                                        </div>
-
-                                        <WalletSelector
-                                            wallets={wallets}
-                                            selectedWalletId={selectedWallet}
-                                            onSelect={setSelectedWallet}
-                                            label="Deposit to"
-                                            currencySymbol={currencySymbol}
-                                        />
-
-                                        <Button
-                                            className="w-full"
-                                            isLoading={submitting}
-                                            onClick={handleAddIncome}
-                                            disabled={!amount}
-                                        >
-                                            Add Income
-                                        </Button>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-
-                        {/* Edit Transaction Modal */}
-                        {/* Edit Transaction Modal */}
-                        <EditTransactionModal
-                            isOpen={showEditTransaction}
-                            onClose={() => setShowEditTransaction(false)}
-                            transaction={editingTransaction}
-                            categories={categories}
-                            wallets={wallets}
-                            currencySymbol={currencySymbol}
-                            onUpdate={handleUpdateSubmit}
-                            onDelete={handleDeleteSubmit}
-                            isLoading={transactionSubmitting}
-                        />
-
-                        {/* Budget & Top Spend */}
-                        {/* Budget & Top Spend */}
-                        <div className="px-8 mt-8 grid grid-cols-2 gap-4">
-                            {/* Budget Card */}
-                            <motion.button
-                                onClick={() => handleNavigate('budget')}
-                                whileTap={{ scale: 0.98 }}
-                                className="p-5 rounded-[20px] glass-card flex flex-col justify-between h-[180px] relative overflow-hidden group"
-                            >
-                                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                <div className="flex justify-between items-start w-full relative z-10">
-                                    <p className="text-[10px] font-extrabold text-text-secondary uppercase tracking-widest">BUDGET</p>
-                                    <Wallet size={16} className="text-text-secondary" />
-                                </div>
-
-                                <div className="mt-2 relative z-10">
-                                    <p className="text-4xl font-numeric text-text-primary leading-none">
-                                        {showPrivacy ? `${budgetUsed.toFixed(0)}%` : '••%'}
-                                    </p>
-                                    <p className="text-xs text-text-secondary mt-1">Used</p>
-                                </div>
-
-                                <div className="w-full mt-auto relative z-10">
-                                    <div className="flex justify-between text-[10px] text-text-secondary mb-2 font-mono">
-                                        <span className="font-bold">{showPrivacy ? formatMoney(totalExpenses, currency) : '•••'}</span>
-                                        <span className="opacity-70">{showPrivacy ? formatMoney(totalBudget, currency) : '•••'}</span>
-                                    </div>
-                                    <div className="h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(34,197,94,0.3)]"
-                                            style={{ width: `${Math.min(budgetUsed, 100)}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            </motion.button>
-
-                            {/* Top Spend Card */}
-                            <div
-                                onClick={() => handleNavigate('category')}
-                                className="p-5 rounded-[20px] glass-card flex flex-col justify-between h-[180px] relative overflow-hidden cursor-pointer group"
-                            >
-                                <div className="absolute inset-0 bg-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                <div className="flex justify-between items-start w-full relative z-10">
-                                    <p className="text-[10px] font-extrabold text-text-secondary uppercase tracking-widest">TOP SPEND</p>
-                                    <Flame size={16} className="text-orange-500" />
-                                </div>
-
-                                <div className="mt-2 flex-1 flex flex-col justify-center relative z-10">
-                                    {topCategory ? (
-                                        <>
-                                            <p className="text-2xl font-bold text-text-primary leading-tight mb-2 line-clamp-2">{topCategory.name}</p>
-                                            <div className="flex -space-x-2">
-                                                <div className="w-8 h-8 rounded-full bg-surface border border-border-color flex items-center justify-center text-sm shadow-sm">
-                                                    {topCategory.icon}
-                                                </div>
-                                                <div className="w-8 h-8 rounded-full bg-surface border border-border-color flex items-center justify-center text-[10px] font-bold text-text-secondary shadow-sm">
-                                                    +{topCategory.count}
-                                                </div>
-                                            </div>
-                                            <p className="text-xs text-text-secondary mt-2 font-medium">{topCategory.count} transactions</p>
-                                        </>
-                                    ) : (
-                                        <p className="text-sm text-text-secondary">No data</p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Spending Categories */}
-                        {/* Spending Categories */}
-                        <div className="px-6 mt-8">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-xs font-bold text-text-secondary uppercase tracking-widest">SPENDING CATEGORIES</h3>
-                                <button
-                                    onClick={() => handleNavigate('category')}
-                                    className="text-xs text-blue-500 font-semibold flex items-center gap-1 hover:gap-2 transition-all"
-                                >
-                                    View All
-                                    <ChevronRight size={12} />
-                                </button>
-                            </div>
-                            <div className="space-y-3">
-                                {categorySpending.slice(0, 3).map((cat, idx) => (
                                     <motion.div
-                                        key={cat.id}
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: 0.1 * idx }}
-                                        className="p-4 rounded-[20px] glass-card flex items-center gap-4 hover:bg-surface/80 transition-colors"
+                                        initial={{ scale: 0.8, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        exit={{ scale: 0.8, opacity: 0 }}
+                                        transition={{ type: 'spring', duration: 0.5 }}
+                                        className="bg-surface border border-border-color rounded-3xl p-8 max-w-sm mx-4 text-center shadow-2xl"
                                     >
-                                        <div
-                                            className="h-12 w-12 rounded-[18px] flex items-center justify-center text-xl bg-surface border border-border-color shadow-sm"
-                                            style={{ color: cat.color }}
+                                        <motion.div
+                                            animate={{ scale: [1, 1.2, 1] }}
+                                            transition={{ repeat: Infinity, duration: 1.5 }}
+                                            className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_40px_rgba(34,197,94,0.4)]"
                                         >
-                                            <span style={{ filter: 'drop-shadow(0 0 10px currentColor)' }}>
-                                                {/* Fallback icon if mapped icon is missing */}
-                                                {cat.icon || '🛍️'}
-                                            </span>
+                                            <span className="text-4xl">🎉</span>
+                                        </motion.div>
+                                        <h2 className="text-2xl font-bold mb-2">Welcome, {profile?.display_name || profile?.username || 'Friend'}!</h2>
+                                        <p className="text-gray-400 mb-6">Your financial journey starts now. Let's make every Rupiah count!</p>
+                                        <Button onClick={() => setShowWelcome(false)} className="w-full">
+                                            Let's Go!
+                                        </Button>
+                                    </motion.div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* Koprlyst Interactive Guide */}
+                        {showKoprlyst && (
+                            <KoprlystGuide
+                                onComplete={() => {
+                                    setShowKoprlyst(false);
+                                    loadData(); // Reload profile to update state
+                                }}
+                            />
+                        )}
+
+                        {/* Header - Profile Section */}
+                        <div className="px-6 pt-12 pb-6 flex items-center justify-between">
+                            <motion.button
+                                onClick={() => handleNavigate('settings')}
+                                className="flex items-center gap-4 group"
+                            >
+                                <div className="h-12 w-12 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-blue-900/20 ring-4 ring-white/5 group-hover:scale-105 transition-transform">
+                                    {profile?.username?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase() || 'G'}
+                                </div>
+                                <div className="text-left">
+                                    <p className="text-xs text-text-secondary font-medium mb-0.5 uppercase tracking-wider">{getCurrentTime()}</p>
+                                    <p className="font-bold text-xl text-text-primary leading-tight">{profile?.username || 'G is my name'}</p>
+                                </div>
+                            </motion.button>
+                            <NotificationBell onNotificationClick={handleNotificationClick} />
+                        </div>
+
+                        <motion.div
+                            className="space-y-6 pb-24"
+                            initial="hidden"
+                            animate="visible"
+                            variants={{
+                                hidden: { opacity: 0 },
+                                visible: {
+                                    opacity: 1,
+                                    transition: {
+                                        staggerChildren: 0.1
+                                    }
+                                }
+                            }}
+                        >
+                            {/* Total Budget Card */}
+                            {/* Total Budget Card */}
+                            {/* Total Budget Card */}
+                            <motion.div
+                                variants={{
+                                    hidden: { opacity: 0, y: 20 },
+                                    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
+                                }}
+                                className="px-5"
+                            >
+                                <div className="relative px-6 py-5 rounded-[32px] overflow-hidden glass-panel bg-white/70 backdrop-blur-xl dark:bg-white/5 dark:backdrop-blur-none border border-white/40 dark:border-white/10 shadow-[0_2px_8px_0_rgba(0,0,0,0.04)] dark:shadow-2xl transition-all duration-300 hover:shadow-primary/10">
+                                    {/* Background Gradient Mesh - Dynamic based on theme */}
+                                    <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-blue-600/20 dark:bg-blue-600/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
+                                    <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-green-500/20 dark:bg-green-500/10 rounded-full blur-[60px] translate-y-1/3 -translate-x-1/3" />
+
+                                    <div className="relative z-10 flex flex-col gap-1">
+                                        {/* Header: Title + Eye */}
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-wider font-bold">Total Balance</p>
+                                            <button
+                                                onClick={() => setShowPrivacy(!showPrivacy)}
+                                                className="text-text-secondary hover:text-text-primary transition-colors focus:outline-none"
+                                            >
+                                                {showPrivacy ? <Eye size={14} /> : <EyeOff size={14} />}
+                                            </button>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <p className="font-bold text-text-primary truncate">{cat.name}</p>
-                                                <p className="text-sm font-numeric text-text-primary">{formatMoney(cat.spent, currency)}</p>
-                                            </div>
-                                            <div className="h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full rounded-full shadow-[0_0_8px_currentColor]"
-                                                    style={{
-                                                        width: `${Math.min((cat.spent / totalExpenses) * 100, 100)}%`,
-                                                        backgroundColor: cat.color || '#3B82F6',
-                                                    }}
+
+                                        {/* Main Balance + Sparkline */}
+                                        <div className="flex items-center justify-between">
+                                            <h2 className="text-3xl font-bold font-numeric tracking-tight text-text-primary mb-1">
+                                                {showPrivacy
+                                                    ? formatMoney(currentBalance, currency)
+                                                    : `${currencySymbol} ••••••••`}
+                                            </h2>
+                                            {/* Mini Sparkline */}
+                                            <div className="ml-auto opacity-100 pb-1 text-emerald-600 dark:text-[#00FF88]">
+                                                <MiniSparkline
+                                                    data={sparklineData}
+                                                    width={80}
+                                                    height={30}
+                                                    color="currentColor"
+                                                    strokeWidth={2.5}
                                                 />
                                             </div>
                                         </div>
-                                    </motion.div>
-                                ))}
-                            </div>
-                        </div>
 
-                        {/* Recent Activity */}
-                        {/* Recent Activity */}
-                        <div className="px-6 mt-8">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-xs font-bold text-text-secondary uppercase tracking-widest">RECENT ACTIVITY</h3>
-                                <button
-                                    onClick={() => handleNavigate('history')}
-                                    className="text-xs text-blue-500 font-semibold flex items-center gap-1 hover:gap-2 transition-all"
-                                >
-                                    History
-                                    <ChevronRight size={12} />
-                                </button>
-                            </div>
-                            <div className="space-y-3">
-                                {transactions.slice(0, 5).map((txn) => (
-                                    <div
-                                        key={txn.id}
-                                        onClick={() => handleEditClick(txn)}
-                                        className="p-4 rounded-[20px] glass-card flex items-center justify-between cursor-pointer hover:bg-surface/80 transition-colors group"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-10 w-10 rounded-full border border-border-color flex items-center justify-center text-xl bg-surface group-hover:scale-110 transition-transform">
-                                                {txn.category?.icon || (txn.type === 'income' ? '💰' : '💸')}
+                                        {/* Trend Pill - Strictly Left Aligned */}
+                                        <div className="flex items-start">
+                                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full glass-panel">
+                                                {isPositiveTrend ? <TrendingUp size={12} className="text-green-600 dark:text-[#00FF88]" /> : <TrendingDown size={12} className="text-red-500" />}
+                                                <span className={`text-xs font-medium ${isPositiveTrend ? 'text-green-700 dark:text-[#00FF88]' : 'text-red-500'}`}>
+                                                    {formatMoney(Math.abs(recentNet), currency)}
+                                                    <span className="opacity-70 font-normal ml-1">({Math.abs(trendPercentage).toFixed(1)}%)</span>
+                                                </span>
                                             </div>
-                                            <div>
-                                                <p className="font-bold text-text-primary text-sm">{txn.description}</p>
-                                                <p className="text-xs text-text-secondary">{new Date(txn.date).toLocaleDateString()}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className={`font-numeric text-sm ${txn.type === 'income' ? 'text-green-500' : 'text-text-primary'}`}>
-                                                {txn.type === 'income' ? '+' : '-'}{formatMoney(txn.amount, currency)}
-                                            </p>
-                                            <ChevronRight size={14} className="ml-auto text-text-secondary mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+                                </div>
+                            </motion.div>
 
-                    {/* Wallet Management Modal */}
-                    <AnimatePresence>
-                        {showWalletModal && (
+                            {/* Wallets Section */}
+                            {/* Wallets Section */}
                             <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-                                onClick={() => setShowWalletModal(false)}
+                                className="mt-8"
+                                variants={{
+                                    hidden: { opacity: 0, y: 20 },
+                                    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
+                                }}
                             >
-                                <motion.div
-                                    initial={{ scale: 0.9, y: 20 }}
-                                    animate={{ scale: 1, y: 0 }}
-                                    exit={{ scale: 0.9, y: 20 }}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="w-full max-w-md rounded-[28px] bg-surface backdrop-blur-xl border border-border-color overflow-hidden shadow-2xl"
+                                <div className="px-8 mb-4">
+                                    <h3 className="text-xs font-bold text-text-secondary uppercase tracking-widest">MY WALLETS</h3>
+                                </div>
+
+                                {/* Scroll Container Wrapper with Fade Effect */}
+                                <div className="relative group">
+                                    <div className="flex gap-4 overflow-x-auto px-0 pb-4 scrollbar-hide snap-x relative z-10 w-full [mask-image:linear-gradient(to_right,black_85%,transparent_100%)]">
+                                        <div className="min-w-[2rem] snap-start shrink-0" />
+                                        {wallets.map((wallet) => {
+                                            // Determine gradient based on wallet name/type
+                                            const isBCA = wallet.name.toLowerCase().includes('bca');
+                                            const isJago = wallet.name.toLowerCase().includes('jago');
+
+                                            let gradientClass = "bg-gradient-to-br from-gray-800 to-gray-900"; // Default Dark
+                                            if (isBCA) gradientClass = "bg-gradient-to-br from-blue-600 to-blue-900";
+                                            else if (isJago) gradientClass = "bg-gradient-to-br from-emerald-500 to-emerald-800";
+
+                                            // Light mode override classes could be handled better, but strict gradient was requested.
+                                            // We'll use the specific gradients as they look good in both modes usually, 
+                                            // or we could add dark: prefixes if needed. 
+                                            // For now, let's Stick to rich gradients for these specific cards.
+
+                                            return (
+                                                <motion.div
+                                                    key={wallet.id}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => {
+                                                        setSelectedWallet(wallet.id);
+                                                        openWalletModal();
+                                                    }}
+                                                    className={`min-w-[160px] p-5 rounded-[20px] ${!wallet.color ? gradientClass : ''} border border-white/10 snap-start flex flex-col justify-between h-[110px] relative overflow-hidden group shadow-lg`}
+                                                    style={{ backgroundColor: wallet.color || undefined }}
+                                                >
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                    <div className="flex items-center gap-2 text-white/90 relative z-10">
+                                                        {(() => {
+                                                            const IconComponent = WALLET_ICONS.find(i => i.type === wallet.type)?.Icon || CreditCard;
+                                                            return <IconComponent size={18} />;
+                                                        })()}
+                                                        <span className="text-sm font-bold truncate">{wallet.name}</span>
+                                                    </div>
+                                                    <div className="relative z-10">
+                                                        <p className="text-xl font-numeric text-white mb-2">
+                                                            {showPrivacy ? formatMoney(wallet.balance, currency) : '••••'}
+                                                        </p>
+                                                        {/* Usage Bar */}
+                                                        {(() => {
+                                                            // Calculate usage based on (Current Balance / (Current Balance + Experiments))
+                                                            const walletExpenses = transactions
+                                                                .filter(t => t.wallet_id === wallet.id && t.type === 'expense')
+                                                                .reduce((sum, t) => sum + Number(t.amount), 0);
+
+                                                            const totalFunds = Number(wallet.balance) + walletExpenses;
+                                                            const percentage = totalFunds > 0 ? (walletExpenses / totalFunds) * 100 : 0;
+
+                                                            return (
+                                                                <div className="h-1 bg-black/20 rounded-full overflow-hidden w-full">
+                                                                    <div
+                                                                        className="h-full bg-white/40 backdrop-blur-sm rounded-full transition-all duration-500"
+                                                                        style={{ width: `${percentage}%` }}
+                                                                    />
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                </motion.div>
+                                            );
+                                        })}
+                                        <motion.button
+                                            whileTap={{ scale: 0.98 }}
+                                            onClick={openWalletModal}
+                                            className="min-w-[60px] rounded-[24px] bg-surface border border-border-color flex items-center justify-center snap-start hover:bg-surface/80 transition-colors"
+                                        >
+                                            <Plus size={24} className="text-text-secondary" />
+                                        </motion.button>
+                                        <div className="min-w-[2rem] snap-start shrink-0" />
+                                    </div>
+                                    {/* Scroll shadow removed - handled by mask-image */}
+                                </div>
+                            </motion.div>
+
+                            {/* Action Buttons */}
+                            {/* Action Buttons */}
+                            <motion.div
+                                className="px-8 flex gap-4 mt-2"
+                                variants={{
+                                    hidden: { opacity: 0, y: 20 },
+                                    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
+                                }}
+                            >
+                                <motion.button
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => {
+                                        setShowAddIncome(false);
+                                        setShowEditTransaction(false);
+                                        setShowAddExpense(!showAddExpense);
+                                    }}
+                                    className="flex-1 h-16 rounded-[20px] glass-panel border border-white/40 dark:border-white/10 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-green-500/10 transition-colors"
                                 >
-                                    {/* Header with Total Budget */}
-                                    <div className="p-6 bg-gradient-to-br from-primary/20 to-secondary/10 border-b border-border-color">
-                                        <h3 className="text-lg font-bold text-center mb-1">Manage Wallets</h3>
-                                        <p className="text-xs text-gray-400 text-center mb-4">Max 4 wallets</p>
-                                        <div className="text-center">
-                                            <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Total Budget</p>
-                                            <p className="text-3xl font-bold text-primary">{formatMoney(getEditingTotal(), currency)}</p>
+                                    <div className="flex items-center gap-3 z-10">
+                                        <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center shadow-lg shadow-green-500/20">
+                                            <Plus size={20} />
+                                        </div>
+                                        <div className="text-left">
+                                            <span className="block text-[10px] text-green-500 font-extrabold uppercase tracking-widest">ADD</span>
+                                            <span className="text-sm font-bold text-text-primary">Expense</span>
                                         </div>
                                     </div>
+                                </motion.button>
 
-                                    {/* Wallet List */}
-                                    <div className="p-4 max-h-[50vh] overflow-y-auto space-y-3">
-                                        {editingWallets.map((wallet, index) => (
-                                            <motion.div
-                                                key={index}
-                                                initial={{ opacity: 0, x: -10 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                className="p-4 rounded-2xl bg-background border border-border-color"
+                                <motion.button
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => {
+                                        setShowAddExpense(false);
+                                        setShowEditTransaction(false);
+                                        setShowAddIncome(!showAddIncome);
+                                    }}
+                                    className="flex-1 h-16 rounded-[20px] glass-panel border border-white/40 dark:border-white/10 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-blue-500/10 transition-colors"
+                                >
+                                    <div className="flex items-center gap-3 z-10">
+                                        <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                            <Plus size={20} />
+                                        </div>
+                                        <div className="text-left">
+                                            <span className="block text-[10px] text-blue-500 font-extrabold uppercase tracking-widest">ADD</span>
+                                            <span className="text-sm font-bold text-text-primary">Income</span>
+                                        </div>
+                                    </div>
+                                </motion.button>
+                            </motion.div>
+
+                            {/* Add Expense Form */}
+                            <AnimatePresence>
+                                {showAddExpense && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0, y: -10 }}
+                                        animate={{ opacity: 1, height: 'auto', y: 0 }}
+                                        exit={{ opacity: 0, height: 0, y: -10 }}
+                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        className="relative z-20 px-8"
+                                    >
+                                        <div className="p-6 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color space-y-4 shadow-xl">
+                                            <h3 className="text-lg font-semibold text-text-primary">Expense</h3>
+                                            <Input
+                                                label="Amount"
+                                                type="text"
+                                                inputMode="numeric"
+                                                value={amount}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/\D/g, '');
+                                                    setAmount(val ? new Intl.NumberFormat('id-ID').format(parseInt(val)) : '');
+                                                }}
+                                            />
+                                            <Input
+                                                label="Description"
+                                                type="text"
+                                                value={description}
+                                                onChange={(e) => setDescription(e.target.value)}
+                                            />
+                                            <div className="relative">
+                                                <DatePicker
+                                                    label="Date"
+                                                    value={transactionDate}
+                                                    onChange={setTransactionDate}
+                                                />
+                                            </div>
+
+                                            <WalletSelector
+                                                wallets={wallets}
+                                                selectedWalletId={selectedWallet}
+                                                onSelect={setSelectedWallet}
+                                                label="Pay from"
+                                                currencySymbol={currencySymbol}
+                                            />
+
+                                            <CategorySelector
+                                                categories={categories}
+                                                selectedCategoryId={selectedCategory}
+                                                onSelect={setSelectedCategory}
+                                            />
+
+                                            <Button
+                                                className="w-full"
+                                                isLoading={submitting}
+                                                onClick={handleAddExpense}
+                                                disabled={!amount || !selectedCategory}
                                             >
-                                                <div className="flex items-start gap-3">
-                                                    {/* Icon Picker */}
-                                                    <div className="relative group">
-                                                        <button className="w-12 h-12 rounded-xl bg-surface flex items-center justify-center text-2xl border border-border-color hover:border-primary transition-colors">
-                                                            {wallet.icon}
-                                                        </button>
-                                                        <div className="absolute top-full left-0 mt-1 p-2 bg-surface backdrop-blur-xl border border-border-color rounded-xl hidden group-hover:grid grid-cols-3 gap-1 z-10 shadow-xl">
-                                                            {WALLET_ICONS.map(({ icon }) => (
-                                                                <button
-                                                                    key={icon}
-                                                                    onClick={() => updateEditingWallet(index, 'icon', icon)}
-                                                                    className={`w - 10 h - 10 rounded - lg flex items - center justify - center text - xl hover: bg - primary / 20 transition - colors ${wallet.icon === icon ? 'bg-primary/30' : ''} `}
-                                                                >
-                                                                    {icon}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
+                                                Add Expense
+                                            </Button>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
 
-                                                    {/* Name & Balance */}
-                                                    <div className="flex-1 space-y-2">
-                                                        <input
-                                                            type="text"
-                                                            value={wallet.name}
-                                                            onChange={(e) => updateEditingWallet(index, 'name', e.target.value)}
-                                                            placeholder="Wallet Name"
-                                                            className="w-full bg-transparent border-none p-0 text-sm font-semibold focus:ring-0 placeholder-gray-600"
-                                                        />
-                                                        <div className="flex items-center gap-2 bg-surface rounded-lg px-3 py-2">
-                                                            <span className="text-gray-400 text-sm">{currencySymbol}</span>
-                                                            <input
-                                                                type="number"
-                                                                inputMode="numeric"
-                                                                value={wallet.balance}
-                                                                onChange={(e) => updateEditingWallet(index, 'balance', e.target.value)}
-                                                                placeholder="0"
-                                                                className="w-full bg-transparent border-none p-0 text-lg font-bold focus:ring-0 placeholder-gray-600"
-                                                            />
-                                                        </div>
-                                                    </div>
+                            {/* Add Income Form */}
+                            <AnimatePresence>
+                                {showAddIncome && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0, y: -10 }}
+                                        animate={{ opacity: 1, height: 'auto', y: 0 }}
+                                        exit={{ opacity: 0, height: 0, y: -10 }}
+                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        className="relative z-20 px-8"
+                                    >
+                                        <div className="p-6 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color space-y-4 shadow-xl">
+                                            <h3 className="text-lg font-semibold text-text-primary">Income</h3>
+                                            <Input
+                                                label="Amount"
+                                                type="text"
+                                                inputMode="numeric"
+                                                value={amount}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/\D/g, '');
+                                                    setAmount(val ? new Intl.NumberFormat('id-ID').format(parseInt(val)) : '');
+                                                }}
+                                            />
+                                            <Input
+                                                label="Description"
+                                                type="text"
+                                                value={description}
+                                                onChange={(e) => setDescription(e.target.value)}
+                                                placeholder="e.g., Salary, Freelance work"
+                                            />
+                                            <div className="relative">
+                                                <DatePicker
+                                                    label="Date"
+                                                    value={transactionDate}
+                                                    onChange={setTransactionDate}
+                                                />
+                                            </div>
 
-                                                    {/* Delete Button */}
-                                                    {editingWallets.length > 1 && (
-                                                        <button
-                                                            onClick={() => removeEditingWallet(index)}
-                                                            className="p-2 text-gray-500 hover:text-error transition-colors"
-                                                        >
-                                                            <X size={18} />
-                                                        </button>
-                                                    )}
-                                                </div>
+                                            <WalletSelector
+                                                wallets={wallets}
+                                                selectedWalletId={selectedWallet}
+                                                onSelect={setSelectedWallet}
+                                                label="Deposit to"
+                                                currencySymbol={currencySymbol}
+                                            />
 
-                                                {/* Color Picker */}
-                                                <div className="flex gap-2 mt-3 pt-3 border-t border-border-color">
-                                                    {WALLET_COLORS.map((color) => (
-                                                        <button
-                                                            key={color}
-                                                            onClick={() => updateEditingWallet(index, 'color', color)}
-                                                            className={`w - 6 h - 6 rounded - full transition - transform ${wallet.color === color ? 'scale-125 ring-2 ring-white' : 'hover:scale-110'} `}
-                                                            style={{ backgroundColor: color }}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </motion.div>
-                                        ))}
-
-                                        {/* Add Wallet Button */}
-                                        {editingWallets.length < 4 && (
-                                            <button
-                                                onClick={addNewWallet}
-                                                className="w-full py-4 rounded-2xl border-2 border-dashed border-border-color text-gray-400 hover:text-primary hover:border-primary/50 transition-all flex items-center justify-center gap-2"
+                                            <Button
+                                                className="w-full"
+                                                isLoading={submitting}
+                                                onClick={handleAddIncome}
+                                                disabled={!amount}
                                             >
-                                                <Plus size={18} />
-                                                <span>Add Wallet</span>
-                                            </button>
+                                                Add Income
+                                            </Button>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {/* Edit Transaction Modal */}
+                            {/* Edit Transaction Modal */}
+                            <EditTransactionModal
+                                isOpen={showEditTransaction}
+                                onClose={() => setShowEditTransaction(false)}
+                                transaction={editingTransaction}
+                                categories={categories}
+                                wallets={wallets}
+                                currencySymbol={currencySymbol}
+                                onUpdate={handleUpdateSubmit}
+                                onDelete={handleDeleteSubmit}
+                                isLoading={transactionSubmitting}
+                            />
+
+                            {/* Budget & Top Spend */}
+                            <motion.div
+                                className="px-8 mt-8 grid grid-cols-2 gap-4"
+                                variants={{
+                                    hidden: { opacity: 0, y: 20 },
+                                    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
+                                }}
+                            >
+                                {/* Budget Card */}
+                                <motion.button
+                                    onClick={() => handleNavigate('budget')}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="p-5 rounded-[20px] glass-card flex flex-col justify-between h-[180px] relative overflow-hidden group"
+                                >
+                                    <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="flex justify-between items-start w-full relative z-10">
+                                        <p className="text-[10px] font-extrabold text-text-secondary uppercase tracking-widest">BUDGET</p>
+                                        <Wallet size={16} className="text-text-secondary" />
+                                    </div>
+
+                                    <div className="mt-2 relative z-10">
+                                        <p className="text-4xl font-numeric text-text-primary leading-none">
+                                            {showPrivacy ? `${budgetUsed.toFixed(0)}%` : '••%'}
+                                        </p>
+                                        <p className="text-xs text-text-secondary mt-1">Used</p>
+                                    </div>
+
+                                    <div className="w-full mt-auto relative z-10">
+                                        <div className="flex justify-between text-[10px] text-text-secondary mb-2 font-mono">
+                                            <span className="font-bold">{showPrivacy ? formatMoney(totalExpenses, currency) : '•••'}</span>
+                                            <span className="opacity-70">{showPrivacy ? formatMoney(totalBudget, currency) : '•••'}</span>
+                                        </div>
+                                        <div className="h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(34,197,94,0.3)]"
+                                                style={{ width: `${Math.min(budgetUsed, 100)}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                </motion.button>
+
+                                {/* Top Spend Card */}
+                                <div
+                                    onClick={() => handleNavigate('category')}
+                                    className="p-5 rounded-[20px] glass-card flex flex-col justify-between h-[180px] relative overflow-hidden cursor-pointer group"
+                                >
+                                    <div className="absolute inset-0 bg-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="flex justify-between items-start w-full relative z-10">
+                                        <p className="text-[10px] font-extrabold text-text-secondary uppercase tracking-widest">TOP SPEND</p>
+                                        <Flame size={16} className="text-orange-500" />
+                                    </div>
+
+                                    <div className="mt-2 flex-1 flex flex-col justify-center relative z-10">
+                                        {topCategory ? (
+                                            <>
+                                                <p className="text-2xl font-bold text-text-primary leading-tight mb-2 line-clamp-2">{topCategory.name}</p>
+                                                <div className="flex -space-x-2">
+                                                    <div className="w-8 h-8 rounded-full bg-surface border border-border-color flex items-center justify-center text-sm shadow-sm">
+                                                        {topCategory.icon}
+                                                    </div>
+                                                    <div className="w-8 h-8 rounded-full bg-surface border border-border-color flex items-center justify-center text-[10px] font-bold text-text-secondary shadow-sm">
+                                                        +{topCategory.count}
+                                                    </div>
+                                                </div>
+                                                <p className="text-xs text-text-secondary mt-2 font-medium">{topCategory.count} transactions</p>
+                                            </>
+                                        ) : (
+                                            <p className="text-sm text-text-secondary">No data</p>
                                         )}
                                     </div>
-
-                                    {/* Footer */}
-                                    <div className="p-4 border-t border-border-color flex gap-3">
-                                        <Button
-                                            variant="secondary"
-                                            className="flex-1"
-                                            onClick={() => setShowWalletModal(false)}
-                                        >
-                                            Cancel
-                                        </Button>
-                                        <Button
-                                            className="flex-1"
-                                            onClick={saveWallets}
-                                            isLoading={submitting}
-                                        >
-                                            Save Wallets
-                                        </Button>
-                                    </div>
-                                </motion.div>
+                                </div>
                             </motion.div>
-                        )}
-                    </AnimatePresence>
-                </>
-            )
-            }
 
-            {
-                currentView === 'settings' && (
-                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
-                        <SettingsPage
-                            onBack={() => {
+                            {/* Spending Categories */}
+                            {/* Spending Categories */}
+                            <motion.div
+                                className="px-6 mt-8"
+                                variants={{
+                                    hidden: { opacity: 0, y: 20 },
+                                    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
+                                }}
+                            >
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-xs font-bold text-text-secondary uppercase tracking-widest">SPENDING CATEGORIES</h3>
+                                    <button
+                                        onClick={() => handleNavigate('category')}
+                                        className="text-xs text-blue-500 font-semibold flex items-center gap-1 hover:gap-2 transition-all"
+                                    >
+                                        View All
+                                        <ChevronRight size={12} />
+                                    </button>
+                                </div>
+                                <div className="space-y-3">
+                                    {categorySpending.slice(0, 3).map((cat, idx) => (
+                                        <motion.div
+                                            key={cat.id}
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: 0.1 * idx }}
+                                            className="p-4 rounded-[20px] glass-card flex items-center gap-4 hover:bg-surface/80 transition-colors"
+                                        >
+                                            <div
+                                                className="h-12 w-12 rounded-[18px] flex items-center justify-center text-xl bg-surface border border-border-color shadow-sm"
+                                                style={{ color: cat.color }}
+                                            >
+                                                <span style={{ filter: 'drop-shadow(0 0 10px currentColor)' }}>
+                                                    {/* Fallback icon if mapped icon is missing */}
+                                                    {cat.icon || '🛍️'}
+                                                </span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <p className="font-bold text-text-primary truncate">{cat.name}</p>
+                                                    <p className="text-sm font-numeric text-text-primary">{formatMoney(cat.spent, currency)}</p>
+                                                </div>
+                                                <div className="h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full rounded-full shadow-[0_0_8px_currentColor]"
+                                                        style={{
+                                                            width: `${Math.min((cat.spent / totalExpenses) * 100, 100)}%`,
+                                                            backgroundColor: cat.color || '#3B82F6',
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            </motion.div>
+
+                            {/* Recent Activity */}
+                            {/* Recent Activity */}
+                            <motion.div
+                                className="px-6 mt-8"
+                                variants={{
+                                    hidden: { opacity: 0, y: 20 },
+                                    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
+                                }}
+                            >
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-xs font-bold text-text-secondary uppercase tracking-widest">RECENT ACTIVITY</h3>
+                                    <button
+                                        onClick={() => handleNavigate('history')}
+                                        className="text-xs text-blue-500 font-semibold flex items-center gap-1 hover:gap-2 transition-all"
+                                    >
+                                        History
+                                        <ChevronRight size={12} />
+                                    </button>
+                                </div>
+                                <div className="space-y-3">
+                                    {transactions.slice(0, 5).map((txn) => (
+                                        <div
+                                            key={txn.id}
+                                            onClick={() => handleEditClick(txn)}
+                                            className="p-4 rounded-[20px] glass-card flex items-center justify-between cursor-pointer hover:bg-surface/80 transition-colors group"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="h-10 w-10 rounded-full border border-border-color flex items-center justify-center text-xl bg-surface group-hover:scale-110 transition-transform">
+                                                    {txn.category?.icon || (txn.type === 'income' ? '💰' : '💸')}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-text-primary text-sm">{txn.description}</p>
+                                                    <p className="text-xs text-text-secondary">{new Date(txn.date).toLocaleDateString()}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className={`font-numeric text-sm ${txn.type === 'income' ? 'text-green-500' : 'text-text-primary'}`}>
+                                                    {txn.type === 'income' ? '+' : '-'}{formatMoney(txn.amount, currency)}
+                                                </p>
+                                                <ChevronRight size={14} className="ml-auto text-text-secondary mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        </motion.div>
+
+                        {/* Wallet Management Modal */}
+                        <AnimatePresence>
+                            {showWalletModal && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4"
+                                    onClick={() => setShowWalletModal(false)}
+                                >
+                                    <motion.div
+                                        initial={{ scale: 0.9, y: 20 }}
+                                        animate={{ scale: 1, y: 0 }}
+                                        exit={{ scale: 0.9, y: 20 }}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="w-full max-w-md rounded-[28px] bg-surface backdrop-blur-xl border border-border-color overflow-hidden shadow-2xl"
+                                    >
+                                        {/* Header with Total Budget */}
+                                        <div className="p-6 bg-gradient-to-br from-primary/5 to-secondary/5 border-b border-border-color">
+                                            <h3 className="text-xl font-bold text-center mb-1 text-text-primary">Manage Wallets</h3>
+                                            <p className="text-sm font-medium text-text-secondary text-center mb-6">Max 4 wallets</p>
+                                            <div className="text-center">
+                                                <p className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-1 opacity-80">Total Budget</p>
+                                                <p className="text-4xl font-bold text-text-primary tracking-tight">{formatMoney(getEditingTotal(), currency)}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Wallet List */}
+                                        <div className="p-4 max-h-[50vh] overflow-y-auto space-y-3">
+                                            {editingWallets.map((wallet, index) => (
+                                                <motion.div
+                                                    key={index}
+                                                    initial={{ opacity: 0, x: -10 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    className={`p-4 rounded-2xl border border-border-color shadow-sm relative overflow-visible transition-all duration-300 ${!wallet.color ? 'bg-surface' : 'text-white'}`}
+                                                    style={{ backgroundColor: wallet.color || undefined }}
+                                                >
+                                                    <div className="flex items-start gap-3">
+                                                        {/* Icon Picker */}
+                                                        <div className="relative">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setActiveIconPickerIndex(activeIconPickerIndex === index ? null : index);
+                                                                }}
+                                                                className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl border border-border-color hover:border-primary transition-all relative group ${wallet.color ? 'bg-white/20 text-white border-white/30' : 'bg-surface-highlight text-text-primary'}`}
+                                                            >
+                                                                {(() => {
+                                                                    const IconComponent = WALLET_ICONS.find(i => i.type === wallet.type)?.Icon || CreditCard;
+                                                                    return <IconComponent size={24} />;
+                                                                })()}
+                                                                {/* Edit Indicator Badge */}
+                                                                <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2 border-surface shadow-sm ${wallet.color ? 'bg-white text-primary' : 'bg-primary text-white'}`}>
+                                                                    <Pencil size={10} />
+                                                                </div>
+                                                            </button>
+
+                                                            {/* Icon Dropdown */}
+                                                            {activeIconPickerIndex === index && (
+                                                                <div className="absolute top-full left-0 mt-2 p-3 bg-white/80 dark:bg-[#121212]/95 backdrop-blur-2xl border border-border-color rounded-2xl grid grid-cols-3 gap-2 z-50 shadow-2xl min-w-[180px]">
+                                                                    <div className="col-span-3 text-[10px] font-bold text-text-secondary uppercase tracking-widest px-1 mb-2">Select Icon</div>
+                                                                    {WALLET_ICONS.map(({ type, Icon, label }) => (
+                                                                        <button
+                                                                            key={type}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                updateEditingWallet(index, 'type', type);
+                                                                                setActiveIconPickerIndex(null);
+                                                                            }}
+                                                                            className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl hover:bg-primary/20 transition-all group/icon ${wallet.type === type ? 'bg-primary/20 ring-2 ring-primary text-primary' : 'bg-surface-highlight text-text-secondary hover:text-primary'} `}
+                                                                            title={label}
+                                                                        >
+                                                                            <Icon size={24} strokeWidth={wallet.type === type ? 2.5 : 2} />
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Name & Balance */}
+                                                        <div className="flex-1 space-y-3">
+                                                            {/* Wallet Name Input */}
+                                                            <div className="relative group/input">
+                                                                <input
+                                                                    type="text"
+                                                                    value={wallet.name}
+                                                                    onChange={(e) => updateEditingWallet(index, 'name', e.target.value)}
+                                                                    placeholder="Wallet Name"
+                                                                    className={`w-full bg-transparent border-b pb-1 text-sm font-bold focus:outline-none transition-colors pr-6 ${wallet.color ? 'text-white border-white/50 focus:border-white placeholder:text-white/50' : 'text-text-primary border-border-color focus:border-primary placeholder:text-text-secondary/50'}`}
+                                                                />
+                                                                <Pencil size={12} className={`absolute right-0 top-1 opacity-50 group-hover/input:opacity-100 transition-opacity pointer-events-none ${wallet.color ? 'text-white' : 'text-text-secondary'}`} />
+                                                            </div>
+
+                                                            <div className={`flex items-center gap-2 rounded-xl px-4 py-2 border transition-all ${wallet.color ? 'bg-white/20 border-white/30 focus-within:bg-white/30 focus-within:border-white' : 'bg-surface-highlight/50 border-border-color/50 focus-within:border-primary/50 focus-within:bg-surface-highlight'}`}>
+                                                                <span className={`font-medium ${wallet.color ? 'text-white/80' : 'text-text-secondary'}`}>{currencySymbol}</span>
+                                                                <input
+                                                                    type="text"
+                                                                    inputMode="numeric"
+                                                                    value={wallet.balance ? wallet.balance.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ''}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value.replace(/\D/g, '');
+                                                                        updateEditingWallet(index, 'balance', val);
+                                                                    }}
+                                                                    placeholder="0"
+                                                                    className={`w-full bg-transparent border-none p-0 text-lg font-bold focus:ring-0 ${wallet.color ? 'text-white placeholder:text-white/30' : 'text-text-primary placeholder:text-text-secondary/30'}`}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Delete Button */}
+                                                        {editingWallets.length > 1 && (
+                                                            <button
+                                                                onClick={() => removeEditingWallet(index)}
+                                                                className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-full transition-colors self-center"
+                                                            >
+                                                                <X size={18} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Color Picker */}
+                                                    <div className="flex gap-2 mt-4 pt-3 border-t border-border-color overflow-x-visible p-1">
+                                                        {WALLET_COLORS.map((color) => (
+                                                            <button
+                                                                key={color}
+                                                                onClick={() => updateEditingWallet(index, 'color', color)}
+                                                                className={`w-6 h-6 rounded-full transition-all flex-shrink-0 ${wallet.color === color ? 'scale-125 ring-2 ring-white dark:ring-white shadow-lg z-10' : 'hover:scale-110 opacity-70 hover:opacity-100'} `}
+                                                                style={{ backgroundColor: color }}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </motion.div>
+                                            ))}
+
+                                            {/* Add Wallet Button */}
+                                            {editingWallets.length < 4 && (
+                                                <button
+                                                    id="add-wallet-button"
+                                                    onClick={addNewWallet}
+                                                    className="w-full py-4 rounded-2xl border-2 border-dashed border-border-color text-text-secondary hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 group"
+                                                >
+                                                    <div className="w-8 h-8 rounded-full bg-surface-highlight group-hover:bg-primary/20 flex items-center justify-center transition-colors">
+                                                        <Plus size={16} />
+                                                    </div>
+                                                    <span className="font-medium">Add New Wallet</span>
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Footer */}
+                                        <div className="p-4 border-t border-border-color flex gap-3">
+                                            <Button
+                                                variant="secondary"
+                                                className="flex-1"
+                                                onClick={() => setShowWalletModal(false)}
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                className="flex-1"
+                                                onClick={saveWallets}
+                                                isLoading={submitting}
+                                            >
+                                                Save Wallets
+                                            </Button>
+                                        </div>
+                                    </motion.div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </>
+                )}
+
+
+                {
+                    currentView === 'settings' && (
+                        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
+                            <SettingsPage
+                                onBack={() => {
+                                    handleNavigate('home');
+                                    loadData();
+                                }}
+                                onNavigateToNotifications={() => handleNavigate('notifications')}
+                            />
+                        </Suspense>
+                    )
+                }
+
+                {
+                    currentView === 'notifications' && (
+                        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
+                            <NotificationSettings onBack={() => handleNavigate('settings')} />
+                        </Suspense>
+                    )
+                }
+
+                {
+                    currentView === 'report' && (
+                        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
+                            <FinancialReport onBack={() => handleNavigate('home')} onNavigate={handleNavigate} />
+                        </Suspense>
+                    )
+                }
+
+                {
+                    currentView === 'budget' && (
+                        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
+                            <BudgetPage onBack={() => {
                                 handleNavigate('home');
                                 loadData();
-                            }}
-                            onNavigateToNotifications={() => handleNavigate('notifications')}
-                        />
-                    </Suspense>
-                )
-            }
+                            }} />
+                        </Suspense>
+                    )
+                }
 
-            {
-                currentView === 'notifications' && (
-                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
-                        <NotificationSettings onBack={() => handleNavigate('settings')} />
-                    </Suspense>
-                )
-            }
+                {
+                    currentView === 'category' && (
+                        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
+                            <SpendingCategoryPage onBack={() => handleNavigate('home')} />
+                        </Suspense>
+                    )
+                }
 
-            {
-                currentView === 'report' && (
-                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
-                        <FinancialReport onBack={() => handleNavigate('home')} onNavigate={handleNavigate} />
-                    </Suspense>
-                )
-            }
+                {
+                    currentView === 'history' && (
+                        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
+                            <HistoryPage onBack={() => handleNavigate('home')} />
+                        </Suspense>
+                    )
+                }
 
-            {
-                currentView === 'budget' && (
-                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
-                        <BudgetPage onBack={() => {
-                            handleNavigate('home');
-                            loadData();
-                        }} />
-                    </Suspense>
-                )
-            }
-
-            {
-                currentView === 'category' && (
-                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
-                        <SpendingCategoryPage onBack={() => handleNavigate('home')} />
-                    </Suspense>
-                )
-            }
-
-            {
-                currentView === 'history' && (
-                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
-                        <HistoryPage onBack={() => handleNavigate('home')} />
-                    </Suspense>
-                )
-            }
-
-            {/* Persistent Bottom Menu - Using Portal to escape parent transforms */}
-            {/* Persistent Bottom Menu */}
-            <AnimatePresence>
-                {isBottomMenuVisible && (
-                    <BottomMenu currentView={currentView} onNavigate={handleNavigate} />
-                )}
-            </AnimatePresence>
+                {/* Persistent Bottom Menu - Using Portal to escape parent transforms */}
+                {/* Persistent Bottom Menu */}
+                <AnimatePresence>
+                    {isBottomMenuVisible && (
+                        <BottomMenu currentView={currentView} onNavigate={handleNavigate} />
+                    )}
+                </AnimatePresence>
+            </div >
         </div >
     );
 }

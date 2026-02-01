@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import confetti from 'canvas-confetti';
 import { api } from '../lib/api';
 import { useAppStore } from '../store/useAppStore';
-import type { Category, Transaction, Wallet } from '../types';
+import type { Category, Transaction, Wallet, Profile } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Plus, ChevronDown, AlertTriangle, Trash2, X, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Plus, ChevronDown, AlertTriangle, Trash2, X, Pencil, Calendar, Check } from 'lucide-react';
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval, format } from 'date-fns';
 import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/glass/GlassCard';
-import { GlassButton } from '../components/glass/GlassButton';
 import { ProgressBarGlow } from '../components/glass/ProgressBarGlow';
+import { BudgetSkeleton } from '../components/skeletons/BudgetSkeleton';
 
 interface BudgetPageProps {
     onBack: () => void;
@@ -17,15 +18,6 @@ interface BudgetPageProps {
 
 const CATEGORY_ICONS = ['🛒', '🍽️', '🚗', '🏠', '🎬', '🏥', '👕', '💼', '✈️', '📚', '💊', '🎮', '☕', '🔌', '🎁'];
 const CATEGORY_COLORS = ['#34C759', '#FF9500', '#007AFF', '#5856D6', '#FF2D55', '#FF3B30', '#AF52DE', '#8E8E93', '#00C7BE', '#FFD60A'];
-const WALLET_ICONS = [
-    { icon: '💳', label: 'Card' },
-    { icon: '💵', label: 'Cash' },
-    { icon: '🏦', label: 'Bank' },
-    { icon: '💰', label: 'Savings' },
-    { icon: '📱', label: 'E-Wallet' },
-    { icon: '🪙', label: 'Crypto' },
-];
-const WALLET_COLORS = ['#007AFF', '#34C759', '#FF9500', '#FF2D55', '#AF52DE', '#5856D6'];
 
 export default function BudgetPage({ onBack }: BudgetPageProps) {
     const { user } = useAuth();
@@ -35,6 +27,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     const [categories, setCategories] = useState<Category[]>([]);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [wallets, setWallets] = useState<Wallet[]>([]);
+    const [profile, setProfile] = useState<Profile | null>(null);
     const [selectedMonth] = useState(new Date());
     const [showMonthPicker, setShowMonthPicker] = useState(false);
 
@@ -43,41 +36,25 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     const [showEditCategory, setShowEditCategory] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-    // Wallet Modal States
-    const [showWalletModal, setShowWalletModal] = useState(false);
-    const [editingWallets, setEditingWallets] = useState<{
-        id?: string;
-        name: string;
-        balance: string;
-        icon: string;
-        color: string;
-    }[]>([]);
-
     // Form States
     const [categoryName, setCategoryName] = useState('');
     const [categoryIcon, setCategoryIcon] = useState('🛒');
     const [categoryColor, setCategoryColor] = useState('#34C759');
     const [categoryBudget, setCategoryBudget] = useState('');
 
-    // Guidance Bubble: Track dismissed states separately for 'start' (0%) and 'partial' (1-99%)
-    // This allows differentiation: dismissing "Partial" logic won't hide "Start" logic if user resets.
-    const [dismissedStates, setDismissedStates] = useState<Record<string, boolean>>(() => {
-        if (typeof sessionStorage === 'undefined') return { start: false, partial: false };
-        return {
-            start: !!sessionStorage.getItem('budgetGuidanceDismissed_start'),
-            partial: !!sessionStorage.getItem('budgetGuidanceDismissed_partial')
-        };
-    });
-
+    // Budget Edit Limit State
+    const [showEditBudget, setShowEditBudget] = useState(false);
+    const [newBudgetLimit, setNewBudgetLimit] = useState('');
+    const [resetDay, setResetDay] = useState<number>(1);
 
 
     // Manage Bottom Menu visibility
     useEffect(() => {
-        const isAnyModalOpen = showAddCategory || showEditCategory || showWalletModal;
+        const isAnyModalOpen = showAddCategory || showEditCategory || showEditBudget;
         setBottomMenuVisible(!isAnyModalOpen);
 
         return () => setBottomMenuVisible(true); // Reset on unmount
-    }, [showAddCategory, showEditCategory, showWalletModal, setBottomMenuVisible]);
+    }, [showAddCategory, showEditCategory, showEditBudget, setBottomMenuVisible]);
 
     const currencySymbol = currency === 'IDR' ? 'Rp' : '$';
 
@@ -89,14 +66,16 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [cats, txns, wlts] = await Promise.all([
+            const [cats, txns, wlts, prof] = await Promise.all([
                 api.getCategories(),
                 api.getTransactions(),
-                api.getWallets()
+                api.getWallets(),
+                api.getProfile()
             ]);
             setCategories(cats || []);
             setTransactions(txns || []);
             setWallets(wlts || []);
+            setProfile(prof);
         } catch (error) {
             console.error('Failed to load data:', error);
         } finally {
@@ -132,19 +111,49 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     // Total Budget for DISPLAY = live wallet balance (updates with income/expenses)
     const totalBudget = liveBalance;
 
-    // Original Budget = what user initially set (reverse transaction effects)
-    // Used ONLY for Budget Allocation calculation - not affected by spending/income
-    const originalBudget = liveBalance + allExpenses - allIncome;
+    // Original Budget = STABLE anchor from user's profile (total_budget)
+    // This is what the user set during onboarding - NOT affected by transactions
+    // Falls back to dynamic calculation only if total_budget is not set
+    const originalBudget = (profile?.total_budget && profile.total_budget > 0)
+        ? profile.total_budget
+        : (liveBalance + allExpenses - allIncome);
 
     // Monthly spending for progress display
-    const totalSpent = monthlyExpenses.reduce((sum, t) => sum + Number(t.amount), 0);
+    const totalSpent = categorySpending.reduce((acc, curr) => acc + curr.spent, 0);
     const totalRemaining = liveBalance; // Live balance is what remains
     const usedPercent = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
+
 
     // Budget Allocation = sum of all category budgets vs ORIGINAL Budget (not live balance)
     // This is NOT affected by expenses/income - only by setting category budgets
     const totalCategoryBudgets = categories.reduce((sum, c) => sum + (c.monthly_budget || 0), 0);
-    const budgetAllocationRemaining = originalBudget - totalCategoryBudgets;
+
+    // Track previous total to detect distinct changes
+    const prevTotalRef = useRef(0);
+
+    // Congratulation Effect - Fires ONLY when user returns to dashboard with 100% allocation
+    useEffect(() => {
+        // Do not trigger while editing/adding (wait until modal closes)
+        if (showEditCategory || showAddCategory) return;
+
+        const isFullBudget = originalBudget > 0 && Math.abs(totalCategoryBudgets - originalBudget) < 1;
+        // Check if value actually changed (to avoid re-firing on random renders)
+        const hasChanged = Math.abs(prevTotalRef.current - totalCategoryBudgets) > 1;
+
+        if (isFullBudget && hasChanged) {
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#34C759', '#32ADE6', '#FFCC00'],
+                disableForReducedMotion: true,
+                zIndex: 9999
+            });
+        }
+
+        // Update ref for next comparison
+        prevTotalRef.current = totalCategoryBudgets;
+    }, [totalCategoryBudgets, originalBudget, showEditCategory, showAddCategory]);
     const budgetAllocationPercent = originalBudget > 0 ? Math.round((totalCategoryBudgets / originalBudget) * 100) : 0;
     const isBudgetOverAllocated = totalCategoryBudgets > originalBudget;
 
@@ -157,78 +166,6 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
         }).format(amount);
     };
 
-    // Wallet management functions
-    const openWalletModal = () => {
-        if (wallets.length > 0) {
-            setEditingWallets(wallets.map(w => ({
-                id: w.id,
-                name: w.name,
-                balance: String(w.balance),
-                icon: w.type === 'cash' ? '💵' : w.type === 'bank' ? '🏦' : '💳',
-                color: w.color || '#007AFF'
-            })));
-        } else {
-            setEditingWallets([{ name: 'My Wallet', balance: '', icon: '💳', color: '#007AFF' }]);
-        }
-        setShowWalletModal(true);
-    };
-
-    const addNewWallet = () => {
-        if (editingWallets.length >= 4) return;
-        setEditingWallets([...editingWallets, {
-            name: `Wallet ${editingWallets.length + 1}`,
-            balance: '',
-            icon: '💳',
-            color: WALLET_COLORS[editingWallets.length % WALLET_COLORS.length]
-        }]);
-    };
-
-    const updateEditingWallet = (index: number, field: string, value: string) => {
-        const updated = [...editingWallets];
-        updated[index] = { ...updated[index], [field]: value };
-        setEditingWallets(updated);
-    };
-
-    const removeEditingWallet = (index: number) => {
-        setEditingWallets(editingWallets.filter((_, i) => i !== index));
-    };
-
-    const getEditingTotal = () => {
-        return editingWallets.reduce((sum, w) => sum + (parseFloat(w.balance) || 0), 0);
-    };
-
-    const saveWallets = async () => {
-        if (!user) return;
-        setSubmitting(true);
-        try {
-            for (const wallet of editingWallets) {
-                const iconType = wallet.icon === '💵' ? 'cash' : wallet.icon === '🏦' ? 'bank' : 'general';
-                if (wallet.id) {
-                    await api.updateWallet(wallet.id, {
-                        name: wallet.name,
-                        balance: parseFloat(wallet.balance) || 0,
-                        color: wallet.color,
-                        type: iconType
-                    });
-                } else {
-                    await api.createWallet({
-                        user_id: user.id,
-                        name: wallet.name,
-                        balance: parseFloat(wallet.balance) || 0,
-                        color: wallet.color,
-                        type: iconType
-                    });
-                }
-            }
-            await loadData();
-            setShowWalletModal(false);
-        } catch (error) {
-            console.error('Failed to save wallets:', error);
-            alert('Failed to save wallets');
-        } finally {
-            setSubmitting(false);
-        }
-    };
 
     const resetForm = () => {
         setCategoryName('');
@@ -288,22 +225,21 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                 monthly_budget: budgetValue
             });
 
-            // Optimistically update the local state
+            // Update the local state with the server response (not optimistic)
             setCategories(prevCategories =>
                 prevCategories.map(cat =>
                     cat.id === editingCategory.id ? updatedCategory : cat
                 )
             );
 
-            // Background refresh to ensure consistency
-            loadData();
+            // No loadData() here - the above update is sufficient and avoids race condition
 
             setEditingCategory(null);
             setShowEditCategory(false);
         } catch (error) {
             console.error('Error updating category:', error);
             alert('Failed to update category');
-            // Reload data on error to revert optimistic update
+            // Reload data on error to revert any partial changes
             loadData();
         } finally {
             setSubmitting(false);
@@ -321,6 +257,30 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
         }
     };
 
+    const handleUpdateBudgetLimit = async () => {
+        if (!user || !newBudgetLimit) return;
+        setSubmitting(true);
+        try {
+            await api.updateProfile({
+                total_budget: parseFloat(newBudgetLimit),
+                reset_day: resetDay
+            });
+            await loadData();
+            setShowEditBudget(false);
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#34C759', '#32ADE6']
+            });
+        } catch (error) {
+            console.error('Failed to update budget:', error);
+            alert('Failed to update budget limit');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     const openEditModal = (cat: Category) => {
         setEditingCategory(cat);
         setCategoryName(cat.name);
@@ -330,12 +290,10 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
         setShowEditCategory(true);
     };
 
+
+
     if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-background">
-                <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-            </div>
-        );
+        return <BudgetSkeleton />;
     }
 
     return (
@@ -393,16 +351,15 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                         visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
                     }}
                 >
-                    <GlassCard
-                        onClick={openWalletModal}
-                        variant="elevated"
-                        className="p-6 rounded-[32px] cursor-pointer"
-                    >
-                        <div className="flex items-center justify-between">
+                    <div className="relative px-6 py-5 rounded-[32px] overflow-hidden glass-panel bg-white/70 backdrop-blur-xl dark:bg-white/5 dark:backdrop-blur-none border border-white/40 dark:border-white/10 shadow-[0_2px_8px_0_rgba(0,0,0,0.04)] dark:shadow-2xl transition-all duration-300 hover:shadow-primary/10">
+                        {/* Background Gradient Mesh - Dynamic based on theme */}
+                        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-blue-600/20 dark:bg-blue-600/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
+                        <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-green-500/20 dark:bg-green-500/10 rounded-full blur-[60px] translate-y-1/3 -translate-x-1/3" />
+
+                        <div className="relative z-10 flex items-center justify-between">
                             <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <p className="text-xs text-text-secondary uppercase tracking-wider">Total Budget</p>
-                                    <ChevronRight size={14} className="text-text-secondary" />
+                                    <p className="text-xs text-text-secondary uppercase tracking-wider">Total Balance</p>
                                 </div>
                                 <h2 className="text-3xl font-bold font-numeric">
                                     {formatMoney(totalBudget)}
@@ -432,11 +389,72 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                                 </div>
                             )}
                         </div>
-                    </GlassCard>
+                    </div>
                 </motion.div>
 
+
+                {/* Budget Allocation Bar - Moved Here */}
+                {originalBudget > 0 && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="relative z-20"
+                    >
+                        <div
+                            id="budget-limit-card"
+                            onClick={() => {
+                                setNewBudgetLimit(originalBudget.toString());
+                                setResetDay(profile?.reset_day || 1);
+                                setShowEditBudget(true);
+                            }}
+                            className={`relative px-6 py-5 rounded-[32px] overflow-hidden glass-panel bg-white/70 backdrop-blur-xl dark:bg-white/5 dark:backdrop-blur-none border border-white/40 dark:border-white/10 shadow-[0_2px_8px_0_rgba(0,0,0,0.04)] dark:shadow-2xl transition-all duration-300 hover:shadow-primary/10 cursor-pointer group ${isBudgetOverAllocated ? '!bg-error/10 !border-error/30' : ''}`}
+                        >
+                            {/* Background Gradient Mesh - Dynamic based on theme */}
+                            <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-blue-600/20 dark:bg-blue-600/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
+                            <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-green-500/20 dark:bg-green-500/10 rounded-full blur-[60px] translate-y-1/3 -translate-x-1/3" />
+
+                            <div className="relative z-10 flex items-center justify-between">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <p className="text-xs text-text-secondary uppercase tracking-wider">Monthly Budget Limit</p>
+                                        <Pencil size={12} className="text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                    <h2 className="text-3xl font-bold font-numeric">
+                                        {formatMoney(originalBudget)}
+                                    </h2>
+                                    <div className="mt-1">
+                                        <p className="text-sm text-text-secondary">
+                                            {formatMoney(totalCategoryBudgets)} / {formatMoney(originalBudget)} allocated
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Circular Progress */}
+                                <div className="relative w-16 h-16">
+                                    <svg viewBox="0 0 36 36" className="rotate-[-90deg]">
+                                        <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--border-color)" strokeWidth="3" />
+                                        <motion.circle
+                                            initial={{ strokeDasharray: "0 100" }}
+                                            animate={{ strokeDasharray: `${Math.min(budgetAllocationPercent, 100)} 100` }}
+                                            transition={{ duration: 1, delay: 0.5 }}
+                                            cx="18" cy="18" r="15.5" fill="none"
+                                            stroke={isBudgetOverAllocated ? '#FF3B30' : budgetAllocationPercent > 80 ? '#FF9500' : '#34C759'}
+                                            strokeWidth="3"
+                                            strokeLinecap="round"
+                                        />
+                                    </svg>
+                                    <span className={`absolute inset-0 flex items-center justify-center text-xs font-bold font-numeric ${isBudgetOverAllocated ? 'text-error' : ''}`}>
+                                        {budgetAllocationPercent}%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </motion.div>
+                )}
+
                 {/* Categories Header */}
-                <div className="flex items-center justify-between">
+                <div id="budget-categories" className="flex items-center justify-between">
                     <h3 className="font-bold text-lg">Categories</h3>
                     <button
                         onClick={() => {
@@ -450,88 +468,6 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                     </button>
                 </div>
 
-                {/* Budget Allocation Bar */}
-                {totalBudget > 0 && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="relative z-20"
-                    >
-                        {/* Guidance Bubble - Moved outside GlassCard to prevent clipping */}
-                        {(() => {
-                            const isPartial = budgetAllocationPercent > 0;
-                            const guidanceKey = isPartial ? 'partial' : 'start';
-                            const isDismissed = dismissedStates[guidanceKey];
-                            const shouldShow = !isDismissed && budgetAllocationPercent < 100;
-
-                            if (!shouldShow) return null;
-
-                            return (
-                                <motion.div
-                                    key={guidanceKey}
-                                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    className="absolute -top-16 left-0 right-0 z-30 mx-auto w-[90%] md:w-[400px]"
-                                >
-                                    <div className="bg-[#2A2A40] text-white p-3 rounded-2xl shadow-xl border border-primary/30 flex items-center justify-center gap-3 relative">
-                                        {/* Triangle pointer */}
-                                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#2A2A40] border-r border-b border-primary/30 rotate-45"></div>
-
-                                        <div className="flex-1 text-sm font-medium">
-                                            {isPartial
-                                                ? "You've started! Complete your budget allocation."
-                                                : "Start setting up your budget allocation now!"}
-                                        </div>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                // Dismiss only the CURRENT state key
-                                                const newStates = { ...dismissedStates, [guidanceKey]: true };
-                                                setDismissedStates(newStates);
-                                                sessionStorage.setItem(`budgetGuidanceDismissed_${guidanceKey}`, 'true');
-                                            }}
-                                            className="p-1 hover:bg-white/10 rounded-full transition-colors"
-                                        >
-                                            <X size={16} />
-                                        </button>
-                                    </div>
-                                </motion.div>
-                            );
-                        })()}
-
-                        <GlassCard className={`p-4 rounded-[20px] ${isBudgetOverAllocated ? '!bg-error/10 !border-error/30' : ''}`}>
-
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs text-text-secondary uppercase tracking-wider">Budget Allocation</span>
-                                <span className={`text-xs font-semibold ${isBudgetOverAllocated ? 'text-error' : 'text-text-secondary'}`}>
-                                    {budgetAllocationPercent}% allocated
-                                </span>
-                            </div>
-                            <ProgressBarGlow
-                                progress={budgetAllocationPercent}
-                                color={isBudgetOverAllocated ? '#FF3B30' : budgetAllocationPercent > 80 ? '#FF9500' : '#34C759'}
-                                height={12}
-                            />
-                            <div className="flex items-center justify-between text-sm mt-2">
-                                <span className={`${isBudgetOverAllocated ? 'text-error font-semibold' : 'text-text-secondary'} font-numeric`}>
-                                    {formatMoney(totalCategoryBudgets)} allocated
-                                </span>
-                                <span className={`${isBudgetOverAllocated ? 'text-error font-semibold' : 'text-success font-semibold'} font-numeric`}>
-                                    {isBudgetOverAllocated
-                                        ? `-${formatMoney(Math.abs(budgetAllocationRemaining))} over`
-                                        : `${formatMoney(budgetAllocationRemaining)} remaining`
-                                    }
-                                </span>
-                            </div>
-                            {isBudgetOverAllocated && (
-                                <div className="flex items-center gap-2 mt-2 p-2 bg-error/20 rounded-lg">
-                                    <AlertTriangle size={16} className="text-error" />
-                                    <span className="text-xs text-error">Category budgets exceed your total budget!</span>
-                                </div>
-                            )}
-                        </GlassCard>
-                    </motion.div>
-                )}
 
                 {/* Category List */}
                 <div className="space-y-4">
@@ -604,19 +540,6 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                         );
                     })}
                 </div>
-
-                {/* Add Category Button */}
-                <GlassButton
-                    onClick={() => {
-                        resetForm();
-                        setShowAddCategory(true);
-                    }}
-                    className="w-full h-16 rounded-[20px] bg-primary/20 border-primary/30 text-primary hover:bg-primary/30"
-                    variant="ghost"
-                    icon={<Plus size={20} />}
-                >
-                    Add Category
-                </GlassButton>
             </motion.div>
 
             {/* Add/Edit Category Modal */}
@@ -774,11 +697,14 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                                     <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-surface border border-border-color focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors">
                                         <span className="text-text-secondary">{currencySymbol}</span>
                                         <input
-                                            type="number"
-                                            value={categoryBudget}
-                                            onChange={(e) => setCategoryBudget(e.target.value)}
+                                            type="text"
+                                            value={categoryBudget.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
+                                            onChange={(e) => {
+                                                const rawValue = e.target.value.replace(/\./g, "").replace(/[^0-9]/g, "");
+                                                setCategoryBudget(rawValue);
+                                            }}
                                             placeholder="0"
-                                            className="flex-1 bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            className="flex-1 bg-transparent outline-none"
                                         />
                                     </div>
                                     <p className="text-xs text-text-secondary mt-1">Leave empty to only track spending</p>
@@ -825,141 +751,105 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                 )}
             </AnimatePresence>
 
-            {/* Wallet Management Modal */}
+            {/* Edit Budget Limit Modal */}
             <AnimatePresence>
-                {showWalletModal && (
+                {showEditBudget && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-                        onClick={() => setShowWalletModal(false)}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6"
+                        onClick={() => setShowEditBudget(false)}
                     >
                         <motion.div
-                            initial={{ scale: 0.9, y: 20 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 0.9, y: 20 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-full max-w-md rounded-[28px] bg-surface border border-border-color overflow-hidden"
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className="bg-surface border border-border-color w-full max-w-md rounded-[32px] p-6 shadow-2xl relative overflow-hidden"
+                            onClick={e => e.stopPropagation()}
                         >
-                            {/* Header with Total Budget */}
-                            <div className="p-6 bg-gradient-to-br from-primary/20 to-secondary/10 border-b border-border-color">
-                                <h3 className="text-lg font-bold text-center mb-1">Manage Wallets</h3>
-                                <p className="text-xs text-gray-400 text-center mb-4">Max 4 wallets</p>
-                                <div className="text-center">
-                                    <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Total Budget</p>
-                                    <p className="text-3xl font-bold text-primary">{formatMoney(getEditingTotal())}</p>
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-xl font-bold">Edit Budget Limit</h3>
+                                <button
+                                    onClick={() => setShowEditBudget(false)}
+                                    className="p-2 bg-surface-highlight rounded-full text-text-secondary hover:text-text-primary transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Monthly Spending Limit</label>
+                                    <div className="flex items-center bg-surface-highlight rounded-2xl px-4 py-3 border border-border-color focus-within:border-primary transition-colors">
+                                        <span className="text-text-secondary font-semibold mr-2">{currencySymbol}</span>
+                                        <input
+                                            type="number"
+                                            value={newBudgetLimit}
+                                            onChange={(e) => setNewBudgetLimit(e.target.value)}
+                                            className="bg-transparent border-none outline-none w-full text-lg font-bold text-text-primary placeholder:text-text-secondary/50"
+                                            placeholder="0"
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <p className="text-xs text-text-secondary mt-2">
+                                        This is the total amount you plan to spend across all categories this month.
+                                    </p>
                                 </div>
-                            </div>
 
-                            {/* Wallet List */}
-                            <div className="p-4 max-h-[50vh] overflow-y-auto space-y-3">
-                                {editingWallets.map((wallet, index) => (
-                                    <motion.div
-                                        key={index}
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        className="p-4 rounded-2xl bg-background border border-border-color"
-                                    >
-                                        <div className="flex items-start gap-3">
-                                            {/* Icon Picker */}
-                                            <div className="relative group">
-                                                <button className="w-12 h-12 rounded-xl bg-surface flex items-center justify-center text-2xl border border-border-color hover:border-primary transition-colors">
-                                                    {wallet.icon}
-                                                </button>
-                                                <div className="absolute top-full left-0 mt-1 p-2 bg-surface border border-border-color rounded-xl hidden group-hover:grid grid-cols-3 gap-1 z-10 shadow-xl">
-                                                    {WALLET_ICONS.map(({ icon }) => (
-                                                        <button
-                                                            key={icon}
-                                                            onClick={() => updateEditingWallet(index, 'icon', icon)}
-                                                            className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl hover:bg-primary/20 transition-colors ${wallet.icon === icon ? 'bg-primary/30' : ''}`}
-                                                        >
-                                                            {icon}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
+                                {/* Reset Date Picker */}
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                                        Budget Reset Date
+                                        <span className="ml-2 text-xs font-normal text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                                            {resetDay === -1 ? 'Last Day' : `${resetDay}${['st', 'nd', 'rd'][((resetDay % 10) - 1)] || 'th'}`}
+                                        </span>
+                                    </label>
 
-                                            {/* Name & Balance */}
-                                            <div className="flex-1 space-y-2">
-                                                <input
-                                                    type="text"
-                                                    value={wallet.name}
-                                                    onChange={(e) => updateEditingWallet(index, 'name', e.target.value)}
-                                                    placeholder="Wallet Name"
-                                                    className="w-full bg-transparent border-none p-0 text-sm font-semibold focus:ring-0 placeholder-gray-600"
-                                                />
-                                                <div className="flex items-center gap-2 bg-surface rounded-lg px-3 py-2">
-                                                    <span className="text-gray-400 text-sm">{currencySymbol}</span>
-                                                    <input
-                                                        type="number"
-                                                        inputMode="numeric"
-                                                        value={wallet.balance}
-                                                        onChange={(e) => updateEditingWallet(index, 'balance', e.target.value)}
-                                                        placeholder="0"
-                                                        className="w-full bg-transparent border-none p-0 text-lg font-bold focus:ring-0 placeholder-gray-600"
-                                                    />
-                                                </div>
-                                            </div>
+                                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x pt-1">
+                                        {/* Last Day Button */}
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setResetDay(-1); }}
+                                            className={`flex-none px-4 py-2 rounded-xl border text-sm font-medium transition-all snap-center whitespace-nowrap ${resetDay === -1
+                                                ? 'bg-primary text-white border-primary shadow-[0_0_15px_rgba(34,197,94,0.4)]'
+                                                : 'bg-surface-highlight border-transparent text-text-secondary hover:bg-white/5'
+                                                }`}
+                                        >
+                                            Last Day
+                                        </button>
 
-                                            {/* Delete Button */}
-                                            {editingWallets.length > 1 && (
-                                                <button
-                                                    onClick={() => removeEditingWallet(index)}
-                                                    className="p-2 text-gray-500 hover:text-error transition-colors"
-                                                >
-                                                    <X size={18} />
-                                                </button>
-                                            )}
-                                        </div>
+                                        {/* days 1-31 */}
+                                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                                            <button
+                                                key={day}
+                                                onClick={(e) => { e.stopPropagation(); setResetDay(day); }}
+                                                className={`flex-none w-10 h-10 rounded-xl border text-sm font-medium transition-all snap-center flex items-center justify-center ${resetDay === day
+                                                    ? 'bg-primary text-white border-primary shadow-[0_0_15px_rgba(34,197,94,0.4)]'
+                                                    : 'bg-surface-highlight border-transparent text-text-secondary hover:bg-white/5'
+                                                    }`}
+                                            >
+                                                {day}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-text-secondary mt-2">
+                                        Your budget will reset every {resetDay === -1 ? 'last day' : `${resetDay}${['st', 'nd', 'rd'][((resetDay % 10) - 1)] || 'th'}`} of the month.
+                                    </p>
+                                </div>
 
-                                        {/* Color Picker */}
-                                        <div className="flex gap-2 mt-3 pt-3 border-t border-border-color">
-                                            {WALLET_COLORS.map((color) => (
-                                                <button
-                                                    key={color}
-                                                    onClick={() => updateEditingWallet(index, 'color', color)}
-                                                    className={`w-6 h-6 rounded-full transition-transform ${wallet.color === color ? 'scale-125 ring-2 ring-white' : 'hover:scale-110'}`}
-                                                    style={{ backgroundColor: color }}
-                                                />
-                                            ))}
-                                        </div>
-                                    </motion.div>
-                                ))}
-
-                                {/* Add Wallet Button */}
-                                {editingWallets.length < 4 && (
-                                    <button
-                                        onClick={addNewWallet}
-                                        className="w-full py-4 rounded-2xl border-2 border-dashed border-border-color text-gray-400 hover:text-primary hover:border-primary/50 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <Plus size={18} />
-                                        <span>Add Wallet</span>
-                                    </button>
-                                )}
-                            </div>
-
-                            {/* Footer */}
-                            <div className="p-4 border-t border-border-color flex gap-3">
                                 <Button
-                                    variant="secondary"
-                                    className="flex-1"
-                                    onClick={() => setShowWalletModal(false)}
+                                    onClick={handleUpdateBudgetLimit}
+                                    disabled={submitting || !newBudgetLimit}
+                                    className="w-full py-4 text-base rounded-2xl"
                                 >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    className="flex-1"
-                                    onClick={saveWallets}
-                                    isLoading={submitting}
-                                >
-                                    Save Wallets
+                                    {submitting ? 'Saving...' : 'Save Limit'}
                                 </Button>
                             </div>
                         </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 }
