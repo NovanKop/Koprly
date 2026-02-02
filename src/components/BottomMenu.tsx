@@ -53,14 +53,17 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
                             whileTap={{ scale: 0.9 }}
                             transition={{ type: "spring", stiffness: 400, damping: 17 }}
                         >
-                            {/* Perfect Circle Indicator - Centered */}
+                            {/* Sliding Circle Indicator */}
                             {isActive && (
                                 <motion.div
+                                    layoutId="navIndicator"
                                     className="absolute w-13 h-13 rounded-full bg-gradient-to-br from-primary via-primary/80 to-secondary shadow-lg shadow-primary/30 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-0"
-                                    initial={{ scale: 0.8, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    exit={{ scale: 0.8, opacity: 0 }}
-                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                    transition={{
+                                        type: "spring",
+                                        stiffness: 300,
+                                        damping: 30,
+                                        mass: 0.8
+                                    }}
                                 />
                             )}
 
