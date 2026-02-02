@@ -33,42 +33,56 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
         }
     ] as const;
 
-    return (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100]">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6, type: "spring", stiffness: 300, damping: 25 }}
-                className="backdrop-blur-3xl bg-surface/80 border border-white/20 rounded-full px-2 py-2 flex items-center gap-2 shadow-2xl ring-1 ring-black/5"
-            >
-                {menuItems.map((item) => {
-                    const isActive = currentView === item.id;
-                    return (
-                        <motion.button
-                            key={item.id}
-                            onClick={() => onNavigate(item.id as any)}
-                            className="relative p-4 rounded-full flex items-center justify-center outline-none"
-                            whileHover={{ scale: 1.2 }}
-                            whileTap={{ scale: 0.9 }}
-                            transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                        >
-                            {/* Sliding Active Background */}
-                            {isActive && (
-                                <motion.div
-                                    layoutId="activeBubble"
-                                    className="absolute inset-0 bg-gradient-to-br from-primary via-primary/80 to-secondary rounded-full shadow-lg shadow-primary/30"
-                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                />
-                            )}
+    const activeIndex = menuItems.findIndex(item => item.id === currentView);
 
-                            {/* Icon */}
-                            <span className={`relative z-10 transition-colors duration-200 ${isActive ? 'text-white' : 'text-text-secondary mix-blend-overlay'}`}>
-                                {item.icon}
-                            </span>
-                        </motion.button>
-                    );
-                })}
-            </motion.div>
+    return (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999]">
+            <div className="relative backdrop-blur-3xl bg-surface/80 border border-white/20 rounded-full p-2 flex items-center shadow-2xl ring-1 ring-black/5 min-w-[320px]">
+
+                {/* Inner Relative Container for Perfect Alignment */}
+                <div className="relative flex flex-1 w-full items-center">
+
+                    {/* Single Sliding Indicator */}
+                    <motion.div
+                        className="absolute bg-gradient-to-br from-primary via-primary/80 to-secondary rounded-full shadow-lg shadow-primary/30 transform-gpu"
+                        initial={false}
+                        animate={{
+                            x: `${activeIndex * 100}%`
+                        }}
+                        transition={{
+                            type: "spring",
+                            bounce: 0.2,
+                            duration: 0.6
+                        }}
+                        style={{
+                            width: `${100 / menuItems.length}%`,
+                            height: '100%',
+                            top: 0,
+                            left: 0,
+                            pointerEvents: 'none'
+                        }}
+                    />
+
+                    {/* Menu Items */}
+                    {menuItems.map((item) => {
+                        const isActive = currentView === item.id;
+                        return (
+                            <button
+                                key={item.id}
+                                onClick={() => onNavigate(item.id as any)}
+                                className="relative flex-1 p-4 rounded-full flex items-center justify-center outline-none group z-20"
+                            >
+                                {/* Icon */}
+                                <div className="relative flex items-center justify-center">
+                                    <span className={`transition-all duration-300 ${isActive ? 'text-white scale-110' : 'text-text-secondary group-hover:text-text-primary'}`}>
+                                        {item.icon}
+                                    </span>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
         </div>
     );
 };
