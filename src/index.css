@@ -106,6 +106,70 @@ body {
   transition: all 0.3s ease;
 }
 
+/* Enhanced Bottom Navigation Glass Material */
+.bottom-nav-glass {
+  /* Base Glass Material with Strong Blur */
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  position: relative;
+  isolation: isolate;
+
+  /* Performance Optimization */
+  will-change: transform, backdrop-filter;
+  transform: translateZ(0);
+  /* GPU acceleration */
+
+  /* Smooth Transitions */
+  transition:
+    background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Light Mode Bottom Nav */
+:root .bottom-nav-glass {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 -10px 30px rgba(0, 0, 0, 0.08),
+    0 -1px 2px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Light Mode Content Blocking Gradient */
+:root .bottom-nav-glass::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  height: 40px;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.3), transparent);
+}
+
+/* Dark Mode Bottom Nav */
+:root.dark .bottom-nav-glass {
+  background: rgba(15, 15, 15, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 -10px 30px rgba(0, 0, 0, 0.5),
+    0 -1px 2px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Dark Mode Content Blocking Gradient */
+:root.dark .bottom-nav-glass::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  height: 40px;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(15, 15, 15, 0.4), transparent);
+}
+
 /* Neon Glow - Dark Mode Only */
 :root.dark .glow-text-green {
   text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);

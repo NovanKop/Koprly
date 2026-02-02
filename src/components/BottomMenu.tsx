@@ -35,7 +35,7 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
 
     return (
         <motion.div
-            className="relative overflow-hidden glass-panel rounded-full px-2 py-2 flex items-center justify-between gap-1 shadow-2xl transition-all duration-300 hover:shadow-primary/5 min-w-[320px]"
+            className="bottom-nav-glass relative overflow-hidden rounded-full px-2 py-2 flex items-center justify-between gap-1 shadow-2xl transition-all duration-300 hover:shadow-primary/5 min-w-[320px]"
         >
             <LayoutGroup id="bottomNav">
                 {menuItems.map((item) => {
@@ -59,11 +59,29 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
 
                             {/* Sliding Active Background (The Green Circle) */}
                             {isActive && (
-                                <motion.div
-                                    layoutId="activeBubble"
-                                    className="absolute inset-0 bg-primary rounded-full shadow-[0_0_20px_rgba(34,197,94,0.6)] dark:shadow-[0_0_25px_rgba(34,197,94,0.8)]"
-                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                />
+                                <>
+                                    {/* Radial Glow Behind Bubble */}
+                                    <motion.div
+                                        layoutId="activeBubbleGlow"
+                                        className="absolute inset-0 rounded-full"
+                                        style={{
+                                            background: 'radial-gradient(circle, rgba(16, 185, 129, 0.3) 0%, transparent 70%)',
+                                            filter: 'blur(12px)',
+                                            transform: 'scale(1.2)'
+                                        }}
+                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                    />
+                                    {/* Main Bubble */}
+                                    <motion.div
+                                        layoutId="activeBubble"
+                                        className="absolute inset-0 rounded-full z-[10000]"
+                                        style={{
+                                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                            boxShadow: '0 8px 24px rgba(16, 185, 129, 0.4), 0 4px 12px rgba(16, 185, 129, 0.3), inset 0 -2px 8px rgba(5, 150, 105, 0.5)'
+                                        }}
+                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                    />
+                                </>
                             )}
 
                             {/* Icon */}
