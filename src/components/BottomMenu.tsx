@@ -53,7 +53,10 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
                 {activeIndex >= 0 && (
                     <motion.div
                         className="absolute w-13 h-13 rounded-full bg-gradient-to-br from-primary via-primary/80 to-secondary shadow-lg shadow-primary/30"
-                        animate={{ x: circleX }}
+                        animate={{
+                            x: circleX,
+                            y: '-50%'
+                        }}
                         transition={{
                             type: "spring",
                             stiffness: 300,
@@ -62,7 +65,7 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
                         }}
                         style={{
                             top: '50%',
-                            transform: 'translateY(-50%)',
+                            left: 0,
                             zIndex: 0
                         }}
                     />
