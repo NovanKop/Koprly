@@ -37,7 +37,7 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
 
     return (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999]">
-            <div className="relative glass-panel rounded-full p-2 flex items-center shadow-2xl transition-all duration-300 hover:shadow-primary/5 min-w-[320px] !bg-white/85 dark:!bg-[#171F29]/80 !backdrop-blur-[60px] before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-transparent before:pointer-events-none dark:before:from-white/20 dark:before:via-white/5 dark:before:to-transparent after:absolute after:inset-0 after:rounded-full after:border after:border-white/60 after:pointer-events-none dark:after:border-white/30 after:shadow-[inset_0_2px_8px_rgba(255,255,255,0.3)] dark:after:shadow-[inset_0_2px_8px_rgba(255,255,255,0.15)]">
+            <div className="relative glass-panel rounded-full p-2 flex items-center shadow-2xl transition-all duration-300 hover:shadow-primary/5 min-w-[320px] !bg-white/70 dark:!bg-[#0B1218]/70 !backdrop-blur-[45px] before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-transparent before:pointer-events-none dark:before:from-white/20 dark:before:via-white/5 dark:before:to-transparent after:absolute after:inset-0 after:rounded-full after:border after:border-white/60 after:pointer-events-none dark:after:border-white/30 after:shadow-[inset_0_2px_8px_rgba(255,255,255,0.3)] dark:after:shadow-[inset_0_2px_8px_rgba(255,255,255,0.15)]">
 
                 {/* Inner Relative Container for Perfect Alignment */}
                 <div className="relative flex flex-1 w-full items-center z-10">
