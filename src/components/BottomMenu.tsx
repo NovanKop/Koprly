@@ -63,7 +63,7 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
                             {/* Perfect Circle Indicator - Centered */}
                             {isActive && (
                                 <motion.div
-                                    className="absolute w-14 h-14 aspect-square rounded-full bg-gradient-to-br from-primary via-primary/80 to-secondary shadow-lg shadow-primary/30"
+                                    className="absolute w-13 h-13 rounded-full bg-gradient-to-br from-primary via-primary/80 to-secondary shadow-lg shadow-primary/30"
                                     initial={{ scale: 0.8, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
                                     exit={{ scale: 0.8, opacity: 0 }}
