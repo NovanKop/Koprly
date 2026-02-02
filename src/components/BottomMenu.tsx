@@ -33,6 +33,14 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
         }
     ] as const;
 
+    // Calculate active index for smooth sliding animation
+    const activeIndex = menuItems.findIndex(item => item.id === currentView);
+
+    // Button: p-4 = 16px*2 + 24px icon = 56px, gap-2 = 8px
+    const buttonWidth = 56;
+    const gap = 8;
+    const circleX = activeIndex >= 0 ? activeIndex * (buttonWidth + gap) + 8 : 0;
+
     return (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100]">
             <motion.div
@@ -41,6 +49,25 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
                 transition={{ delay: 0.6, type: "spring", stiffness: 300, damping: 25 }}
                 className="relative backdrop-blur-3xl bg-surface/80 border border-white/20 rounded-full px-2 py-2 flex items-center gap-2 shadow-2xl ring-1 ring-black/5"
             >
+                {/* Single Sliding Circle Indicator */}
+                {activeIndex >= 0 && (
+                    <motion.div
+                        className="absolute w-13 h-13 rounded-full bg-gradient-to-br from-primary via-primary/80 to-secondary shadow-lg shadow-primary/30"
+                        animate={{ x: circleX }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 300,
+                            damping: 30,
+                            mass: 0.8
+                        }}
+                        style={{
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            zIndex: 0
+                        }}
+                    />
+                )}
+
                 {menuItems.map((item) => {
                     const isActive = currentView === item.id;
                     return (
@@ -53,20 +80,6 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
                             whileTap={{ scale: 0.9 }}
                             transition={{ type: "spring", stiffness: 400, damping: 17 }}
                         >
-                            {/* Sliding Circle Indicator */}
-                            {isActive && (
-                                <motion.div
-                                    layoutId="navIndicator"
-                                    className="absolute w-13 h-13 rounded-full bg-gradient-to-br from-primary via-primary/80 to-secondary shadow-lg shadow-primary/30 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-0"
-                                    transition={{
-                                        type: "spring",
-                                        stiffness: 300,
-                                        damping: 30,
-                                        mass: 0.8
-                                    }}
-                                />
-                            )}
-
                             {/* Icon */}
                             <span className={`relative z-10 transition-colors duration-200 ${isActive ? 'text-white' : 'text-text-secondary mix-blend-overlay'}`}>
                                 {item.icon}
