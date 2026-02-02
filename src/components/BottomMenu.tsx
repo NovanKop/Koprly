@@ -34,14 +34,14 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
         }
     ] as const;
 
-    // Calculate active index (optimized with useMemo)
+    // Calculate active index with useMemo optimization
     const activeIndex = useMemo(() =>
         menuItems.findIndex(item => item.id === currentView),
         [currentView]
     );
 
-    // Calculate button width in pixels (for 320px min-width container)
-    // 320px - 16px padding (8px * 2) = 304px / 4 items = 76px per button
+    // Calculate button width in pixels for precise positioning
+    // 320px min-width - 16px padding = 304px / 4 items = 76px per button
     const buttonWidth = 76;
     const containerPadding = 8;
 
@@ -49,9 +49,9 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999]">
             <div className="relative glass-panel rounded-full px-2 py-2 flex items-center justify-between gap-1 shadow-2xl min-w-[320px]">
 
-                {/* Single Sliding Bubble - Pixel-based positioning */}
+                {/* Single Sliding Bubble with Gradient (GREEN → CYAN/BLUE) */}
                 <motion.div
-                    className="absolute bg-primary rounded-full shadow-[0_0_20px_rgba(34,197,94,0.6)] dark:shadow-[0_0_25px_rgba(34,197,94,0.8)]"
+                    className="absolute bg-gradient-to-br from-primary via-primary/80 to-secondary rounded-full shadow-lg shadow-primary/30"
                     animate={{
                         x: activeIndex * buttonWidth + containerPadding,
                     }}
@@ -71,7 +71,7 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
                     }}
                 />
 
-                {/* Menu Items - Back to flex-1 for responsive */}
+                {/* Menu Items */}
                 {menuItems.map((item) => {
                     const isActive = currentView === item.id;
                     return (
