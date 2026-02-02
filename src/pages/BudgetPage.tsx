@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import confetti from 'canvas-confetti';
 import { api } from '../lib/api';
 import { useAppStore } from '../store/useAppStore';
+import { CATEGORY_ICONS } from '../lib/constants';
 import type { Category, Transaction, Wallet, Profile } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Plus, ChevronDown, AlertTriangle, Trash2, X, Pencil } from 'lucide-react';
@@ -16,7 +17,6 @@ interface BudgetPageProps {
     onBack: () => void;
 }
 
-const CATEGORY_ICONS = ['🛒', '🍽️', '🚗', '🏠', '🎬', '🏥', '👕', '💼', '✈️', '📚', '💊', '🎮', '☕', '🔌', '🎁'];
 const CATEGORY_COLORS = ['#34C759', '#FF9500', '#007AFF', '#5856D6', '#FF2D55', '#FF3B30', '#AF52DE', '#8E8E93', '#00C7BE', '#FFD60A'];
 
 export default function BudgetPage({ onBack }: BudgetPageProps) {

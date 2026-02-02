@@ -14,7 +14,7 @@ export const WALLET_COLORS = ['#007AFF', '#34C759', '#FF9500', '#FF2D55', '#AF52
 export const MAX_WALLETS = 4;
 
 export const CATEGORY_ICONS = [
-    '🛍️', '🍽️', '🏠', '🚗', '🎬', '💊', '📚', '✈️', '🎮', '🏋️', '🎁', '💡', '🔧', '👶', '🐾', '💻'
+    '🛒', '🍽️', '🚗', '🏠', '🎬', '🏥', '👕', '💼', '✈️', '📚', '💊', '🎮', '☕', '🔌', '🎁', '🏋️', '🐾', '💻', '🎓', '🎨'
 ];
 
 export const CATEGORY_COLORS = [
