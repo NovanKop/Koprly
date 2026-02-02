@@ -22,7 +22,7 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
         },
         {
             id: 'report',
-            icon: <PieChart size={24} className={currentView === 'report' ? 'fill-current' : ''} />
+            icon: <PieChart size={24} />
         },
         {
             id: 'budget',
