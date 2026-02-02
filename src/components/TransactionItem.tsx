@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronDown, Edit2 } from 'lucide-react';
 import type { Transaction } from '../types';
 import { formatDate, formatMoney, formatTime } from '../lib/utils';
+import { CategoryIcon } from './ui/CategoryIcon';
 
 interface TransactionItemProps {
     transaction: Transaction;
@@ -55,15 +56,11 @@ export function TransactionItem({
             >
                 <div className="flex items-start gap-3 flex-1 overflow-hidden">
                     {/* Icon */}
-                    <div
-                        className={`flex-shrink-0 h-11 w-11 rounded-xl flex items-center justify-center text-xl shadow-lg border ${isIncome ? 'border-success/30' : 'border-border-color'
-                            }`}
-                        style={{
-                            backgroundColor: isIncome ? '#34C75920' : (transaction.category?.color ? `${transaction.category.color}18` : '#007AFF18')
-                        }}
-                    >
-                        {isIncome ? '💰' : (transaction.category?.icon || '💸')}
-                    </div>
+                    <CategoryIcon
+                        iconName={isIncome ? 'banknote' : transaction.category?.icon || 'help-circle'}
+                        variant="default"
+                        categoryColor={isIncome ? '#22C55E' : transaction.category?.color}
+                    />
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
@@ -111,7 +108,15 @@ export function TransactionItem({
                             <div className="flex justify-between">
                                 <span>Category</span>
                                 <span className="text-text-primary font-medium flex items-center gap-2">
-                                    <span>{transaction.category?.icon}</span>
+                                    <div className="w-4 h-4">
+                                        <CategoryIcon
+                                            iconName={transaction.category?.icon || 'help-circle'}
+                                            variant="small"
+                                            categoryColor={transaction.category?.color}
+                                            className="w-4 h-4"
+                                            containerClassName="shadow-none border-none"
+                                        />
+                                    </div>
                                     {transaction.category?.name || 'Uncategorized'}
                                 </span>
                             </div>

@@ -5,6 +5,7 @@ import type { Category, Transaction } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ChevronRight, Filter, Loader2 } from 'lucide-react';
 import { parseISO, isWithinInterval, subDays, startOfDay, endOfDay } from 'date-fns';
+import { CategoryIcon } from '../components/ui/CategoryIcon';
 
 interface SpendingCategoryPageProps {
     onBack: () => void;
@@ -182,9 +183,11 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                                     onClick={() => toggleCategory(category.id)}
                                     className="w-full p-4 flex items-center gap-3 hover:bg-surface-highlight transition-colors"
                                 >
-                                    <div className="w-12 h-12 rounded-2xl bg-surface-highlight flex items-center justify-center text-2xl">
-                                        {category.icon}
-                                    </div>
+                                    <CategoryIcon
+                                        iconName={category.icon}
+                                        variant="large"
+                                        categoryColor={category.color}
+                                    />
 
                                     <div className="flex-1 text-left">
                                         <div className="flex items-center justify-between mb-1">
@@ -242,9 +245,12 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                                                             className="flex items-center justify-between p-3 bg-surface-highlight rounded-xl"
                                                         >
                                                             <div className="flex items-center gap-3">
-                                                                <div className="w-10 h-10 rounded-xl bg-surface flex items-center justify-center text-xl">
-                                                                    {category.icon}
-                                                                </div>
+                                                                <CategoryIcon
+                                                                    iconName={category.icon}
+                                                                    variant="default"
+                                                                    className="text-primary"
+                                                                    style={{ color: category.color }}
+                                                                />
                                                                 <div>
                                                                     <div className="font-medium">{txn.description || 'No description'}</div>
                                                                     <div className="text-xs text-text-secondary">{formatDate(txn.date)}</div>

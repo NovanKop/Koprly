@@ -6,12 +6,14 @@ import { useAppStore } from '../store/useAppStore';
 import { CATEGORY_ICONS } from '../lib/constants';
 import type { Category, Transaction, Wallet, Profile } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Plus, ChevronDown, AlertTriangle, Trash2, X, Pencil } from 'lucide-react';
+import { ArrowLeft, Plus, ChevronDown, AlertTriangle, Trash2, X, Pencil, Eye, EyeOff } from 'lucide-react';
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval, format } from 'date-fns';
 import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/glass/GlassCard';
 import { ProgressBarGlow } from '../components/glass/ProgressBarGlow';
 import { BudgetSkeleton } from '../components/skeletons/BudgetSkeleton';
+import { DeleteConfirmationModal } from '../components/modals/DeleteConfirmationModal';
+import { CategoryIcon } from '../components/ui/CategoryIcon';
 
 interface BudgetPageProps {
     onBack: () => void;
@@ -36,6 +38,9 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     const [showEditCategory, setShowEditCategory] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
+    // Delete Confirmation State
+    const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+
     // Form States
     const [categoryName, setCategoryName] = useState('');
     const [categoryIcon, setCategoryIcon] = useState('🛒');
@@ -55,6 +60,8 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
 
         return () => setBottomMenuVisible(true); // Reset on unmount
     }, [showAddCategory, showEditCategory, showEditBudget, setBottomMenuVisible]);
+
+    const [showPrivacy, setShowPrivacy] = useState(true);
 
     const currencySymbol = currency === 'IDR' ? 'Rp' : '$';
 
@@ -109,7 +116,6 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     const allIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
 
     // Total Budget for DISPLAY = live wallet balance (updates with income/expenses)
-    const totalBudget = liveBalance;
 
     // Original Budget = STABLE anchor from user's profile (total_budget)
     // This is what the user set during onboarding - NOT affected by transactions
@@ -120,8 +126,6 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
 
     // Monthly spending for progress display
     const totalSpent = categorySpending.reduce((acc, curr) => acc + curr.spent, 0);
-    const totalRemaining = liveBalance; // Live balance is what remains
-    const usedPercent = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
 
 
     // Budget Allocation = sum of all category budgets vs ORIGINAL Budget (not live balance)
@@ -246,16 +250,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
         }
     };
 
-    const handleDeleteCategory = async (id: string) => {
-        if (!confirm('Delete this category? Transactions will keep their data.')) return;
-        try {
-            await api.deleteCategory(id);
-            await loadData();
-        } catch (error) {
-            console.error('Failed to delete category:', error);
-            alert('Failed to delete category');
-        }
-    };
+
 
     const handleUpdateBudgetLimit = async () => {
         if (!user || !newBudgetLimit) return;
@@ -345,49 +340,86 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                 }}
             >
                 {/* Total Budget Summary Card - Clickable to manage wallets */}
+                {/* Total Balance Card */}
                 <motion.div
                     variants={{
                         hidden: { opacity: 0, y: 20 },
                         visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
                     }}
                 >
-                    <div className="relative px-6 py-5 rounded-[32px] overflow-hidden glass-panel bg-white/70 backdrop-blur-xl dark:bg-white/5 dark:backdrop-blur-none border border-white/40 dark:border-white/10 shadow-[0_2px_8px_0_rgba(0,0,0,0.04)] dark:shadow-2xl transition-all duration-300 hover:shadow-primary/10">
-                        {/* Background Gradient Mesh - Dynamic based on theme */}
-                        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-blue-600/20 dark:bg-blue-600/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
-                        <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-green-500/20 dark:bg-green-500/10 rounded-full blur-[60px] translate-y-1/3 -translate-x-1/3" />
+                    <div className="relative px-6 py-6 rounded-[32px] overflow-hidden glass-panel bg-white/70 dark:bg-[#151515]/80 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-[0_2px_8px_0_rgba(0,0,0,0.04)] dark:shadow-2xl">
+                        {/* Background Gradient Mesh */}
+                        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-blue-600/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                        <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-emerald-500/10 rounded-full blur-[60px] translate-y-1/3 -translate-x-1/3 pointer-events-none" />
 
-                        <div className="relative z-10 flex items-center justify-between">
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <p className="text-xs text-text-secondary uppercase tracking-wider">Total Balance</p>
+                        <div className="relative z-10">
+                            {/* Header With Eye Icon */}
+                            <div className="flex justify-between items-start mb-2">
+                                <div className="flex items-center gap-3">
+                                    <p className="text-xs font-bold text-text-secondary uppercase tracking-widest">TOTAL BALANCE</p>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowPrivacy(!showPrivacy);
+                                        }}
+                                        className="text-text-secondary hover:text-text-primary transition-colors p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5"
+                                    >
+                                        {showPrivacy ? <Eye size={14} /> : <EyeOff size={14} />}
+                                    </button>
                                 </div>
-                                <h2 className="text-3xl font-bold font-numeric">
-                                    {formatMoney(totalBudget)}
-                                </h2>
-                                <p className="text-sm text-text-secondary mt-1">
-                                    {formatMoney(totalSpent)} spent • {formatMoney(totalRemaining)} remaining
-                                </p>
                             </div>
-                            {/* Circular Progress */}
-                            {totalBudget > 0 && (
-                                <div className="relative w-16 h-16">
-                                    <svg viewBox="0 0 36 36" className="rotate-[-90deg]">
-                                        <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--border-color)" strokeWidth="3" />
-                                        <motion.circle
-                                            initial={{ strokeDasharray: "0 100" }}
-                                            animate={{ strokeDasharray: `${Math.min(usedPercent, 100)} 100` }}
-                                            transition={{ duration: 1, delay: 0.5 }}
-                                            cx="18" cy="18" r="15.5" fill="none"
-                                            stroke={usedPercent > 100 ? '#FF3B30' : usedPercent > 80 ? '#FF9500' : '#34C759'}
-                                            strokeWidth="3"
-                                            strokeLinecap="round"
-                                        />
-                                    </svg>
-                                    <span className="absolute inset-0 flex items-center justify-center text-xs font-bold font-numeric">
-                                        {usedPercent}%
-                                    </span>
+
+                            {/* Main Balance and Chart */}
+                            <div className="flex justify-between items-center mb-8">
+                                <h2 className="text-4xl font-bold font-numeric tracking-tight text-text-primary">
+                                    {showPrivacy ? formatMoney(liveBalance) : 'Rp •••••••'}
+                                </h2>
+
+                                {/* Circular Chart */}
+                                <div className="flex flex-col items-center gap-1.5">
+                                    <div className="relative w-14 h-14">
+                                        <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                                            {/* Background Circle */}
+                                            <path className="text-black/5 dark:text-white/10" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" />
+                                            {/* Progress Circle */}
+                                            <path
+                                                className="text-primary transition-all duration-1000 ease-out"
+                                                strokeDasharray={`${Math.min(originalBudget > 0 ? (totalSpent / originalBudget) * 100 : 0, 100)}, 100`}
+                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="4"
+                                                strokeLinecap="round"
+                                            />
+                                        </svg>
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                            <span className="text-[10px] font-bold font-numeric text-text-primary">
+                                                {Math.round(originalBudget > 0 ? (totalSpent / originalBudget) * 100 : 0)}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <span className="text-[10px] font-bold text-text-secondary">Used</span>
                                 </div>
-                            )}
+                            </div>
+
+                            {/* Wallet Balance Slider */}
+                            <div className="w-full">
+                                <p className="text-sm font-medium text-text-secondary mb-3">Wallet Balance:</p>
+                                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1 mask-linear-fade">
+                                    {wallets.map(w => (
+                                        <div
+                                            key={w.id}
+                                            className="px-4 py-2.5 rounded-xl whitespace-nowrap flex-shrink-0 flex items-center gap-2 shadow-lg border border-white/5 transition-transform hover:scale-[1.02]"
+                                            style={{ backgroundColor: w.color || '#007AFF' }}
+                                        >
+                                            <span className="text-xs font-bold text-white tracking-wide">{w.name}</span>
+                                            <span className="text-xs font-numeric text-white/90 bg-black/20 px-1.5 py-0.5 rounded-md">
+                                                {showPrivacy ? formatMoney(w.balance) : '•••'}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </motion.div>
@@ -491,12 +523,12 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                                 >
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex items-center gap-3">
-                                            <div
-                                                className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-                                                style={{ backgroundColor: `${cat.color}20` }}
-                                            >
-                                                {cat.icon}
-                                            </div>
+                                            <CategoryIcon
+                                                iconName={cat.icon}
+                                                variant="default"
+                                                categoryColor={cat.color}
+                                            />
+
                                             <div>
                                                 <p className="font-semibold">{cat.name}</p>
                                                 {hasBudget && (
@@ -646,16 +678,40 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Budget */}
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Monthly Budget</label>
+                                    <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-surface border border-border-color focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors">
+                                        <span className="text-text-secondary">{currencySymbol}</span>
+                                        <input
+                                            type="text"
+                                            value={categoryBudget.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
+                                            onChange={(e) => {
+                                                const rawValue = e.target.value.replace(/\./g, "").replace(/[^0-9]/g, "");
+                                                setCategoryBudget(rawValue);
+                                            }}
+                                            placeholder="0"
+                                            className="flex-1 bg-transparent outline-none"
+                                        />
+                                        <Pencil size={16} className="text-text-secondary opacity-50" />
+                                    </div>
+                                    <p className="text-xs text-text-secondary mt-1">Leave empty to only track spending</p>
+                                </div>
+
                                 {/* Name */}
                                 <div>
                                     <label className="block text-sm font-medium text-text-secondary mb-2">Category Name</label>
-                                    <input
-                                        type="text"
-                                        value={categoryName}
-                                        onChange={(e) => setCategoryName(e.target.value)}
-                                        placeholder="e.g. Groceries"
-                                        className="w-full px-4 py-3 rounded-xl bg-surface border border-border-color focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={categoryName}
+                                            onChange={(e) => setCategoryName(e.target.value)}
+                                            placeholder="e.g. Groceries"
+                                            className="w-full px-4 py-3 pr-10 rounded-xl bg-surface border border-border-color focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                                        />
+                                        <Pencil size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 pointer-events-none" />
+                                    </div>
                                 </div>
 
                                 {/* Icon Picker */}
@@ -667,9 +723,14 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                                                 key={icon}
                                                 type="button"
                                                 onClick={() => setCategoryIcon(icon)}
-                                                className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${categoryIcon === icon ? 'bg-primary/30 scale-110 ring-2 ring-primary' : 'bg-surface hover:bg-surface-highlight'}`}
+                                                className="focus:outline-none"
                                             >
-                                                {icon}
+                                                <CategoryIcon
+                                                    iconName={icon}
+                                                    variant="picker"
+                                                    isActive={categoryIcon === icon}
+                                                    activeColor={categoryColor}
+                                                />
                                             </button>
                                         ))}
                                     </div>
@@ -690,53 +751,22 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                                         ))}
                                     </div>
                                 </div>
-
-                                {/* Budget */}
-                                <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-2">Monthly Budget (Optional)</label>
-                                    <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-surface border border-border-color focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors">
-                                        <span className="text-text-secondary">{currencySymbol}</span>
-                                        <input
-                                            type="text"
-                                            value={categoryBudget.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
-                                            onChange={(e) => {
-                                                const rawValue = e.target.value.replace(/\./g, "").replace(/[^0-9]/g, "");
-                                                setCategoryBudget(rawValue);
-                                            }}
-                                            placeholder="0"
-                                            className="flex-1 bg-transparent outline-none"
-                                        />
-                                    </div>
-                                    <p className="text-xs text-text-secondary mt-1">Leave empty to only track spending</p>
-                                </div>
                             </div>
 
                             {/* Footer */}
-                            <div className="p-6 border-t border-border-color flex gap-3">
+                            <div className="p-6 border-t border-border-color flex gap-4">
                                 {showEditCategory && editingCategory && (
                                     <Button
                                         variant="secondary"
-                                        className="!bg-error/10 !text-error !border-error/20 hover:!bg-error/20"
+                                        className="!bg-error/10 !text-error !border-error/20 hover:!bg-error/20 !aspect-square !w-12 flex items-center justify-center"
                                         onClick={() => {
-                                            handleDeleteCategory(editingCategory.id);
-                                            setShowEditCategory(false);
-                                            setEditingCategory(null);
+                                            setCategoryToDelete(editingCategory);
+                                            // Don't close edit modal yet, only close it if delete is confirmed
                                         }}
                                     >
-                                        <Trash2 size={18} />
+                                        <Trash2 size={20} />
                                     </Button>
                                 )}
-                                <Button
-                                    variant="secondary"
-                                    className="flex-1"
-                                    onClick={() => {
-                                        setShowAddCategory(false);
-                                        setShowEditCategory(false);
-                                        setEditingCategory(null);
-                                    }}
-                                >
-                                    Cancel
-                                </Button>
                                 <Button
                                     className="flex-1"
                                     onClick={showEditCategory ? handleEditCategory : handleAddCategory}
@@ -750,6 +780,33 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Smart Delete Confirmation Modal */}
+            <DeleteConfirmationModal
+                isOpen={!!categoryToDelete}
+                onClose={() => setCategoryToDelete(null)}
+                // Execute actual delete logic
+                onConfirm={async () => {
+                    if (!categoryToDelete) return;
+                    setSubmitting(true);
+                    try {
+                        await api.deleteCategory(categoryToDelete.id);
+                        await loadData();
+                        setShowEditCategory(false);
+                        setEditingCategory(null);
+                        setCategoryToDelete(null);
+                    } catch (error) {
+                        console.error('Failed to delete:', error);
+                        alert('Failed to delete category');
+                    } finally {
+                        setSubmitting(false);
+                    }
+                }}
+                categoryName={categoryToDelete?.name || ''}
+                transactionCount={categoryToDelete ? transactions.filter(t => t.category_id === categoryToDelete.id).length : 0}
+                totalAmount={categoryToDelete ? transactions.filter(t => t.category_id === categoryToDelete.id).reduce((sum, t) => sum + Number(t.amount), 0) : 0}
+                isSubmitting={submitting}
+            />
 
             {/* Edit Budget Limit Modal */}
             <AnimatePresence>

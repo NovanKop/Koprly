@@ -8,6 +8,8 @@ interface CategorySelectorProps {
     label?: string;
 }
 
+import { CategoryIcon } from './ui/CategoryIcon';
+
 export function CategorySelector({ categories, selectedCategoryId, onSelect, label }: CategorySelectorProps) {
     return (
         <div>
@@ -29,7 +31,12 @@ export function CategorySelector({ categories, selectedCategoryId, onSelect, lab
                             }
                         `}
                     >
-                        <span>{cat.icon}</span>
+                        <CategoryIcon
+                            iconName={cat.icon}
+                            variant="small"
+                            className={selectedCategoryId === cat.id ? 'text-white' : undefined}
+                            categoryColor={selectedCategoryId === cat.id ? '#ffffff' : cat.color}
+                        />
                         <span className="text-sm font-medium">{cat.name}</span>
                     </motion.button>
                 ))}

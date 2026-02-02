@@ -28,6 +28,9 @@ import { KoprlystGuide } from '../components/guide/KoprlystGuide';
 import type { Category, Transaction, Profile, Wallet as WalletType, Notification } from '../types';
 
 
+import { CategoryIcon } from '../components/ui/CategoryIcon';
+import { useBudgetNotifications } from '../hooks/useBudgetNotifications';
+
 export default function Dashboard() {
     const { user } = useAuth();
     const { currency, isBottomMenuVisible, setBottomMenuVisible } = useAppStore();
@@ -192,20 +195,16 @@ export default function Dashboard() {
     }, [loadData]);
 
     // Handle notification deep linking
+    // Handle notification deep linking
     const handleNotificationClick = (notification: Notification) => {
         const deepLink = notification.metadata.deep_link;
         if (deepLink) {
-            switch (deepLink) {
-                case '/budget':
-                    handleNavigate('budget');
-                    break;
-                case '/report':
-                    handleNavigate('report');
-                    break;
-                case '/dashboard':
-                default:
-                    handleNavigate('home');
-                    break;
+            if (deepLink.startsWith('/budget')) {
+                handleNavigate('budget');
+            } else if (deepLink.startsWith('/report')) {
+                handleNavigate('report');
+            } else {
+                handleNavigate('home');
             }
         }
     };
@@ -425,9 +424,8 @@ export default function Dashboard() {
         .filter(t => t.type === 'expense')
         .reduce((acc, t) => acc + Number(t.amount), 0), [transactions]);
 
-    // Total Budget = live wallet balance (updates with income/expenses)
-    // This matches the Budget page so both show the same value
-    const totalBudget = liveBalance;
+    // Total Budget = User defined spending limit
+    const totalBudget = profile?.total_budget || 0;
     const currentBalance = liveBalance;
 
     const recentTxns = useMemo(() => transactions.slice(0, 5), [transactions]);
@@ -448,9 +446,8 @@ export default function Dashboard() {
     // Calculate budget utilization
     const budgetUsed = totalBudget > 0 ? (totalExpenses / totalBudget) * 100 : 0;
 
-
-
-
+    // Trigger Budget Notifications
+    useBudgetNotifications({ profile, categories });
 
     if (loading) {
         return <DashboardSkeleton />;
@@ -555,6 +552,7 @@ export default function Dashboard() {
                                 }
                             }}
                         >
+
                             {/* Total Budget Card */}
                             {/* Total Budget Card */}
                             {/* Total Budget Card */}
@@ -624,14 +622,14 @@ export default function Dashboard() {
                                     visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
                                 }}
                             >
-                                <div className="px-8 mb-4">
+                                <div className="px-5 mb-4">
                                     <h3 className="text-xs font-bold text-text-secondary uppercase tracking-widest">MY WALLETS</h3>
                                 </div>
 
                                 {/* Scroll Container Wrapper with Fade Effect */}
                                 <div className="relative group">
                                     <div className="flex gap-4 overflow-x-auto px-0 pb-4 scrollbar-hide snap-x relative z-10 w-full [mask-image:linear-gradient(to_right,black_85%,transparent_100%)]">
-                                        <div className="min-w-[2rem] snap-start shrink-0" />
+                                        <div className="min-w-[1.25rem] snap-start shrink-0" />
                                         {wallets.map((wallet) => {
                                             // Determine gradient based on wallet name/type
                                             const isBCA = wallet.name.toLowerCase().includes('bca');
@@ -699,7 +697,7 @@ export default function Dashboard() {
                                         >
                                             <Plus size={24} className="text-text-secondary" />
                                         </motion.button>
-                                        <div className="min-w-[2rem] snap-start shrink-0" />
+                                        <div className="min-w-[1.25rem] snap-start shrink-0" />
                                     </div>
                                     {/* Scroll shadow removed - handled by mask-image */}
                                 </div>
@@ -708,7 +706,7 @@ export default function Dashboard() {
                             {/* Action Buttons */}
                             {/* Action Buttons */}
                             <motion.div
-                                className="px-8 flex gap-4 mt-2"
+                                className="px-5 flex gap-4 mt-2"
                                 variants={{
                                     hidden: { opacity: 0, y: 20 },
                                     visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
@@ -763,7 +761,7 @@ export default function Dashboard() {
                                         animate={{ opacity: 1, height: 'auto', y: 0 }}
                                         exit={{ opacity: 0, height: 0, y: -10 }}
                                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                        className="relative z-20 px-8"
+                                        className="relative z-20 px-5"
                                     >
                                         <div className="p-6 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color space-y-4 shadow-xl">
                                             <h3 className="text-lg font-semibold text-text-primary">Expense</h3>
@@ -826,7 +824,7 @@ export default function Dashboard() {
                                         animate={{ opacity: 1, height: 'auto', y: 0 }}
                                         exit={{ opacity: 0, height: 0, y: -10 }}
                                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                        className="relative z-20 px-8"
+                                        className="relative z-20 px-5"
                                     >
                                         <div className="p-6 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color space-y-4 shadow-xl">
                                             <h3 className="text-lg font-semibold text-text-primary">Income</h3>
@@ -892,7 +890,7 @@ export default function Dashboard() {
 
                             {/* Budget & Top Spend */}
                             <motion.div
-                                className="px-8 mt-8 grid grid-cols-2 gap-4"
+                                className="px-5 mt-8 grid grid-cols-2 gap-4"
                                 variants={{
                                     hidden: { opacity: 0, y: 20 },
                                     visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
@@ -947,8 +945,13 @@ export default function Dashboard() {
                                             <>
                                                 <p className="text-2xl font-bold text-text-primary leading-tight mb-2 line-clamp-2">{topCategory.name}</p>
                                                 <div className="flex -space-x-2">
-                                                    <div className="w-8 h-8 rounded-full bg-surface border border-border-color flex items-center justify-center text-sm shadow-sm">
-                                                        {topCategory.icon}
+                                                    <div className="w-8 h-8 rounded-full bg-surface border border-border-color flex items-center justify-center text-sm shadow-sm overflow-hidden">
+                                                        <CategoryIcon
+                                                            iconName={topCategory.icon}
+                                                            variant="default"
+                                                            categoryColor={topCategory.color}
+                                                            className="w-4 h-4"
+                                                        />
                                                     </div>
                                                     <div className="w-8 h-8 rounded-full bg-surface border border-border-color flex items-center justify-center text-[10px] font-bold text-text-secondary shadow-sm">
                                                         +{topCategory.count}
@@ -966,7 +969,7 @@ export default function Dashboard() {
                             {/* Spending Categories */}
                             {/* Spending Categories */}
                             <motion.div
-                                className="px-6 mt-8"
+                                className="px-5 mt-8"
                                 variants={{
                                     hidden: { opacity: 0, y: 20 },
                                     visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
@@ -991,15 +994,11 @@ export default function Dashboard() {
                                             transition={{ delay: 0.1 * idx }}
                                             className="p-4 rounded-[20px] glass-card flex items-center gap-4 hover:bg-surface/80 transition-colors"
                                         >
-                                            <div
-                                                className="h-12 w-12 rounded-[18px] flex items-center justify-center text-xl bg-surface border border-border-color shadow-sm"
-                                                style={{ color: cat.color }}
-                                            >
-                                                <span style={{ filter: 'drop-shadow(0 0 10px currentColor)' }}>
-                                                    {/* Fallback icon if mapped icon is missing */}
-                                                    {cat.icon || '🛍️'}
-                                                </span>
-                                            </div>
+                                            <CategoryIcon
+                                                iconName={cat.icon || 'shopping-cart'}
+                                                variant="large"
+                                                categoryColor={cat.color}
+                                            />
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex justify-between items-center mb-2">
                                                     <p className="font-bold text-text-primary truncate">{cat.name}</p>
@@ -1023,7 +1022,7 @@ export default function Dashboard() {
                             {/* Recent Activity */}
                             {/* Recent Activity */}
                             <motion.div
-                                className="px-6 mt-8"
+                                className="px-5 mt-8"
                                 variants={{
                                     hidden: { opacity: 0, y: 20 },
                                     visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
@@ -1047,9 +1046,12 @@ export default function Dashboard() {
                                             className="p-4 rounded-[20px] glass-card flex items-center justify-between cursor-pointer hover:bg-surface/80 transition-colors group"
                                         >
                                             <div className="flex items-center gap-4">
-                                                <div className="h-10 w-10 rounded-full border border-border-color flex items-center justify-center text-xl bg-surface group-hover:scale-110 transition-transform">
-                                                    {txn.category?.icon || (txn.type === 'income' ? '💰' : '💸')}
-                                                </div>
+                                                <CategoryIcon
+                                                    iconName={txn.category?.icon || (txn.type === 'income' ? 'banknote' : 'help-circle')}
+                                                    variant="default"
+                                                    className={txn.type === 'income' ? 'text-green-500' : 'text-primary'}
+                                                    style={txn.category?.color ? { color: txn.category.color } : undefined}
+                                                />
                                                 <div>
                                                     <p className="font-bold text-text-primary text-sm">{txn.description}</p>
                                                     <p className="text-xs text-text-secondary">{new Date(txn.date).toLocaleDateString()}</p>
