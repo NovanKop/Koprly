@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import { Settings, PieChart, Wallet } from 'lucide-react';
-import { useMemo } from 'react';
 
 interface BottomMenuProps {
     currentView: 'home' | 'report' | 'budget' | 'settings' | 'category' | 'history' | 'notifications';
@@ -33,12 +32,6 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
             icon: <Settings size={22} />
         }
     ] as const;
-
-    // Calculate active index with useMemo optimization  
-    const activeIndex = useMemo(() =>
-        menuItems.findIndex(item => item.id === currentView),
-        [currentView]
-    );
 
     return (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100]">
