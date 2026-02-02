@@ -34,36 +34,26 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
         }
     ] as const;
 
-    // Calculate active index
+    // Calculate active index (optimized with useMemo)
     const activeIndex = useMemo(() =>
         menuItems.findIndex(item => item.id === currentView),
         [currentView]
     );
 
-    // Button dimensions (adjust if needed based on your actual padding)
-    const buttonWidth = 80; // px - adjust this if your buttons are different size
-    const bubbleOffset = 8; // px - padding offset from container edge
+    // Calculate button width in pixels (for 320px min-width container)
+    // 320px - 16px padding (8px * 2) = 304px / 4 items = 76px per button
+    const buttonWidth = 76;
+    const containerPadding = 8;
 
     return (
-        // FIXED POSITIONING CONTAINER - Isolates from document scroll
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-            {/* MENU CONTAINER - Glass Panel with UPDATED transparency & blur */}
-            <div
-                className="relative rounded-full px-2 py-2 shadow-2xl min-w-[320px] transition-all duration-300 hover:shadow-primary/5"
-                style={{
-                    isolation: 'isolate',
-                    // UPDATED: Transparency 60% and blur reduced by 10%
-                    background: 'rgba(30, 30, 30, 0.6)', // Dark mode: 60% opacity (was 0.7)
-                    backdropFilter: 'blur(22.5px)', // 90% of 25px = 22.5px
-                    WebkitBackdropFilter: 'blur(22.5px)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
-                }}
-            >
-                {/* SLIDING BUBBLE - Single source of truth */}
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999]">
+            <div className="relative glass-panel rounded-full px-2 py-2 flex items-center justify-between gap-1 shadow-2xl min-w-[320px]">
+
+                {/* Single Sliding Bubble - Pixel-based positioning */}
                 <motion.div
                     className="absolute bg-primary rounded-full shadow-[0_0_20px_rgba(34,197,94,0.6)] dark:shadow-[0_0_25px_rgba(34,197,94,0.8)]"
                     animate={{
-                        x: activeIndex * buttonWidth + bubbleOffset,
+                        x: activeIndex * buttonWidth + containerPadding,
                     }}
                     transition={{
                         type: "spring",
@@ -72,66 +62,31 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
                         mass: 0.8
                     }}
                     style={{
-                        width: `${buttonWidth - 16}px`, // Slightly smaller than button
+                        width: `${buttonWidth - 8}px`,
                         height: '56px',
                         top: '8px',
                         left: '0px',
                         zIndex: 1,
-                        pointerEvents: 'none' // Don't block clicks
-                    }}
-                />
-
-                {/* GLOW EFFECT (Optional - for extra polish) */}
-                <motion.div
-                    className="absolute bg-primary/20 rounded-full blur-xl"
-                    animate={{
-                        x: activeIndex * buttonWidth + bubbleOffset,
-                    }}
-                    transition={{
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 30,
-                        mass: 0.8
-                    }}
-                    style={{
-                        width: `${buttonWidth - 16}px`,
-                        height: '56px',
-                        top: '8px',
-                        left: '0px',
-                        zIndex: 0,
                         pointerEvents: 'none'
                     }}
                 />
 
-                {/* MENU ITEMS */}
-                <div className="relative z-10 flex items-center justify-between gap-1">
-                    {menuItems.map((item) => {
-                        const isActive = currentView === item.id;
-                        return (
-                            <motion.button
-                                key={item.id}
-                                onClick={() => onNavigate(item.id as any)}
-                                className="relative p-4 rounded-full flex items-center justify-center outline-none group"
-                                style={{
-                                    width: `${buttonWidth}px`,
-                                    zIndex: 20 // Above bubble
-                                }}
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.95 }}
-                                transition={{ duration: 0.2 }}
-                            >
-                                <span
-                                    className={`transition-all duration-300 ${isActive
-                                            ? 'text-white scale-110'
-                                            : 'text-text-secondary group-hover:text-text-primary'
-                                        }`}
-                                >
-                                    {item.icon}
-                                </span>
-                            </motion.button>
-                        );
-                    })}
-                </div>
+                {/* Menu Items - Back to flex-1 for responsive */}
+                {menuItems.map((item) => {
+                    const isActive = currentView === item.id;
+                    return (
+                        <button
+                            key={item.id}
+                            onClick={() => onNavigate(item.id as any)}
+                            className="relative p-4 rounded-full flex items-center justify-center outline-none flex-1 group"
+                            style={{ zIndex: 20 }}
+                        >
+                            <span className={`transition-all duration-300 ${isActive ? 'text-white scale-110' : 'text-text-secondary group-hover:text-text-primary'}`}>
+                                {item.icon}
+                            </span>
+                        </button>
+                    );
+                })}
             </div>
         </div>
     );
