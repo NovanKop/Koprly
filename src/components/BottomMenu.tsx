@@ -40,10 +40,6 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
         [currentView]
     );
 
-    // Button width for pixel-based positioning
-    // Each button: p-4 (16px padding each side) + icon (24px) + gap-2 (8px) = ~64px
-    const buttonWidth = 64;
-
     return (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100]">
             <motion.div
@@ -52,22 +48,23 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
                 transition={{ delay: 0.6, type: "spring", stiffness: 300, damping: 25 }}
                 className="relative backdrop-blur-3xl bg-surface/80 border border-white/20 rounded-full px-2 py-2 flex items-center gap-2 shadow-2xl ring-1 ring-black/5"
             >
-                {/* Single Sliding Active Background - Pixel Based */}
+                {/* Single Sliding Active Background - Using inset positioning */}
                 <motion.div
-                    className="absolute bg-gradient-to-br from-primary via-primary/80 to-secondary rounded-full shadow-lg shadow-primary/30"
-                    animate={{
-                        x: activeIndex * buttonWidth + 8, // 8px = px-2 padding
-                    }}
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    style={{
-                        width: `${buttonWidth}px`,
-                        height: '56px',
-                        top: '8px',
-                        left: '0px',
-                        zIndex: 0,
-                        pointerEvents: 'none'
-                    }}
-                />
+                    className="absolute inset-0 flex items-center px-2"
+                    style={{ pointerEvents: 'none' }}
+                >
+                    <motion.div
+                        className="bg-gradient-to-br from-primary via-primary/80 to-secondary rounded-full shadow-lg shadow-primary/30"
+                        animate={{
+                            x: `calc(${activeIndex * 100}% + ${activeIndex * 8}px)`, // 100% per item + gap-2 (8px)
+                        }}
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                        style={{
+                            width: 'calc(25% - 8px)', // 25% for 4 items, minus gap compensation
+                            height: '56px',
+                        }}
+                    />
+                </motion.div>
 
                 {menuItems.map((item) => {
                     const isActive = currentView === item.id;
@@ -75,7 +72,7 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
                         <motion.button
                             key={item.id}
                             onClick={() => onNavigate(item.id as any)}
-                            className="relative p-4 rounded-full flex items-center justify-center outline-none"
+                            className="relative p-4 rounded-full flex items-center justify-center outline-none flex-1"
                             style={{ zIndex: 10 }}
                             whileHover={{ scale: 1.2 }}
                             whileTap={{ scale: 0.9 }}
