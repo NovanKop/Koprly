@@ -153,8 +153,8 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                             exit={{ opacity: 0, scale: 0.95, y: 10 }}
                             transition={{ duration: 0.2, ease: "easeOut" }}
                             className={`bg-white dark:bg-[#1C1C1E] rounded-[32px] shadow-[0_30px_60px_rgba(0,0,0,0.25)] w-full max-w-sm overflow-hidden border pointer-events-auto ${isLight
-                                    ? 'bg-white border-black/5 text-gray-900'
-                                    : 'bg-[#1C1C1E] border-white/10 text-white'
+                                ? 'bg-white border-black/5 text-gray-900'
+                                : 'bg-[#1C1C1E] border-white/10 text-white'
                                 }`}
                         >
                             {/* Header */}
@@ -235,9 +235,11 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                                                     !isCurrentMonth && (isLight ? "text-gray-300 opacity-50" : "text-gray-600 opacity-50"),
                                                     disabled && (isLight ? "text-gray-300 opacity-30 cursor-not-allowed line-through" : "text-gray-700 opacity-30 cursor-not-allowed line-through"),
                                                     (isStart || isEnd)
-                                                        ? "ring-2 ring-primary bg-primary/10 text-primary font-bold z-20"
+                                                        ? (isLight
+                                                            ? "ring-2 ring-emerald-500 bg-emerald-50 text-emerald-600 font-bold z-20"
+                                                            : "ring-2 ring-primary bg-primary/10 text-primary font-bold z-20")
                                                         : !disabled && (isLight ? "hover:bg-gray-100 text-gray-700" : "hover:bg-white/10 text-white"),
-                                                    isToday(day) && !isStart && !isEnd && "text-primary font-bold border border-primary/30",
+                                                    isToday(day) && !isStart && !isEnd && (isLight ? "text-emerald-600 font-bold border border-emerald-200" : "text-primary font-bold border border-primary/30"),
                                                 )}
                                             >
                                                 {format(day, 'd')}
@@ -252,19 +254,19 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                                 <div className={`flex justify-between items-center text-sm font-medium ${isLight ? 'text-gray-900' : 'text-gray-100'}`}>
                                     <div className="flex gap-1">
                                         <span className="text-gray-500">Start:</span>
-                                        <span>{tempStart ? format(new Date(tempStart), 'MMM d, yyyy') : '-'}</span>
+                                        <span className={isLight ? "font-bold text-gray-900" : "font-bold text-white"}>{tempStart ? format(new Date(tempStart), 'MMM d, yyyy') : '-'}</span>
                                     </div>
                                     <div className="flex gap-1">
                                         <span className="text-gray-500">End:</span>
-                                        <span>{tempEnd ? format(new Date(tempEnd), 'MMM d') : '-'}</span>
+                                        <span className={isLight ? "font-bold text-gray-900" : "font-bold text-white"}>{tempEnd ? format(new Date(tempEnd), 'MMM d, yyyy') : '-'}</span>
                                     </div>
                                 </div>
                                 <div className="flex justify-between gap-3">
                                     <button
                                         onClick={handleReset}
                                         className={`flex-1 py-3 rounded-2xl border transition-colors font-bold text-sm ${isLight
-                                                ? 'border-gray-200 hover:bg-gray-50 text-gray-700'
-                                                : 'border-white/10 hover:bg-white/5 text-gray-300'
+                                            ? 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                                            : 'border-white/10 hover:bg-white/5 text-gray-300'
                                             }`}
                                     >
                                         Reset
@@ -272,7 +274,10 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                                     <button
                                         disabled={!tempStart || !tempEnd}
                                         onClick={handleApply}
-                                        className="flex-1 py-3 rounded-2xl bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-all active:scale-95"
+                                        className={`flex-1 py-3 rounded-2xl text-white font-bold text-sm shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 ${isLight
+                                                ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200'
+                                                : 'bg-primary hover:bg-primary/90 shadow-primary/20'
+                                            }`}
                                     >
                                         Apply
                                     </button>
