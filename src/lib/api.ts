@@ -250,6 +250,44 @@ export const api = {
         if (error) throw error;
     },
 
+    getEarliestTransactionDate: async (): Promise<Date | null> => {
+        // 1. Get earliest transaction
+        const { data: txnData, error: txnError } = await supabase
+            .from('transactions')
+            .select('date')
+            .order('date', { ascending: true })
+            .limit(1)
+            .single();
+
+        // 2. Get profile creation date (as fallback for 'new user')
+        const { data: profileData } = await supabase
+            .from('profiles')
+            .select('created_at')
+            .single();
+
+        if (txnError && txnError.code !== 'PGRST116') { // PGRST116 is 'No rows found'
+            console.error('Error fetching earliest transaction:', txnError);
+        }
+
+        let earliestDate: Date | null = null;
+
+        if (txnData?.date) {
+            earliestDate = new Date(txnData.date);
+        }
+
+        if (profileData?.created_at) {
+            const profileDate = new Date(profileData.created_at);
+            // If we have an earliest transaction, take the min of both.
+            // If not, use profile date.
+            if (!earliestDate || profileDate < earliestDate) {
+                earliestDate = profileDate;
+            }
+        }
+
+        // Return null if absolutely no data found (unlikely for authenticated user)
+        return earliestDate;
+    },
+
     // Legacy for backward compatibility
     getExpenses: async (): Promise<Transaction[]> => {
         const { data, error } = await supabase
