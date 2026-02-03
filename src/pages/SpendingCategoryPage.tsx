@@ -128,7 +128,7 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                     transition={{ duration: 0.2 }}
-                                    className="absolute right-0 mt-2 w-48 bg-white/95 dark:bg-[#151515]/95 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden glass-panel"
+                                    className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#151515] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50"
                                 >
                                     {filterOptions.map((option) => (
                                         <button
