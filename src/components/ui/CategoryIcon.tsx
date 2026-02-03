@@ -76,7 +76,7 @@ export function CategoryIcon({
         // No border or shadow for clean contrast look (as per reference)
         inlineStyle = {
             ...inlineStyle,
-            backgroundColor: `${categoryColor}1A`, // 10% Opacity
+            backgroundColor: `${categoryColor}33`, // 20% Opacity (Increased from 10%)
             color: categoryColor
         };
         // Ensure icon uses this color

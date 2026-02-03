@@ -1049,8 +1049,7 @@ export default function Dashboard() {
                                                 <CategoryIcon
                                                     iconName={txn.category?.icon || (txn.type === 'income' ? 'banknote' : 'help-circle')}
                                                     variant="default"
-                                                    className={txn.type === 'income' ? 'text-green-500' : 'text-primary'}
-                                                    style={txn.category?.color ? { color: txn.category.color } : undefined}
+                                                    categoryColor={txn.type === 'income' ? '#22C55E' : txn.category?.color}
                                                 />
                                                 <div>
                                                     <p className="font-bold text-text-primary text-sm">{txn.description}</p>
