@@ -54,14 +54,14 @@ export function TransactionItem({
         >
             <div
                 onClick={handleItemClick}
-                className="p-4 flex items-start justify-between cursor-pointer gap-3"
+                className="p-4 flex items-center justify-between cursor-pointer gap-3"
             >
-                <div className="flex items-start gap-3 flex-1 overflow-hidden">
+                <div className="flex items-center gap-3 flex-1 overflow-hidden">
                     {/* Icon */}
                     <CategoryIcon
                         iconName={isIncome ? 'banknote' : transaction.category?.icon || 'help-circle'}
                         variant="default"
-                        categoryColor={isIncome ? '#22C55E' : transaction.category?.color}
+                        categoryColor={isIncome ? '#22C55E' : transaction.category?.color || '#94A3B8'}
                     />
 
                     {/* Content */}
@@ -109,16 +109,7 @@ export function TransactionItem({
                             </div>
                             <div className="flex justify-between">
                                 <span>Category</span>
-                                <span className="text-text-primary font-medium flex items-center gap-2">
-                                    <div className="w-4 h-4">
-                                        <CategoryIcon
-                                            iconName={transaction.category?.icon || 'help-circle'}
-                                            variant="small"
-                                            categoryColor={transaction.category?.color}
-                                            className="w-4 h-4"
-                                            containerClassName="shadow-none border-none"
-                                        />
-                                    </div>
+                                <span className="text-text-primary font-medium">
                                     {transaction.category?.name || 'Uncategorized'}
                                 </span>
                             </div>
