@@ -19,10 +19,10 @@ import { CategoryIcon } from '../components/ui/CategoryIcon';
 import { MonthSelector } from '../components/MonthSelector';
 
 
-// Helper to generate last 12 months for dropdown
-const getRecentMonths = () => {
-    return Array.from({ length: 12 }, (_, i) => subMonths(new Date(), i));
-};
+// Helper to generate last 12 months for dropdown - Deprecated/Replaced
+// const getRecentMonths = () => {
+//    return Array.from({ length: 12 }, (_, i) => subMonths(new Date(), i));
+// };
 
 
 interface BudgetPageProps {
@@ -41,12 +41,9 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     const [wallets, setWallets] = useState<Wallet[]>([]);
     const [profile, setProfile] = useState<Profile | null>(null);
     const [selectedMonth, setSelectedMonth] = useState(new Date());
+    const [availableMonths, setAvailableMonths] = useState<Date[]>([new Date()]);
 
     // Derived state for data protection
-
-    // Allow editing current and future months (logic: !past)
-    // Actually typically we only edit current or future. 
-    // Requirement: "Jika bulan yang dipilih < bulan berjalan: Nonaktifkan semua fungsi edit"
     const isPastMonth = isBefore(endOfMonth(selectedMonth), startOfMonth(new Date()));
     const isReadOnly = isPastMonth;
 
@@ -74,8 +71,6 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     // Budget Edit Limit State
     const [showEditBudget, setShowEditBudget] = useState(false);
 
-
-
     // Manage Bottom Menu visibility
     useEffect(() => {
         const isAnyModalOpen = showAddCategory || showEditCategory || showEditBudget;
@@ -96,6 +91,27 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     const loadData = async () => {
         setLoading(true);
         try {
+            // Fetch earliest date for month selector logic
+            const earliestDate = await api.getEarliestTransactionDate();
+
+            // Generate months from today back to earliestDate (max 12)
+            const today = new Date();
+            const months: Date[] = [];
+            let current = startOfMonth(today);
+            const stopDate = earliestDate ? startOfMonth(earliestDate) : current;
+
+            // Safety: Ensure we always show current month at minimum
+            months.push(current);
+
+            // Generate previous months
+            for (let i = 1; i < 12; i++) {
+                const prev = subMonths(current, 1);
+                if (isBefore(prev, stopDate)) break;
+                months.push(prev);
+                current = prev;
+            }
+            setAvailableMonths(months);
+
             const [cats, txns, wlts, prof] = await Promise.all([
                 api.getCategories(),
                 api.getTransactions(),
@@ -344,12 +360,13 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
             </div>
 
             {/* Month Selector */}
-            <MonthSelector
-                selectedMonth={selectedMonth}
-                months={getRecentMonths()}
-                onSelect={handleMonthSelect}
-                className="px-6 mb-6"
-            />
+            <div className="px-6 mb-8">
+                <MonthSelector
+                    selectedMonth={selectedMonth}
+                    months={availableMonths}
+                    onSelect={handleMonthSelect}
+                />
+            </div>
 
             <motion.div
                 className="px-6 space-y-6"
