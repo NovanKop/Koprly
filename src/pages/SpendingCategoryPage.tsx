@@ -138,15 +138,15 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                                                 setShowFilterMenu(false);
                                             }}
                                             className={`w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between group ${dateFilter === option.value
-                                                ? 'bg-green-50 text-green-600 dark:bg-primary/10 dark:text-primary font-bold'
-                                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
+                                                ? 'bg-emerald-50 text-emerald-600 dark:bg-primary/10 dark:text-primary font-bold'
+                                                : 'text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
                                                 }`}
                                         >
                                             <span>{option.label}</span>
                                             {dateFilter === option.value && (
                                                 <motion.div
                                                     layoutId="activeFilter"
-                                                    className="w-1.5 h-1.5 rounded-full bg-green-600 dark:bg-primary"
+                                                    className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-primary"
                                                 />
                                             )}
                                         </button>
