@@ -19,6 +19,7 @@ import { WalletSelector } from '../components/WalletSelector';
 import { BottomMenu } from '../components/BottomMenu';
 import { useAppStore } from '../store/useAppStore';
 import { formatMoney } from '../lib/utils';
+import { formatDate } from '../utils/dateFormatter';
 import { MAX_WALLETS, WALLET_ICONS, WALLET_COLORS } from '../lib/constants';
 import NotificationBell from '../components/NotificationBell';
 import { useTransactionManager } from '../hooks/useTransactionManager';
@@ -33,7 +34,7 @@ import { useBudgetNotifications } from '../hooks/useBudgetNotifications';
 
 export default function Dashboard() {
     const { user } = useAuth();
-    const { currency, isBottomMenuVisible, setBottomMenuVisible } = useAppStore();
+    const { currency, isBottomMenuVisible, setBottomMenuVisible, dateFormat } = useAppStore();
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -1053,7 +1054,7 @@ export default function Dashboard() {
                                                 />
                                                 <div>
                                                     <p className="font-bold text-text-primary text-sm">{txn.description}</p>
-                                                    <p className="text-xs text-text-secondary">{new Date(txn.date).toLocaleDateString()}</p>
+                                                    <p className="text-xs text-text-secondary font-medium font-sans">{formatDate(txn.date, dateFormat)}</p>
                                                 </div>
                                             </div>
                                             <div className="text-right">

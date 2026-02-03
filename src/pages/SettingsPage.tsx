@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Edit2, Calendar, Moon, ChevronRight, Check, Pencil, Camera, Image as ImageIcon, Bell } from 'lucide-react';
+import { ArrowLeft, Edit2, Calendar, Moon, Sun, ChevronRight, Check, Pencil, Camera, Image as ImageIcon, Bell } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { api } from '../lib/api';
 import type { Profile } from '../types';
@@ -289,40 +289,54 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
                             </div>
                         </div>
 
+
                         {/* Date Format */}
                         <div
                             className="p-4 flex items-center justify-between hover:bg-surface-highlight transition-colors cursor-pointer border-b border-border-color"
-                            onClick={() => setDateFormat(dateFormat === 'DD/MM/YYYY' ? 'MM/DD/YYYY' : 'DD/MM/YYYY')}
+                            onClick={() => setDateFormat(
+                                dateFormat === 'DD/MM/YYYY' ? 'DD MMM YYYY' :
+                                    dateFormat === 'DD MMM YYYY' ? 'Relative' :
+                                        'DD/MM/YYYY'
+                            )}
                         >
                             <div className="flex items-center gap-4">
                                 <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-400">
                                     <Edit2 size={20} />
                                 </div>
-                                <p className="font-medium">Date Format</p>
+                                <div>
+                                    <p className="font-medium">Date Format</p>
+                                    <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
+                                        {dateFormat === 'DD/MM/YYYY' ? 'Example: 03/02/2026' :
+                                            dateFormat === 'DD MMM YYYY' ? 'Example: 03 Feb 2026' :
+                                                'Example: Today, Yesterday'}
+                                    </p>
+                                </div>
                             </div>
                             <div className="flex items-center gap-2 text-gray-400">
-                                <span className="text-sm">{dateFormat}</span>
+                                <span className="text-sm font-medium">
+                                    {dateFormat === 'DD/MM/YYYY' ? 'DD/MM/YYYY' :
+                                        dateFormat === 'DD MMM YYYY' ? 'DD MMM YYYY' :
+                                            'Relative'}
+                                </span>
                                 <ChevronRight size={16} />
                             </div>
                         </div>
 
-                        {/* Notifications */}
-                        <div
-                            className="p-4 flex items-center justify-between hover:bg-surface-highlight transition-colors cursor-pointer"
-                            onClick={() => onNavigateToNotifications?.()}
-                        >
+                        {/* Notifications (Coming Soon) */}
+                        <div className="p-4 flex items-center justify-between opacity-50 cursor-not-allowed">
                             <div className="flex items-center gap-4">
                                 <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
                                     <Bell size={20} />
                                 </div>
                                 <div>
                                     <p className="font-medium">Notifications</p>
-                                    <p className="text-xs text-gray-400">Alerts & reminders.</p>
+                                    <p className="text-xs text-text-secondary">Alerts & reminders.</p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 text-gray-400">
-                                <span className="text-sm">Manage</span>
-                                <ChevronRight size={16} />
+                            <div className="flex items-center gap-2">
+                                <span className="px-2 py-1 rounded-lg bg-surface-highlight border border-border-color text-[10px] font-bold text-text-secondary uppercase tracking-wider">
+                                    Coming Soon
+                                </span>
                             </div>
                         </div>
                     </GlassCard>
@@ -334,11 +348,33 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
                     <GlassCard className="rounded-[20px] overflow-hidden">
                         <div className="p-4 flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                                <div className="h-10 w-10 rounded-xl bg-gray-700/30 flex items-center justify-center text-gray-300">
-                                    <Moon size={20} />
+                                <div className={`h-10 w-10 rounded-xl flex items-center justify-center transition-colors ${theme === 'dark' ? 'bg-blue-500/10 text-blue-400' : 'bg-orange-500/10 text-orange-500'}`}>
+                                    <AnimatePresence mode="wait">
+                                        {theme === 'dark' ? (
+                                            <motion.div
+                                                key="moon"
+                                                initial={{ scale: 0.5, opacity: 0, rotate: 90 }}
+                                                animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                                                exit={{ scale: 0.5, opacity: 0, rotate: -90 }}
+                                                transition={{ duration: 0.2 }}
+                                            >
+                                                <Moon size={20} />
+                                            </motion.div>
+                                        ) : (
+                                            <motion.div
+                                                key="sun"
+                                                initial={{ scale: 0.5, opacity: 0, rotate: -90 }}
+                                                animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                                                exit={{ scale: 0.5, opacity: 0, rotate: 90 }}
+                                                transition={{ duration: 0.2 }}
+                                            >
+                                                <Sun size={20} />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
                                 <div>
-                                    <p className="font-medium">Dark Mode</p>
+                                    <p className="font-medium">{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</p>
                                     <p className="text-xs text-text-secondary">Easy on the eyes</p>
                                 </div>
                             </div>
@@ -479,7 +515,7 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
                                 <span className="text-2xl font-bold">$</span>
                             </div>
                             <h3 className="text-xl font-bold mb-2">Change Currency?</h3>
-                            <p className="text-gray-400 text-sm mb-8 px-4">
+                            <p className="text-gray-600 dark:text-gray-400 text-sm mb-8 px-4">
                                 The all current balance will convert to the new currency set-up. {currency === 'IDR' ? 'IDR to USD' : 'USD to IDR'}
                             </p>
 
@@ -559,20 +595,21 @@ export default function SettingsPage({ onBack, onNavigateToNotifications }: Sett
                                             <span className="text-2xl font-bold">!</span>
                                         </div>
                                         <h3 className="text-xl font-bold mb-2 text-error">Reset Everything?</h3>
-                                        <p className="text-gray-400 text-sm mb-8 px-4">
-                                            This will permanently delete ALL your transactions, wallets, and budget data. You will be redirected to the setup screen. <br /><span className="font-bold text-white">This cannot be undone.</span>
+                                        <p className="text-gray-600 dark:text-gray-300 text-sm mb-8 px-4 leading-relaxed">
+                                            This will permanently delete ALL your transactions, wallets, and budget data. You will be redirected to the setup screen. <br />
+                                            <span className="font-bold text-gray-900 dark:text-white mt-1 block">This cannot be undone.</span>
                                         </p>
 
                                         <div className="space-y-3">
                                             <Button
-                                                className="w-full bg-error hover:bg-error/90 text-white border-none h-12 rounded-2xl font-semibold"
+                                                className="w-full bg-error hover:bg-error/90 text-white border-none h-12 rounded-2xl font-semibold shadow-lg shadow-error/20"
                                                 onClick={handleResetAccount}
                                                 isLoading={isResetting}
                                             >
                                                 Yes, Reset All Data
                                             </Button>
                                             <button
-                                                className="w-full h-12 rounded-2xl bg-surface hover:bg-surface-highlight text-text-primary font-medium transition-colors"
+                                                className="w-full h-12 rounded-2xl bg-gray-100 dark:bg-surface hover:bg-gray-200 dark:hover:bg-surface-highlight text-text-primary font-medium transition-colors border border-transparent dark:border-border-color"
                                                 onClick={() => setShowResetConfirm(false)}
                                                 disabled={isResetting}
                                             >

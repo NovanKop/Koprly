@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ChevronRight, Filter, Loader2 } from 'lucide-react';
 import { parseISO, isWithinInterval, subDays, startOfDay, endOfDay } from 'date-fns';
 import { CategoryIcon } from '../components/ui/CategoryIcon';
+import { formatDate } from '../utils/dateFormatter';
 
 interface SpendingCategoryPageProps {
     onBack: () => void;
@@ -14,7 +15,7 @@ interface SpendingCategoryPageProps {
 type DateFilter = '1d' | '7d' | '30d';
 
 export default function SpendingCategoryPage({ onBack }: SpendingCategoryPageProps) {
-    const { currency, setBottomMenuVisible } = useAppStore();
+    const { currency, setBottomMenuVisible, dateFormat } = useAppStore();
     const [categories, setCategories] = useState<Category[]>([]);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -87,10 +88,7 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
         return `$${amount.toLocaleString('en-US')}`;
     };
 
-    const formatDate = (dateString: string) => {
-        const date = parseISO(dateString);
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    };
+
 
     const filterOptions = [
         { value: '1d' as DateFilter, label: 'Last 1 Day' },
@@ -253,7 +251,7 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                                                                 />
                                                                 <div>
                                                                     <div className="font-medium">{txn.description || 'No description'}</div>
-                                                                    <div className="text-xs text-text-secondary">{formatDate(txn.date)}</div>
+                                                                    <div className="text-xs text-text-secondary font-medium font-sans">{formatDate(txn.date, dateFormat)}</div>
                                                                 </div>
                                                             </div>
                                                             <div className="font-bold text-error">-{formatMoney(txn.amount)}</div>

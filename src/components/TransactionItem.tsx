@@ -2,15 +2,17 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronDown, Edit2 } from 'lucide-react';
 import type { Transaction } from '../types';
-import { formatDate, formatMoney, formatTime } from '../lib/utils';
+import { formatMoney, formatTime } from '../lib/utils';
+import { formatDate } from '../utils/dateFormatter';
 import { CategoryIcon } from './ui/CategoryIcon';
+import type { DateFormat } from '../types';
 
 interface TransactionItemProps {
     transaction: Transaction;
     onClick?: () => void;
     onEdit?: () => void;
     currency: string;
-    dateFormat?: 'DD/MM/YYYY' | 'MM/DD/YYYY';
+    dateFormat?: DateFormat;
     index?: number;
     variant?: 'default' | 'history';
 }

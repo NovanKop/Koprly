@@ -17,7 +17,7 @@ const ITEMS_PER_PAGE = 30;
 
 export default function HistoryPage({ onBack }: HistoryPageProps) {
     const { user } = useAuth();
-    const { currency, setBottomMenuVisible } = useAppStore();
+    const { currency, setBottomMenuVisible, dateFormat } = useAppStore();
 
     // Data State
     const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -186,6 +186,7 @@ export default function HistoryPage({ onBack }: HistoryPageProps) {
                                     key={txn.id}
                                     transaction={txnWithCategory}
                                     currency={currency}
+                                    dateFormat={dateFormat}
                                     variant="history"
                                     index={idx}
                                     onEdit={() => handleEditClick(txn)}

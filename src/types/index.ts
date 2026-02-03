@@ -47,9 +47,12 @@ export interface Profile {
     onboarding_koprlyst_done: boolean;   // Track if interactive guide finished
     onboarding_step: number;             // Resume progress (1-4)
     theme: string;
+    date_format?: DateFormat;
     created_at: string;
     updated_at: string;
 }
+
+export type DateFormat = 'DD/MM/YYYY' | 'DD MMM YYYY' | 'Relative';
 
 // Legacy type for backward compatibility
 export type Expense = Omit<Transaction, 'type'> & { type?: 'expense' };

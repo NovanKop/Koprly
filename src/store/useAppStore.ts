@@ -1,18 +1,19 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { DateFormat } from '../types';
 
 interface AppState {
     currency: 'IDR' | 'USD';
     theme: 'dark' | 'light';
     language: 'id' | 'en';
-    dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY';
+    dateFormat: DateFormat;
     firstDayOfWeek: 'Monday' | 'Sunday';
     isBottomMenuVisible: boolean;
 
     setCurrency: (currency: 'IDR' | 'USD') => void;
     setTheme: (theme: 'dark' | 'light') => void;
     setLanguage: (language: 'id' | 'en') => void;
-    setDateFormat: (format: 'DD/MM/YYYY' | 'MM/DD/YYYY') => void;
+    setDateFormat: (format: DateFormat) => void;
     setFirstDayOfWeek: (day: 'Monday' | 'Sunday') => void;
     setBottomMenuVisible: (visible: boolean) => void;
 }
