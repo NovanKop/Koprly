@@ -153,13 +153,13 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                             exit={{ opacity: 0, scale: 0.95, y: 10 }}
                             transition={{ duration: 0.2, ease: "easeOut" }}
                             className={`bg-white dark:bg-[#1C1C1E] rounded-[32px] shadow-[0_30px_60px_rgba(0,0,0,0.25)] w-full max-w-sm overflow-hidden border pointer-events-auto ${isLight
-                                ? 'bg-white border-black/5 text-gray-900'
+                                ? '!bg-white !border-black/5 !text-black'
                                 : 'bg-[#1C1C1E] border-white/10 text-white'
                                 }`}
                         >
                             {/* Header */}
                             <div className={`flex items-center justify-between p-4 border-b ${isLight ? 'border-gray-100' : 'border-white/5'}`}>
-                                <h3 className={`font-bold text-lg ${isLight ? 'text-gray-900' : 'text-white'}`}>Select Range</h3>
+                                <h3 className={`font-bold text-lg ${isLight ? 'text-black' : 'text-white'}`}>Select Range</h3>
                                 <button onClick={onClose} className={`p-2 rounded-full transition-colors ${isLight ? 'hover:bg-gray-100 text-gray-500' : 'hover:bg-white/10 text-gray-400'}`}>
                                     <X size={20} />
                                 </button>
@@ -167,7 +167,7 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
 
                             {/* Calendar Header aka Month Nav */}
                             <div className="flex items-center justify-between px-4 py-3">
-                                <h3 className={`font-bold text-base ${isLight ? 'text-gray-900' : 'text-white'}`}>
+                                <h3 className={`font-bold text-base ${isLight ? 'text-black' : 'text-white'}`}>
                                     {format(currentMonth, 'MMMM yyyy')}
                                 </h3>
                                 <div className="flex gap-1">
@@ -238,7 +238,7 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                                                         ? (isLight
                                                             ? "ring-2 ring-[#22C55E] bg-[#F0FDF4] text-[#22C55E] font-bold z-20"
                                                             : "ring-2 ring-primary bg-primary/10 text-primary font-bold z-20")
-                                                        : !disabled && (isLight ? "hover:bg-gray-100 text-gray-700" : "hover:bg-white/10 text-white"),
+                                                        : !disabled && (isLight ? "hover:bg-gray-100 text-black" : "hover:bg-white/10 text-white"),
                                                     isToday(day) && !isStart && !isEnd && (isLight ? "text-[#22C55E] font-bold border border-emerald-100" : "text-primary font-bold border border-primary/30"),
                                                 )}
                                             >
@@ -254,11 +254,11 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                                 <div className={`flex justify-between items-center text-sm font-medium ${isLight ? 'text-gray-900' : 'text-gray-100'}`}>
                                     <div className="flex gap-1 items-center">
                                         <span className="text-gray-400 font-normal">Start:</span>
-                                        <span className={isLight ? "font-bold text-gray-900" : "font-bold text-white"}>{tempStart ? format(new Date(tempStart), 'MMM d, yyyy') : '-'}</span>
+                                        <span className={isLight ? "font-bold text-black" : "font-bold text-white"}>{tempStart ? format(new Date(tempStart), 'MMM d, yyyy') : '-'}</span>
                                     </div>
                                     <div className="flex gap-1 items-center">
                                         <span className="text-gray-400 font-normal">End:</span>
-                                        <span className={isLight ? "font-bold text-gray-900" : "font-bold text-white"}>{tempEnd ? format(new Date(tempEnd), 'MMM d, yyyy') : '-'}</span>
+                                        <span className={isLight ? "font-bold text-black" : "font-bold text-white"}>{tempEnd ? format(new Date(tempEnd), 'MMM d, yyyy') : '-'}</span>
                                     </div>
                                 </div>
                                 <div className="flex justify-between gap-3">
