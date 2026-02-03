@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trash2 } from 'lucide-react';
+import { X, Trash2, Pencil } from 'lucide-react';
 import { api } from '../lib/api';
 import { Button } from './ui/Button';
+import { CategoryIcon } from './ui/CategoryIcon';
 import { CATEGORY_ICONS, CATEGORY_COLORS } from '../lib/constants';
 import { formatMoney } from '../lib/utils';
 import type { Category, Transaction } from '../types';
@@ -195,20 +196,53 @@ export function AddCategoryModal({
                                                     return totalCategoryBudgets - currentCatBudget + newCatBudget;
                                                 })())} / {formatMoney(originalBudget)}
                                             </span>
+                                            {(() => {
+                                                const currentCatBudget = initialCategory?.monthly_budget || 0;
+                                                const newCatBudget = budget ? parseFloat(budget) : 0;
+                                                const projectedTotal = totalCategoryBudgets - currentCatBudget + newCatBudget;
+                                                const remaining = originalBudget - projectedTotal;
+                                                if (remaining < 0) {
+                                                    return <span className="text-error font-semibold">{formatMoney(Math.abs(remaining))} over!</span>;
+                                                }
+                                                return <span className="text-success">{formatMoney(remaining)} left</span>;
+                                            })()}
                                         </div>
                                     </div>
                                 )}
 
+                                {/* Monthly Budget */}
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Monthly Budget</label>
+                                    <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-surface border border-border-color focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors">
+                                        <span className="text-text-secondary">{currencySymbol}</span>
+                                        <input
+                                            type="text"
+                                            value={budget.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
+                                            onChange={(e) => {
+                                                const rawValue = e.target.value.replace(/\./g, "").replace(/[^0-9]/g, "");
+                                                setBudget(rawValue);
+                                            }}
+                                            placeholder="0"
+                                            className="flex-1 bg-transparent outline-none"
+                                        />
+                                        <Pencil size={16} className="text-text-secondary opacity-50" />
+                                    </div>
+                                    <p className="text-xs text-text-secondary mt-1">Leave empty to only track spending</p>
+                                </div>
+
                                 {/* Name */}
                                 <div>
                                     <label className="block text-sm font-medium text-text-secondary mb-2">Category Name</label>
-                                    <input
-                                        type="text"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        placeholder="e.g. Groceries"
-                                        className="w-full px-4 py-3 rounded-xl bg-surface border border-border-color focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                            placeholder="e.g. Groceries"
+                                            className="w-full px-4 py-3 pr-10 rounded-xl bg-surface border border-border-color focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                                        />
+                                        <Pencil size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 pointer-events-none" />
+                                    </div>
                                 </div>
 
                                 {/* Icon Picker */}
@@ -220,9 +254,14 @@ export function AddCategoryModal({
                                                 key={ic}
                                                 type="button"
                                                 onClick={() => setIcon(ic)}
-                                                className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${icon === ic ? 'bg-primary/30 scale-110 ring-2 ring-primary' : 'bg-surface hover:bg-surface-highlight'}`}
+                                                className="focus:outline-none"
                                             >
-                                                {ic}
+                                                <CategoryIcon
+                                                    iconName={ic}
+                                                    variant="picker"
+                                                    isActive={icon === ic}
+                                                    activeColor={color}
+                                                />
                                             </button>
                                         ))}
                                     </div>
@@ -242,22 +281,6 @@ export function AddCategoryModal({
                                             />
                                         ))}
                                     </div>
-                                </div>
-
-                                {/* Budget */}
-                                <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-2">Monthly Budget (Optional)</label>
-                                    <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-surface border border-border-color focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors">
-                                        <span className="text-text-secondary">{currencySymbol}</span>
-                                        <input
-                                            type="number"
-                                            value={budget}
-                                            onChange={(e) => setBudget(e.target.value)}
-                                            placeholder="0"
-                                            className="flex-1 bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                        />
-                                    </div>
-                                    <p className="text-xs text-text-secondary mt-1">Leave empty to only track spending</p>
                                 </div>
                             </div>
 
