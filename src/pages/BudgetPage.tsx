@@ -444,7 +444,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                             <div className="w-full">
                                 <p className="text-sm font-medium text-text-secondary mb-3">Wallet Balance:</p>
                                 <div className="relative">
-                                    <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1 mask-linear-fade pr-8">
+                                    <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1 mask-linear-fade pr-4">
                                         {wallets.map(w => (
                                             <div
                                                 key={w.id}
@@ -457,11 +457,11 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                                                 </span>
                                             </div>
                                         ))}
-                                        <div className="w-6 flex-shrink-0" />
+                                        <div className="w-12 flex-shrink-0" />
                                     </div>
-                                    {/* Scroll Indicator */}
-                                    <div className="absolute right-0 top-0 bottom-2 w-12 bg-gradient-to-l from-white/90 dark:from-[#151515]/90 to-transparent pointer-events-none flex items-center justify-end pr-1 rounded-r-xl">
-                                        <ChevronRight className="text-green-500 w-5 h-5 animate-pulse" />
+                                    {/* Scroll Indicator - Adaptive Glass Fade */}
+                                    <div className="absolute right-0 top-0 bottom-2 w-20 bg-gradient-to-l from-white/90 via-white/50 to-transparent dark:from-[#151515]/90 dark:via-[#151515]/50 pointer-events-none flex items-center justify-end pr-2 rounded-r-xl">
+                                        <ChevronRight className="text-green-500 w-6 h-6 animate-pulse" />
                                     </div>
                                 </div>
                             </div>

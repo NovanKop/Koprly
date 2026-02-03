@@ -16,7 +16,7 @@ export function CategorySelector({ categories, selectedCategoryId, onSelect, lab
         <div>
             {label && <label className="text-xs text-gray-400 mb-2 block">{label}</label>}
             <div className="relative">
-                <div className="flex gap-2 overflow-x-auto p-2 scrollbar-hide pr-8">
+                <div className="flex gap-2 overflow-x-auto p-2 scrollbar-hide pr-4">
                     {categories.map(cat => (
                         <motion.button
                             key={cat.id}
@@ -42,11 +42,11 @@ export function CategorySelector({ categories, selectedCategoryId, onSelect, lab
                             <span className="text-sm font-medium">{cat.name}</span>
                         </motion.button>
                     ))}
-                    {/* Padding for end of list */}
-                    <div className="w-6 flex-shrink-0" />
+                    {/* Padding for end of list - Increased for better spacing */}
+                    <div className="w-12 flex-shrink-0" />
                 </div>
-                {/* Scroll Indicator */}
-                <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none flex items-center justify-end pr-1">
+                {/* Scroll Indicator - Smoother fade */}
+                <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-surface via-surface/60 to-transparent pointer-events-none flex items-center justify-end pr-2">
                     <ChevronRight className="text-green-500 w-5 h-5 animate-pulse" />
                 </div>
             </div>
