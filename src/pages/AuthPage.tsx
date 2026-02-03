@@ -4,7 +4,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { AppLayout } from '../layouts/AppLayout';
-import { ArrowLeft, Sun, Moon, Eye, EyeOff, Mail } from 'lucide-react';
+import { Sun, Moon, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ConfirmationSent } from '../components/auth/ConfirmationSent';
 import { api } from '../lib/api';
@@ -181,46 +181,54 @@ export default function AuthPage() {
                         {isConfirmationSent ? (
                             <ConfirmationSent
                                 key="confirmation"
-                                    <br /><br />
-                                    Please check your inbox (and spam folder) and verify your email to secure your account and access Koprly.
-                    </p>
-
-                    <Button
-                        className="w-full"
-                        onClick={() => switchMode('signin')}
-                    >
-                        Back to Login
-                    </Button>
-                </motion.div>
-                ) : (
-                <motion.div
-                    key="auth-form"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                >
-                    {/* Tab Selector */}
-                    {!isForgotPassword && (
-                        <div className="flex border-b border-border-color">
-                            <button
-                                type="button"
-                                onClick={() => switchMode('signin')}
-                                className={`flex-1 py-4 text-center font-semibold transition-all relative ${authMode === 'signin'
-                                    ? 'text-primary'
-                                    : 'text-text-secondary hover:text-text-primary'
-                                    }`}
+                                email={email}
+                                onBack={() => switchMode('signin')}
+                            />
+                        ) : (
+                            <motion.div
+                                key="auth-form"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
                             >
-                                Login
-                                {authMode === 'signin' && (
-                                    <motion.div
-                                        layoutId="activeTab"
-                                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-                                    />
+                                {/* Tab Selector */}
+                                {!isForgotPassword && (
+                                    <div className="flex border-b border-border-color">
+                                        <button
+                                            type="button"
+                                            onClick={() => switchMode('signin')}
+                                            className={`flex-1 py-4 text-center font-semibold transition-all relative ${authMode === 'signin'
+                                                ? 'text-primary'
+                                                : 'text-text-secondary hover:text-text-primary'
+                                                }`}
+                                        >
+                                            Login
+                                            {authMode === 'signin' && (
+                                                <motion.div
+                                                    layoutId="activeTab"
+                                                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                                                />
+                                            )}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => switchMode('signup')}
+                                            className={`flex-1 py-4 text-center font-semibold transition-all relative ${authMode === 'signup'
+                                                ? 'text-primary'
+                                                : 'text-text-secondary hover:text-text-primary'
+                                                }`}
+                                        >
+                                            Sign Up
+                                            {authMode === 'signup' && (
+                                                <motion.div
+                                                    layoutId="activeTab"
+                                                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                                                />
+                                            )}
+                                        </button>
+                                    </div>
                                 )}
-                            </button>
-                            <button
-                                type="button"
-                            >
+
                                 {/* Google Button */}
                                 <button
                                     type="button"
@@ -248,99 +256,98 @@ export default function AuthPage() {
                                     <span className="text-text-secondary text-sm">or continue with email</span>
                                     <div className="flex-1 h-px bg-border-color" />
                                 </div>
-                            </motion.div>
-                        )}
 
-                            {/* Email/Password Form */}
-                            <form onSubmit={handleAuth} className="space-y-4">
-                                <Input
-                                    label="Email"
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
-                                <AnimatePresence>
-                                    {!isForgotPassword && (
+
+                                {/* Email/Password Form */}
+                                <form onSubmit={handleAuth} className="space-y-4">
+                                    <Input
+                                        label="Email"
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                    />
+                                    <AnimatePresence>
+                                        {!isForgotPassword && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: 'auto' }}
+                                                exit={{ opacity: 0, height: 0 }}
+                                                className="overflow-hidden"
+                                            >
+                                                <Input
+                                                    label="Password"
+                                                    type={showPassword ? "text" : "password"}
+                                                    value={password}
+                                                    onChange={(e) => setPassword(e.target.value)}
+                                                    required={!isForgotPassword}
+                                                    minLength={6}
+                                                    rightIcon={
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowPassword(!showPassword)}
+                                                            className="focus:outline-none text-text-secondary hover:text-primary transition-colors cursor-pointer"
+                                                            tabIndex={-1}
+                                                        >
+                                                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                                        </button>
+                                                    }
+                                                />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+
+                                    {error && (
                                         <motion.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            className="overflow-hidden"
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="p-3 rounded-lg bg-error/10 text-error text-sm text-center"
                                         >
-                                            <Input
-                                                label="Password"
-                                                type={showPassword ? "text" : "password"}
-                                                value={password}
-                                                onChange={(e) => setPassword(e.target.value)}
-                                                required={!isForgotPassword}
-                                                minLength={6}
-                                                rightIcon={
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setShowPassword(!showPassword)}
-                                                        className="focus:outline-none text-text-secondary hover:text-primary transition-colors cursor-pointer"
-                                                        tabIndex={-1}
-                                                    >
-                                                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                                                    </button>
-                                                }
-                                            />
+                                            {error}
                                         </motion.div>
                                     )}
-                                </AnimatePresence>
-
-                                {error && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: -10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="p-3 rounded-lg bg-error/10 text-error text-sm text-center"
-                                    >
-                                        {error}
-                                    </motion.div>
-                                )}
-                                {message && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: -10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="p-3 rounded-lg bg-success/10 text-success text-sm text-center"
-                                    >
-                                        {message}
-                                    </motion.div>
-                                )}
-
-                                <Button type="submit" className="w-full" isLoading={isLoading}>
-                                    {isForgotPassword
-                                        ? 'Send Reset Link'
-                                        : authMode === 'signup'
-                                            ? 'Create Account'
-                                            : 'Login'}
-                                </Button>
-                            </form>
-
-                            {/* Footer Links */}
-                            {!isForgotPassword && (
-                                <div className="mt-6 text-center">
-                                    {authMode === 'signin' && (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setIsForgotPassword(true);
-                                                setMessage(null);
-                                                setError(null);
-                                            }}
-                                            className="text-sm text-text-secondary hover:text-primary transition-colors"
+                                    {message && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="p-3 rounded-lg bg-success/10 text-success text-sm text-center"
                                         >
-                                            Forgot password?
-                                        </button>
+                                            {message}
+                                        </motion.div>
                                     )}
-                                </div>
-                            )}
-                        </div>
-                </motion.div>
+
+                                    <Button type="submit" className="w-full" isLoading={isLoading}>
+                                        {isForgotPassword
+                                            ? 'Send Reset Link'
+                                            : authMode === 'signup'
+                                                ? 'Create Account'
+                                                : 'Login'}
+                                    </Button>
+                                </form>
+
+                                {/* Footer Links */}
+                                {!isForgotPassword && (
+                                    <div className="mt-6 text-center">
+                                        {authMode === 'signin' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsForgotPassword(true);
+                                                    setMessage(null);
+                                                    setError(null);
+                                                }}
+                                                className="text-sm text-text-secondary hover:text-primary transition-colors"
+                                            >
+                                                Forgot password?
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+
+                            </motion.div>
                         )}
-            </AnimatePresence>
-        </Card>
+                    </AnimatePresence>
+                </Card>
             </div >
         </AppLayout >
     );

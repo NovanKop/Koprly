@@ -14,7 +14,7 @@ interface SettingsPageProps {
     onNavigateToNotifications?: () => void;
 }
 
-export default function SettingsPage({ onBack, onNavigateToNotifications }: SettingsPageProps) {
+export default function SettingsPage({ onBack }: SettingsPageProps) {
     const { user, signOut } = useAuth();
     const {
         currency,

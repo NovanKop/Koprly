@@ -6,8 +6,8 @@ import { useAppStore } from '../store/useAppStore';
 import { CATEGORY_ICONS } from '../lib/constants';
 import type { Category, Transaction, Wallet, Profile } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Plus, ChevronDown, AlertTriangle, Trash2, X, Pencil, Eye, EyeOff } from 'lucide-react';
-import { startOfMonth, endOfMonth, parseISO, isWithinInterval, format, subMonths, isAfter, isBefore, isSameMonth } from 'date-fns';
+import { ArrowLeft, Plus, AlertTriangle, Trash2, X, Pencil, Eye, EyeOff } from 'lucide-react';
+import { startOfMonth, endOfMonth, parseISO, isWithinInterval, subMonths, isBefore } from 'date-fns';
 import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/glass/GlassCard';
 import { ProgressBarGlow } from '../components/glass/ProgressBarGlow';
@@ -43,7 +43,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     const [selectedMonth, setSelectedMonth] = useState(new Date());
 
     // Derived state for data protection
-    const isCurrentMonth = isSameMonth(selectedMonth, new Date());
+
     // Allow editing current and future months (logic: !past)
     // Actually typically we only edit current or future. 
     // Requirement: "Jika bulan yang dipilih < bulan berjalan: Nonaktifkan semua fungsi edit"
