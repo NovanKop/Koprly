@@ -227,7 +227,7 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                                                     !isCurrentMonth && "text-gray-400 opacity-50",
                                                     disabled && "text-gray-300 dark:text-gray-700 cursor-not-allowed decoration-slice line-through opacity-30",
                                                     (isStart || isEnd)
-                                                        ? "bg-primary text-white font-bold shadow-md"
+                                                        ? "ring-2 ring-primary bg-primary/10 text-primary font-bold z-20"
                                                         : !disabled && "hover:bg-black/5 dark:hover:bg-white/10",
                                                     isToday(day) && !isStart && !isEnd && "text-primary font-bold border border-primary/30",
                                                 )}
@@ -240,22 +240,28 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                             </div>
 
                             {/* Actions */}
-                            <div className="p-4 border-t border-black/10 dark:border-white/5 flex flex-col gap-2 bg-gray-50 dark:bg-[#2C2C2E]">
-                                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                                    <span>Start: {tempStart ? format(new Date(tempStart), 'MMM d') : '-'}</span>
-                                    <span>End: {tempEnd ? format(new Date(tempEnd), 'MMM d') : '-'}</span>
+                            <div className="p-4 border-t border-black/10 dark:border-white/5 flex flex-col gap-4 bg-white dark:bg-[#1C1C1E]">
+                                <div className="flex justify-between items-center text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div className="flex gap-1">
+                                        <span className="text-gray-500">Start:</span>
+                                        <span>{tempStart ? format(new Date(tempStart), 'MMM d, yyyy') : '-'}</span>
+                                    </div>
+                                    <div className="flex gap-1">
+                                        <span className="text-gray-500">End:</span>
+                                        <span>{tempEnd ? format(new Date(tempEnd), 'MMM d') : '-'}</span>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between gap-3 mt-2">
+                                <div className="flex justify-between gap-3">
                                     <button
                                         onClick={handleReset}
-                                        className="flex-1 py-2.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 transition-colors font-medium text-sm"
+                                        className="flex-1 py-3 rounded-2xl border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors font-bold text-sm text-gray-700 dark:text-gray-300"
                                     >
                                         Reset
                                     </button>
                                     <button
                                         disabled={!tempStart || !tempEnd}
                                         onClick={handleApply}
-                                        className="flex-1 py-2.5 rounded-xl bg-primary text-white font-medium text-sm shadow-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
+                                        className="flex-1 py-3 rounded-2xl bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-all active:scale-95"
                                     >
                                         Apply
                                     </button>
