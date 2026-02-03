@@ -595,9 +595,9 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
                                             <span className="text-2xl font-bold">!</span>
                                         </div>
                                         <h3 className="text-xl font-bold mb-2 text-error">Reset Everything?</h3>
-                                        <p className="text-gray-600 dark:text-gray-300 text-sm mb-8 px-4 leading-relaxed">
+                                        <p className="text-black dark:text-gray-300 text-sm mb-8 px-4 leading-relaxed">
                                             This will permanently delete ALL your transactions, wallets, and budget data. You will be redirected to the setup screen. <br />
-                                            <span className="font-bold text-gray-900 dark:text-white mt-1 block">This cannot be undone.</span>
+                                            <span className="font-bold text-black dark:text-white mt-1 block">This cannot be undone.</span>
                                         </p>
 
                                         <div className="space-y-3">
