@@ -14,7 +14,9 @@ import { ProgressBarGlow } from '../components/glass/ProgressBarGlow';
 import { BudgetSkeleton } from '../components/skeletons/BudgetSkeleton';
 import { DeleteConfirmationModal } from '../components/modals/DeleteConfirmationModal';
 import { SmartResetModal } from '../components/modals/SmartResetModal';
+import { SmartResetModal } from '../components/modals/SmartResetModal';
 import { CategoryIcon } from '../components/ui/CategoryIcon';
+import { MonthSelector } from '../components/MonthSelector';
 
 
 // Helper to generate last 12 months for dropdown
@@ -39,7 +41,6 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     const [wallets, setWallets] = useState<Wallet[]>([]);
     const [profile, setProfile] = useState<Profile | null>(null);
     const [selectedMonth, setSelectedMonth] = useState(new Date());
-    const [showMonthPicker, setShowMonthPicker] = useState(false);
 
     // Derived state for data protection
     const isCurrentMonth = isSameMonth(selectedMonth, new Date());
@@ -52,7 +53,6 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     const handleMonthSelect = (date: Date) => {
         setLoading(true);
         setSelectedMonth(date);
-        setShowMonthPicker(false);
         // Simulate network delay for "Skeleton Loading" effect
         setTimeout(() => setLoading(false), 600);
     };
@@ -344,39 +344,12 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
             </div>
 
             {/* Month Selector */}
-            <div className="px-6 mb-6 relative z-30">
-                <button
-                    onClick={() => setShowMonthPicker(!showMonthPicker)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-border-color hover:bg-surface-highlight transition-colors"
-                >
-                    <span className="text-sm font-medium">{format(selectedMonth, 'MMMM yyyy')}</span>
-                    <ChevronDown size={16} className={`transition-transform ${showMonthPicker ? 'rotate-180' : ''}`} />
-                </button>
-
-                <AnimatePresence>
-                    {showMonthPicker && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 10 }}
-                            className="absolute top-full mt-2 left-6 w-48 bg-surface/95 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-xl overflow-hidden"
-                        >
-                            <div className="max-h-60 overflow-y-auto py-1">
-                                {getRecentMonths().map((date, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => handleMonthSelect(date)}
-                                        className={`w-full text-left px-4 py-3 text-sm hover:bg-white/10 transition-colors ${isSameMonth(date, selectedMonth) ? 'bg-primary/10 text-primary font-bold' : 'text-text-primary'
-                                            }`}
-                                    >
-                                        {format(date, 'MMMM yyyy')}
-                                    </button>
-                                ))}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
+            <MonthSelector
+                selectedMonth={selectedMonth}
+                months={getRecentMonths()}
+                onSelect={handleMonthSelect}
+                className="px-6 mb-6"
+            />
 
             <motion.div
                 className="px-6 space-y-6"

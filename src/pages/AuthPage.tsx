@@ -90,6 +90,8 @@ export default function AuthPage() {
                 setError('Incorrect password or unregistered account.');
             } else if (err.message.includes('User not found') || err.message.includes('Invalid Grant')) {
                 setError('Email Account unregistered yet, register first');
+            } else if (err.message.includes('Error sending confirmation email')) {
+                setError('System Limit: Supabase default email service is rate-limited. Please configure Custom SMTP in your Supabase Dashboard.');
             } else {
                 setError(err.message);
             }
