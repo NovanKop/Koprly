@@ -1,4 +1,5 @@
 import type { Wallet } from '../types';
+import { ChevronRight } from 'lucide-react';
 
 interface WalletSelectorProps {
     wallets: Wallet[];
@@ -16,21 +17,29 @@ export function WalletSelector({ wallets, selectedWalletId, onSelect, label, cur
     return (
         <div>
             {label && <label className="text-xs text-gray-400 mb-2 block">{label}</label>}
-            <div className="flex gap-2 overflow-x-auto p-2 scrollbar-hide">
-                {wallets.map(w => (
-                    <button
-                        key={w.id}
-                        onClick={() => onSelect(w.id)}
-                        type="button"
-                        className={`px-3 py-1.5 rounded-lg text-sm border transition-all whitespace-nowrap
+            <div className="relative">
+                <div className="flex gap-2 overflow-x-auto p-2 scrollbar-hide pr-8">
+                    {wallets.map(w => (
+                        <button
+                            key={w.id}
+                            onClick={() => onSelect(w.id)}
+                            type="button"
+                            className={`px-3 py-1.5 rounded-lg text-sm border transition-all whitespace-nowrap
                             ${selectedWalletId === w.id
-                                ? 'bg-primary text-white border-primary'
-                                : 'bg-surface border-border-color text-gray-400'
-                            }`}
-                    >
-                        {w.name} ({formatMoney(w.balance)})
-                    </button>
-                ))}
+                                    ? 'bg-primary text-white border-primary'
+                                    : 'bg-surface border-border-color text-gray-400'
+                                }`}
+                        >
+                            {w.name} ({formatMoney(w.balance)})
+                        </button>
+                    ))}
+                    {/* Padding for end of list */}
+                    <div className="w-6 flex-shrink-0" />
+                </div>
+                {/* Scroll Indicator */}
+                <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none flex items-center justify-end pr-1">
+                    <ChevronRight className="text-green-500 w-5 h-5 animate-pulse" />
+                </div>
             </div>
         </div>
     );
