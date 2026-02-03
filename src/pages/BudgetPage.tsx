@@ -14,7 +14,7 @@ import { ProgressBarGlow } from '../components/glass/ProgressBarGlow';
 import { BudgetSkeleton } from '../components/skeletons/BudgetSkeleton';
 import { DeleteConfirmationModal } from '../components/modals/DeleteConfirmationModal';
 import { SmartResetModal } from '../components/modals/SmartResetModal';
-import { SmartResetModal } from '../components/modals/SmartResetModal';
+
 import { CategoryIcon } from '../components/ui/CategoryIcon';
 import { MonthSelector } from '../components/MonthSelector';
 
