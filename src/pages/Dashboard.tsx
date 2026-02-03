@@ -963,9 +963,13 @@ export default function Dashboard() {
                                     </div>
 
                                     <div className="w-full mt-auto relative z-10">
-                                        <div className="flex justify-between text-[10px] text-text-secondary mb-2 font-mono">
-                                            <span className="font-bold">{showPrivacy ? formatMoney(totalExpenses, currency) : '•••'}</span>
-                                            <span className="opacity-70">{showPrivacy ? formatMoney(totalBudget, currency) : '•••'}</span>
+                                        <div className="flex flex-col gap-0.5 mb-2">
+                                            <span className="text-sm font-bold text-text-primary font-numeric leading-tight">
+                                                {showPrivacy ? formatMoney(totalExpenses, currency) : '•••'}
+                                            </span>
+                                            <span className="text-xs text-text-secondary font-numeric opacity-70">
+                                                {showPrivacy ? formatMoney(totalBudget, currency) : '•••'}
+                                            </span>
                                         </div>
                                         <div className="h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
                                             <div
