@@ -450,7 +450,7 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
                 </div>
 
                 <div className="text-center pb-8">
-                    <p className="text-[10px] text-gray-600 font-bold tracking-widest uppercase">Version 2.4.0 (Build 302)</p>
+                    <p className="text-[10px] text-gray-600 font-bold tracking-widest uppercase">Version 1.2.0 (Koprly App)</p>
                 </div>
             </motion.div>
 
