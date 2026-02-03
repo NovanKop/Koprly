@@ -54,9 +54,10 @@ export function MonthSelector({ selectedMonth, months, onSelect, className = '' 
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute top-full mt-2 left-0 w-56 bg-surface/95 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden glass-panel"
+                        className="absolute top-full mt-2 left-0 w-56 bg-white/95 dark:bg-[#151515]/95 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden glass-panel"
                     >
-                        <div className="max-h-64 overflow-y-auto py-2 scrollbar-hide">
+                        {/* Max height for ~3 items (approx 44px each = ~132px). Using max-h-[144px] */}
+                        <div className="max-h-[144px] overflow-y-auto py-2 custom-scrollbar relative">
                             {months.map((date, idx) => {
                                 const isSelected = isSameMonth(date, selectedMonth);
                                 return (
@@ -80,6 +81,11 @@ export function MonthSelector({ selectedMonth, months, onSelect, className = '' 
                                 );
                             })}
                         </div>
+
+                        {/* Scroll indicator for > 3 items */}
+                        {months.length > 3 && (
+                            <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>

@@ -124,10 +124,11 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                         <AnimatePresence>
                             {showFilterMenu && (
                                 <motion.div
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
-                                    className="absolute right-0 mt-2 w-48 backdrop-blur-xl bg-surface/95 border border-border-color rounded-2xl shadow-xl overflow-hidden"
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="absolute right-0 mt-2 w-48 bg-white/95 dark:bg-[#151515]/95 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden glass-panel"
                                 >
                                     {filterOptions.map((option) => (
                                         <button
@@ -136,12 +137,18 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                                                 setDateFilter(option.value);
                                                 setShowFilterMenu(false);
                                             }}
-                                            className={`w-full px-4 py-3 text-left transition-colors ${dateFilter === option.value
-                                                ? 'bg-primary/20 text-primary'
-                                                : 'hover:bg-surface-highlight'
+                                            className={`w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between group ${dateFilter === option.value
+                                                ? 'bg-primary/10 text-primary font-bold'
+                                                : 'text-text-primary hover:bg-white/5 dark:hover:bg-white/10'
                                                 }`}
                                         >
-                                            {option.label}
+                                            <span>{option.label}</span>
+                                            {dateFilter === option.value && (
+                                                <motion.div
+                                                    layoutId="activeFilter"
+                                                    className="w-1.5 h-1.5 rounded-full bg-primary"
+                                                />
+                                            )}
                                         </button>
                                     ))}
                                 </motion.div>
