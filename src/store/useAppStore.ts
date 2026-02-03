@@ -16,6 +16,9 @@ interface AppState {
     setDateFormat: (format: DateFormat) => void;
     setFirstDayOfWeek: (day: 'Monday' | 'Sunday') => void;
     setBottomMenuVisible: (visible: boolean) => void;
+
+    showPrivacy: boolean;
+    setShowPrivacy: (show: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -34,6 +37,9 @@ export const useAppStore = create<AppState>()(
             setDateFormat: (dateFormat) => set({ dateFormat }),
             setFirstDayOfWeek: (firstDayOfWeek) => set({ firstDayOfWeek }),
             setBottomMenuVisible: (visible) => set({ isBottomMenuVisible: visible }),
+
+            showPrivacy: true,
+            setShowPrivacy: (show) => set({ showPrivacy: show }),
         }),
         {
             name: 'kopr-app-storage',
@@ -43,6 +49,7 @@ export const useAppStore = create<AppState>()(
                 language: state.language,
                 dateFormat: state.dateFormat,
                 firstDayOfWeek: state.firstDayOfWeek,
+                showPrivacy: state.showPrivacy,
             }),
         }
     )

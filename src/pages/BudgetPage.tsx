@@ -6,7 +6,7 @@ import { useAppStore } from '../store/useAppStore';
 import { CATEGORY_ICONS } from '../lib/constants';
 import type { Category, Transaction, Wallet, Profile } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Plus, AlertTriangle, Trash2, X, Pencil, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Plus, AlertTriangle, Trash2, X, Pencil, Eye, EyeOff, ChevronRight } from 'lucide-react';
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval, subMonths, isBefore } from 'date-fns';
 import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/glass/GlassCard';
@@ -33,7 +33,7 @@ const CATEGORY_COLORS = ['#34C759', '#FF9500', '#007AFF', '#5856D6', '#FF2D55', 
 
 export default function BudgetPage({ onBack }: BudgetPageProps) {
     const { user } = useAuth();
-    const { currency, setBottomMenuVisible } = useAppStore();
+    const { currency, setBottomMenuVisible, showPrivacy, setShowPrivacy } = useAppStore();
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -79,7 +79,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
         return () => setBottomMenuVisible(true); // Reset on unmount
     }, [showAddCategory, showEditCategory, showEditBudget, setBottomMenuVisible]);
 
-    const [showPrivacy, setShowPrivacy] = useState(true);
+
 
     const currencySymbol = currency === 'IDR' ? 'Rp' : '$';
 
@@ -443,19 +443,26 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                             {/* Wallet Balance Slider */}
                             <div className="w-full">
                                 <p className="text-sm font-medium text-text-secondary mb-3">Wallet Balance:</p>
-                                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1 mask-linear-fade">
-                                    {wallets.map(w => (
-                                        <div
-                                            key={w.id}
-                                            className="px-4 py-2.5 rounded-xl whitespace-nowrap flex-shrink-0 flex items-center gap-2 shadow-lg border border-white/5 transition-transform hover:scale-[1.02]"
-                                            style={{ backgroundColor: w.color || '#007AFF' }}
-                                        >
-                                            <span className="text-xs font-bold text-white tracking-wide">{w.name}</span>
-                                            <span className="text-xs font-numeric text-white/90 bg-black/20 px-1.5 py-0.5 rounded-md">
-                                                {showPrivacy ? formatMoney(w.balance) : '•••'}
-                                            </span>
-                                        </div>
-                                    ))}
+                                <div className="relative">
+                                    <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1 mask-linear-fade pr-8">
+                                        {wallets.map(w => (
+                                            <div
+                                                key={w.id}
+                                                className="px-4 py-2.5 rounded-xl whitespace-nowrap flex-shrink-0 flex items-center gap-2 shadow-lg border border-white/5 transition-transform hover:scale-[1.02]"
+                                                style={{ backgroundColor: w.color || '#007AFF' }}
+                                            >
+                                                <span className="text-xs font-bold text-white tracking-wide">{w.name}</span>
+                                                <span className="text-xs font-numeric text-white/90 bg-black/20 px-1.5 py-0.5 rounded-md">
+                                                    {showPrivacy ? formatMoney(Number(w.balance)) : '•••'}
+                                                </span>
+                                            </div>
+                                        ))}
+                                        <div className="w-6 flex-shrink-0" />
+                                    </div>
+                                    {/* Scroll Indicator */}
+                                    <div className="absolute right-0 top-0 bottom-2 w-12 bg-gradient-to-l from-white/90 dark:from-[#151515]/90 to-transparent pointer-events-none flex items-center justify-end pr-1 rounded-r-xl">
+                                        <ChevronRight className="text-green-500 w-5 h-5 animate-pulse" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -488,11 +495,11 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                                         <Pencil size={12} className="text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
                                     </div>
                                     <h2 className="text-3xl font-bold font-numeric">
-                                        {formatMoney(originalBudget)}
+                                        {showPrivacy ? formatMoney(originalBudget) : 'Rp •••••••'}
                                     </h2>
                                     <div className="mt-1">
                                         <p className="text-sm text-text-secondary">
-                                            {formatMoney(totalCategoryBudgets)} / {formatMoney(originalBudget)} allocated
+                                            {showPrivacy ? formatMoney(totalCategoryBudgets) : '•••'} / {showPrivacy ? formatMoney(originalBudget) : '•••'} allocated
                                         </p>
                                     </div>
                                 </div>
@@ -569,17 +576,20 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                                             <div>
                                                 <p className="font-semibold">{cat.name}</p>
                                                 {hasBudget && (
-                                                    <p className="text-xs text-text-secondary font-numeric">{formatMoney(cat.monthly_budget!)} Limit</p>
+                                                    <p className="text-xs text-text-secondary font-numeric">{showPrivacy ? formatMoney(cat.monthly_budget!) : '•••'} Limit</p>
                                                 )}
                                             </div>
                                         </div>
                                         <div className="text-right">
                                             {hasBudget ? (
                                                 <p className={`font-bold font-numeric ${isOver ? 'text-error' : 'text-success'}`}>
-                                                    {isOver ? `-${formatMoney(Math.abs(remaining))} over` : `${formatMoney(remaining)} left`}
+                                                    {showPrivacy
+                                                        ? (isOver ? `-${formatMoney(Math.abs(remaining))} over` : `${formatMoney(remaining)} left`)
+                                                        : (isOver ? '-••• over' : '••• left')
+                                                    }
                                                 </p>
                                             ) : (
-                                                <p className="font-bold font-numeric">{formatMoney(cat.spent)}</p>
+                                                <p className="font-bold font-numeric">{showPrivacy ? formatMoney(cat.spent) : '•••'}</p>
                                             )}
                                         </div>
                                     </div>
@@ -588,7 +598,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                                     {hasBudget && (
                                         <>
                                             <div className="flex items-center justify-between text-xs text-text-secondary mb-1">
-                                                <span>{formatMoney(cat.spent)} spent</span>
+                                                <span>{showPrivacy ? formatMoney(cat.spent) : '•••'} spent</span>
                                                 <span>{Math.round(usedPct)}%</span>
                                             </div>
                                             <ProgressBarGlow
