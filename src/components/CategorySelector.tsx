@@ -45,10 +45,12 @@ export function CategorySelector({ categories, selectedCategoryId, onSelect, lab
                     {/* Padding for end of list - Increased for better spacing */}
                     <div className="w-12 flex-shrink-0" />
                 </div>
-                {/* Scroll Indicator - Smoother fade */}
-                <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-surface via-surface/60 to-transparent pointer-events-none flex items-center justify-end pr-2">
-                    <ChevronRight className="text-green-500 w-5 h-5 animate-pulse" />
-                </div>
+                {/* Scroll Indicator - Smoother fade - Only show if > 1 item */}
+                {categories.length > 1 && (
+                    <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-surface via-surface/60 to-transparent pointer-events-none flex items-center justify-end pr-2">
+                        <ChevronRight className="text-green-500 w-5 h-5 animate-pulse" />
+                    </div>
+                )}
             </div>
         </div>
     );

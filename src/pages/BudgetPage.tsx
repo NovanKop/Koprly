@@ -459,10 +459,12 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                                         ))}
                                         <div className="w-12 flex-shrink-0" />
                                     </div>
-                                    {/* Scroll Indicator - Adaptive Glass Fade */}
-                                    <div className="absolute right-0 top-0 bottom-2 w-20 bg-gradient-to-l from-white/90 via-white/50 to-transparent dark:from-[#151515]/90 dark:via-[#151515]/50 pointer-events-none flex items-center justify-end pr-2 rounded-r-xl">
-                                        <ChevronRight className="text-green-500 w-6 h-6 animate-pulse" />
-                                    </div>
+                                    {/* Scroll Indicator - Adaptive Glass Fade - Only show if > 1 item */}
+                                    {wallets.length > 1 && (
+                                        <div className="absolute right-0 top-0 bottom-2 w-20 bg-gradient-to-l from-white/90 via-white/50 to-transparent dark:from-[#151515]/90 dark:via-[#151515]/50 pointer-events-none flex items-center justify-end pr-2 rounded-r-xl">
+                                            <ChevronRight className="text-green-500 w-6 h-6 animate-pulse" />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
