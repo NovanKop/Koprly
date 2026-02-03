@@ -38,7 +38,7 @@ export function WalletSelector({ wallets, selectedWalletId, onSelect, label, cur
                 </div>
                 {/* Scroll Indicator - Smoother fade - Only show if > 1 item */}
                 {wallets.length > 1 && (
-                    <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-[#F5F7F8] via-[#F5F7F8]/60 to-transparent dark:from-[#0B1218] dark:via-[#0B1218]/60 pointer-events-none flex items-center justify-end pr-2">
+                    <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white via-white/60 to-transparent dark:from-[#0B1218] dark:via-[#0B1218]/60 pointer-events-none flex items-center justify-end pr-2">
                         <ChevronRight className="text-green-500 w-5 h-5 animate-pulse" />
                     </div>
                 )}
