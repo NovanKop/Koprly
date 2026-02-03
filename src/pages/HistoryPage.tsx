@@ -178,7 +178,7 @@ export default function HistoryPage({ onBack }: HistoryPageProps) {
                             // Enriched transaction with category object for the component
                             const txnWithCategory = {
                                 ...txn,
-                                category: categories.find(c => c.id === txn.category_id)
+                                category: txn.category || categories.find(c => c.id === txn.category_id)
                             };
 
                             return (
