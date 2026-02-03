@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, AlertTriangle } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { getDaysInMonth } from 'date-fns';
+import { getDaysInMonth, format } from 'date-fns';
 
 interface SmartResetModalProps {
     isOpen: boolean;
@@ -114,7 +114,10 @@ export const SmartResetModal: React.FC<SmartResetModalProps> = ({
 
                         {/* Reset Day Logic */}
                         <div className="space-y-3">
-                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-1">Reset Cycle</label>
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-1">Reset Cycle</label>
+                                <p className="text-lg font-bold text-primary px-1 pb-2">{format(selectedMonth, 'MMMM')}</p>
+                            </div>
 
                             <div className={`p-4 rounded-2xl bg-surface/50 border border-border-color space-y-4 ${isReadOnly ? 'opacity-60 pointer-events-none' : ''}`}>
                                 {/* Last Day Toggle */}
