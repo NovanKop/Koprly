@@ -24,6 +24,7 @@ import { MAX_WALLETS, WALLET_ICONS, WALLET_COLORS } from '../lib/constants';
 import NotificationBell from '../components/NotificationBell';
 import { useTransactionManager } from '../hooks/useTransactionManager';
 import { EditTransactionModal } from '../components/EditTransactionModal';
+import { AddCategoryModal } from '../components/AddCategoryModal';
 import { DashboardSkeleton } from '../components/skeletons/DashboardSkeleton';
 import { KoprlystGuide } from '../components/guide/KoprlystGuide';
 import type { Category, Transaction, Profile, Wallet as WalletType, Notification } from '../types';
@@ -44,6 +45,8 @@ export default function Dashboard() {
 
     const [showAddExpense, setShowAddExpense] = useState(false);
     const [showAddIncome, setShowAddIncome] = useState(false);
+    const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+
 
     const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
     const [currentView, setCurrentView] = useState<'home' | 'report' | 'settings' | 'budget' | 'category' | 'history' | 'notifications'>('home');
@@ -765,7 +768,15 @@ export default function Dashboard() {
                                         className="relative z-20 px-5"
                                     >
                                         <div className="p-6 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color space-y-4 shadow-xl">
-                                            <h3 className="text-lg font-semibold text-text-primary">Expense</h3>
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-lg font-semibold text-text-primary">Expense</h3>
+                                                <button
+                                                    onClick={() => setShowAddExpense(false)}
+                                                    className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                                                >
+                                                    <X size={20} className="text-text-secondary" />
+                                                </button>
+                                            </div>
                                             <Input
                                                 label="Amount"
                                                 type="text"
@@ -798,11 +809,23 @@ export default function Dashboard() {
                                                 currencySymbol={currencySymbol}
                                             />
 
-                                            <CategorySelector
-                                                categories={categories}
-                                                selectedCategoryId={selectedCategory}
-                                                onSelect={setSelectedCategory}
-                                            />
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <label className="text-xs text-gray-400">Category</label>
+                                                    <button
+                                                        onClick={() => setShowAddCategoryModal(true)}
+                                                        className="text-xs font-bold text-primary hover:text-primary-highlight transition-colors flex items-center gap-1"
+                                                    >
+                                                        <Plus size={12} />
+                                                        New
+                                                    </button>
+                                                </div>
+                                                <CategorySelector
+                                                    categories={categories}
+                                                    selectedCategoryId={selectedCategory}
+                                                    onSelect={setSelectedCategory}
+                                                />
+                                            </div>
 
                                             <Button
                                                 className="w-full"
@@ -828,7 +851,15 @@ export default function Dashboard() {
                                         className="relative z-20 px-5"
                                     >
                                         <div className="p-6 rounded-[20px] backdrop-blur-xl bg-surface border border-border-color space-y-4 shadow-xl">
-                                            <h3 className="text-lg font-semibold text-text-primary">Income</h3>
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-lg font-semibold text-text-primary">Income</h3>
+                                                <button
+                                                    onClick={() => setShowAddIncome(false)}
+                                                    className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                                                >
+                                                    <X size={20} className="text-text-secondary" />
+                                                </button>
+                                            </div>
                                             <Input
                                                 label="Amount"
                                                 type="text"
@@ -874,6 +905,21 @@ export default function Dashboard() {
                                     </motion.div>
                                 )}
                             </AnimatePresence>
+
+                            {/* Add Category Modal (from Expense Form) */}
+                            <AddCategoryModal
+                                isOpen={showAddCategoryModal}
+                                onClose={() => setShowAddCategoryModal(false)}
+                                onSuccess={async () => {
+                                    await loadData();
+                                }}
+                                user_id={user?.id || ''}
+                                currencySymbol={currencySymbol}
+                                originalBudget={profile?.total_budget}
+                                totalCategoryBudgets={categories.reduce((acc, c) => acc + (c.monthly_budget || 0), 0)}
+                                showAllocationMessage={true}
+                                transactions={transactions}
+                            />
 
                             {/* Edit Transaction Modal */}
                             {/* Edit Transaction Modal */}
@@ -1240,7 +1286,8 @@ export default function Dashboard() {
                             )}
                         </AnimatePresence>
                     </>
-                )}
+                )
+                }
 
 
                 {

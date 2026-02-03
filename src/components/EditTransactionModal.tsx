@@ -78,7 +78,7 @@ export function EditTransactionModal({
                         animate={{ scale: 1, y: 0, opacity: 1 }}
                         exit={{ scale: 0.9, y: 20, opacity: 0 }}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full max-w-md rounded-[24px] bg-surface backdrop-blur-xl border border-border-color overflow-hidden max-h-[90vh] overflow-y-auto shadow-2xl"
+                        className="w-full max-w-md rounded-[24px] bg-background backdrop-blur-xl border border-border-color overflow-hidden max-h-[90vh] overflow-y-auto shadow-2xl"
                     >
                         <div className="p-6 space-y-4">
                             {/* Header */}
@@ -136,6 +136,7 @@ export function EditTransactionModal({
                                     categories={categories}
                                     selectedCategoryId={categoryId}
                                     onSelect={setCategoryId}
+                                    label="Category"
                                 />
                             )}
 

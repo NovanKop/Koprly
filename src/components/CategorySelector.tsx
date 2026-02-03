@@ -23,8 +23,8 @@ export function CategorySelector({ categories, selectedCategoryId, onSelect, lab
                         onClick={() => onSelect(cat.id)}
                         type="button"
                         className={`
-                            flex-shrink-0 px-4 py-2.5 rounded-full border transition-all backdrop-blur-md
-                            flex items-center gap-2 whitespace-nowrap
+                            flex-shrink-0 px-4 py-3 rounded-2xl border transition-all backdrop-blur-md
+                            flex items-center gap-3 whitespace-nowrap
                             ${selectedCategoryId === cat.id
                                 ? 'bg-primary text-white border-primary shadow-lg shadow-primary/25'
                                 : 'bg-surface border-border-color text-text-secondary hover:border-primary/40 hover:bg-surface-highlight'

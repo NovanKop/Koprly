@@ -5,7 +5,8 @@ import { api } from '../lib/api';
 import { Button } from './ui/Button';
 import { CATEGORY_ICONS, CATEGORY_COLORS } from '../lib/constants';
 import { formatMoney } from '../lib/utils';
-import type { Category } from '../types';
+import type { Category, Transaction } from '../types';
+import { DeleteConfirmationModal } from './modals/DeleteConfirmationModal';
 
 interface AddCategoryModalProps {
     isOpen: boolean;
@@ -17,6 +18,8 @@ interface AddCategoryModalProps {
     originalBudget?: number;
     totalCategoryBudgets?: number;
     initialCategory?: Category | null;
+    showAllocationMessage?: boolean;
+    transactions?: Transaction[];
 }
 
 export function AddCategoryModal({
@@ -27,13 +30,16 @@ export function AddCategoryModal({
     currencySymbol = '$',
     originalBudget = 0,
     totalCategoryBudgets = 0,
-    initialCategory = null
+    initialCategory = null,
+    showAllocationMessage = false,
+    transactions = []
 }: AddCategoryModalProps) {
     const [name, setName] = useState('');
     const [icon, setIcon] = useState(CATEGORY_ICONS[0]);
     const [color, setColor] = useState(CATEGORY_COLORS[0]);
     const [budget, setBudget] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -81,8 +87,11 @@ export function AddCategoryModal({
 
     const handleDelete = async () => {
         if (!initialCategory) return;
-        if (!confirm('Are you sure you want to delete this category? existing transactions will lose their category.')) return;
+        setShowDeleteConfirm(true);
+    };
 
+    const confirmDelete = async () => {
+        if (!initialCategory) return;
         setSubmitting(true);
         try {
             await api.deleteCategory(initialCategory.id);
@@ -93,6 +102,7 @@ export function AddCategoryModal({
             alert('Failed to delete category');
         } finally {
             setSubmitting(false);
+            setShowDeleteConfirm(false);
         }
     };
 
@@ -139,6 +149,11 @@ export function AddCategoryModal({
                                     return wouldBeOver ? 'bg-error/10 border-error/30' : 'bg-surface border-border-color';
                                 })()
                                     }`}>
+                                    {showAllocationMessage && (
+                                        <div className="mb-3 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-600 dark:text-blue-400">
+                                            Adjust your allocation budget in the Budget Page &gt; Edit Category.
+                                        </div>
+                                    )}
                                     <div className="flex items-center justify-between mb-1">
                                         <span className="text-xs text-text-secondary">Budget Allocation</span>
                                         <span className="text-xs font-semibold">
@@ -256,13 +271,7 @@ export function AddCategoryModal({
                                     <Trash2 size={18} />
                                 </Button>
                             )}
-                            <Button
-                                variant="secondary"
-                                className="flex-1"
-                                onClick={onClose}
-                            >
-                                Cancel
-                            </Button>
+
                             <Button
                                 className="flex-1"
                                 onClick={handleSubmit}
@@ -276,5 +285,21 @@ export function AddCategoryModal({
                 </motion.div>
             )}
         </AnimatePresence>
+
+        {
+        initialCategory && (
+            <DeleteConfirmationModal
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={confirmDelete}
+                categoryName={initialCategory.name}
+                transactionCount={transactions.filter(t => t.category_id === initialCategory.id).length}
+                totalAmount={transactions.filter(t => t.category_id === initialCategory?.id).reduce((sum, t) => sum + Number(t.amount), 0)}
+                currencySymbol={currencySymbol}
+                isSubmitting={submitting}
+            />
+        )
+    }
+        </>
     );
 }

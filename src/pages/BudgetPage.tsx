@@ -7,13 +7,21 @@ import { CATEGORY_ICONS } from '../lib/constants';
 import type { Category, Transaction, Wallet, Profile } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Plus, ChevronDown, AlertTriangle, Trash2, X, Pencil, Eye, EyeOff } from 'lucide-react';
-import { startOfMonth, endOfMonth, parseISO, isWithinInterval, format } from 'date-fns';
+import { startOfMonth, endOfMonth, parseISO, isWithinInterval, format, subMonths, isAfter, isBefore, isSameMonth } from 'date-fns';
 import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/glass/GlassCard';
 import { ProgressBarGlow } from '../components/glass/ProgressBarGlow';
 import { BudgetSkeleton } from '../components/skeletons/BudgetSkeleton';
 import { DeleteConfirmationModal } from '../components/modals/DeleteConfirmationModal';
+import { SmartResetModal } from '../components/modals/SmartResetModal';
 import { CategoryIcon } from '../components/ui/CategoryIcon';
+
+
+// Helper to generate last 12 months for dropdown
+const getRecentMonths = () => {
+    return Array.from({ length: 12 }, (_, i) => subMonths(new Date(), i));
+};
+
 
 interface BudgetPageProps {
     onBack: () => void;
@@ -30,8 +38,24 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [wallets, setWallets] = useState<Wallet[]>([]);
     const [profile, setProfile] = useState<Profile | null>(null);
-    const [selectedMonth] = useState(new Date());
+    const [selectedMonth, setSelectedMonth] = useState(new Date());
     const [showMonthPicker, setShowMonthPicker] = useState(false);
+
+    // Derived state for data protection
+    const isCurrentMonth = isSameMonth(selectedMonth, new Date());
+    // Allow editing current and future months (logic: !past)
+    // Actually typically we only edit current or future. 
+    // Requirement: "Jika bulan yang dipilih < bulan berjalan: Nonaktifkan semua fungsi edit"
+    const isPastMonth = isBefore(endOfMonth(selectedMonth), startOfMonth(new Date()));
+    const isReadOnly = isPastMonth;
+
+    const handleMonthSelect = (date: Date) => {
+        setLoading(true);
+        setSelectedMonth(date);
+        setShowMonthPicker(false);
+        // Simulate network delay for "Skeleton Loading" effect
+        setTimeout(() => setLoading(false), 600);
+    };
 
     // Category Modal States
     const [showAddCategory, setShowAddCategory] = useState(false);
@@ -49,8 +73,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
 
     // Budget Edit Limit State
     const [showEditBudget, setShowEditBudget] = useState(false);
-    const [newBudgetLimit, setNewBudgetLimit] = useState('');
-    const [resetDay, setResetDay] = useState<number>(1);
+
 
 
     // Manage Bottom Menu visibility
@@ -252,13 +275,13 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
 
 
 
-    const handleUpdateBudgetLimit = async () => {
-        if (!user || !newBudgetLimit) return;
+    const handleSaveSmartReset = async (amount: number, day: number) => {
+        if (!user) return;
         setSubmitting(true);
         try {
             await api.updateProfile({
-                total_budget: parseFloat(newBudgetLimit),
-                reset_day: resetDay
+                total_budget: amount,
+                reset_day: day
             });
             await loadData();
             setShowEditBudget(false);
@@ -277,6 +300,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     };
 
     const openEditModal = (cat: Category) => {
+        if (isReadOnly) return;
         setEditingCategory(cat);
         setCategoryName(cat.name);
         setCategoryIcon(cat.icon);
@@ -320,7 +344,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
             </div>
 
             {/* Month Selector */}
-            <div className="px-6 mb-6">
+            <div className="px-6 mb-6 relative z-30">
                 <button
                     onClick={() => setShowMonthPicker(!showMonthPicker)}
                     className="flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-border-color hover:bg-surface-highlight transition-colors"
@@ -328,6 +352,30 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                     <span className="text-sm font-medium">{format(selectedMonth, 'MMMM yyyy')}</span>
                     <ChevronDown size={16} className={`transition-transform ${showMonthPicker ? 'rotate-180' : ''}`} />
                 </button>
+
+                <AnimatePresence>
+                    {showMonthPicker && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            className="absolute top-full mt-2 left-6 w-48 bg-surface/95 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-xl overflow-hidden"
+                        >
+                            <div className="max-h-60 overflow-y-auto py-1">
+                                {getRecentMonths().map((date, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => handleMonthSelect(date)}
+                                        className={`w-full text-left px-4 py-3 text-sm hover:bg-white/10 transition-colors ${isSameMonth(date, selectedMonth) ? 'bg-primary/10 text-primary font-bold' : 'text-text-primary'
+                                            }`}
+                                    >
+                                        {format(date, 'MMMM yyyy')}
+                                    </button>
+                                ))}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             <motion.div
@@ -435,8 +483,6 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                         <div
                             id="budget-limit-card"
                             onClick={() => {
-                                setNewBudgetLimit(originalBudget.toString());
-                                setResetDay(profile?.reset_day || 1);
                                 setShowEditBudget(true);
                             }}
                             className={`relative px-6 py-5 rounded-[32px] overflow-hidden glass-panel bg-white/70 backdrop-blur-xl dark:bg-white/5 dark:backdrop-blur-none border border-white/40 dark:border-white/10 shadow-[0_2px_8px_0_rgba(0,0,0,0.04)] dark:shadow-2xl transition-all duration-300 hover:shadow-primary/10 cursor-pointer group ${isBudgetOverAllocated ? '!bg-error/10 !border-error/30' : ''}`}
@@ -485,19 +531,20 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                     </motion.div>
                 )}
 
-                {/* Categories Header */}
                 <div id="budget-categories" className="flex items-center justify-between">
                     <h3 className="font-bold text-lg">Categories</h3>
-                    <button
-                        onClick={() => {
-                            resetForm();
-                            setShowAddCategory(true);
-                        }}
-                        className="text-sm font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
-                    >
-                        <Plus size={16} />
-                        Add Category
-                    </button>
+                    {!isReadOnly && (
+                        <button
+                            onClick={() => {
+                                resetForm();
+                                setShowAddCategory(true);
+                            }}
+                            className="text-sm font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+                        >
+                            <Plus size={16} />
+                            Add Category
+                        </button>
+                    )}
                 </div>
 
 
@@ -581,7 +628,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center"
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center px-4 pb-6"
                         onClick={() => {
                             setShowAddCategory(false);
                             setShowEditCategory(false);
@@ -593,7 +640,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 100 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="w-full max-w-lg bg-background rounded-t-[32px] border-t border-border-color overflow-hidden"
+                            className="w-full max-w-lg bg-background rounded-[32px] border border-border-color overflow-hidden shadow-2xl"
                         >
                             {/* Header */}
                             <div className="p-6 border-b border-border-color flex items-center justify-between">
@@ -803,110 +850,23 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                     }
                 }}
                 categoryName={categoryToDelete?.name || ''}
-                transactionCount={categoryToDelete ? transactions.filter(t => t.category_id === categoryToDelete.id).length : 0}
-                totalAmount={categoryToDelete ? transactions.filter(t => t.category_id === categoryToDelete.id).reduce((sum, t) => sum + Number(t.amount), 0) : 0}
+                transactionCount={transactions.filter(t => t.category_id === categoryToDelete?.id).length}
+                totalAmount={transactions.filter(t => t.category_id === categoryToDelete?.id).reduce((sum, t) => sum + Number(t.amount), 0)}
+                currencySymbol={currencySymbol}
                 isSubmitting={submitting}
             />
 
-            {/* Edit Budget Limit Modal */}
-            <AnimatePresence>
-                {showEditBudget && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6"
-                        onClick={() => setShowEditBudget(false)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                            className="bg-surface border border-border-color w-full max-w-md rounded-[32px] p-6 shadow-2xl relative overflow-hidden"
-                            onClick={e => e.stopPropagation()}
-                        >
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-bold">Edit Budget Limit</h3>
-                                <button
-                                    onClick={() => setShowEditBudget(false)}
-                                    className="p-2 bg-surface-highlight rounded-full text-text-secondary hover:text-text-primary transition-colors"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
-
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-2">Monthly Spending Limit</label>
-                                    <div className="flex items-center bg-surface-highlight rounded-2xl px-4 py-3 border border-border-color focus-within:border-primary transition-colors">
-                                        <span className="text-text-secondary font-semibold mr-2">{currencySymbol}</span>
-                                        <input
-                                            type="number"
-                                            value={newBudgetLimit}
-                                            onChange={(e) => setNewBudgetLimit(e.target.value)}
-                                            className="bg-transparent border-none outline-none w-full text-lg font-bold text-text-primary placeholder:text-text-secondary/50"
-                                            placeholder="0"
-                                            autoFocus
-                                        />
-                                    </div>
-                                    <p className="text-xs text-text-secondary mt-2">
-                                        This is the total amount you plan to spend across all categories this month.
-                                    </p>
-                                </div>
-
-                                {/* Reset Date Picker */}
-                                <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-2">
-                                        Budget Reset Date
-                                        <span className="ml-2 text-xs font-normal text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                                            {resetDay === -1 ? 'Last Day' : `${resetDay}${['st', 'nd', 'rd'][((resetDay % 10) - 1)] || 'th'}`}
-                                        </span>
-                                    </label>
-
-                                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x pt-1">
-                                        {/* Last Day Button */}
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setResetDay(-1); }}
-                                            className={`flex-none px-4 py-2 rounded-xl border text-sm font-medium transition-all snap-center whitespace-nowrap ${resetDay === -1
-                                                ? 'bg-primary text-white border-primary shadow-[0_0_15px_rgba(34,197,94,0.4)]'
-                                                : 'bg-surface-highlight border-transparent text-text-secondary hover:bg-white/5'
-                                                }`}
-                                        >
-                                            Last Day
-                                        </button>
-
-                                        {/* days 1-31 */}
-                                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                                            <button
-                                                key={day}
-                                                onClick={(e) => { e.stopPropagation(); setResetDay(day); }}
-                                                className={`flex-none w-10 h-10 rounded-xl border text-sm font-medium transition-all snap-center flex items-center justify-center ${resetDay === day
-                                                    ? 'bg-primary text-white border-primary shadow-[0_0_15px_rgba(34,197,94,0.4)]'
-                                                    : 'bg-surface-highlight border-transparent text-text-secondary hover:bg-white/5'
-                                                    }`}
-                                            >
-                                                {day}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <p className="text-xs text-text-secondary mt-2">
-                                        Your budget will reset every {resetDay === -1 ? 'last day' : `${resetDay}${['st', 'nd', 'rd'][((resetDay % 10) - 1)] || 'th'}`} of the month.
-                                    </p>
-                                </div>
-
-                                <Button
-                                    onClick={handleUpdateBudgetLimit}
-                                    disabled={submitting || !newBudgetLimit}
-                                    className="w-full py-4 text-base rounded-2xl"
-                                >
-                                    {submitting ? 'Saving...' : 'Save Limit'}
-                                </Button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Smart Reset Budget Modal */}
+            <SmartResetModal
+                isOpen={showEditBudget}
+                onClose={() => setShowEditBudget(false)}
+                onSave={handleSaveSmartReset}
+                currentAmount={originalBudget}
+                currentResetDay={profile?.reset_day || 1}
+                currencySymbol={currencySymbol}
+                isReadOnly={isReadOnly}
+                selectedMonth={selectedMonth}
+            />
         </div >
     );
 }

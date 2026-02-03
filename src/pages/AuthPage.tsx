@@ -6,6 +6,7 @@ import { Input } from '../components/ui/Input';
 import { AppLayout } from '../layouts/AppLayout';
 import { ArrowLeft, Sun, Moon, Eye, EyeOff, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ConfirmationSent } from '../components/auth/ConfirmationSent';
 import { api } from '../lib/api';
 import { useAppStore } from '../store/useAppStore';
 
@@ -176,236 +177,169 @@ export default function AuthPage() {
                 <Card className="w-full max-w-md p-0 overflow-hidden" glass>
                     <AnimatePresence mode="wait">
                         {isConfirmationSent ? (
-                            <motion.div
+                            <ConfirmationSent
                                 key="confirmation"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                className="p-8 text-center"
-                            >
-                                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
-                                    <Mail size={40} className="text-primary" />
-                                </div>
-                                <h2 className="text-2xl font-bold mb-3">Verification Link Sent</h2>
-                                <p className="text-text-secondary mb-6 leading-relaxed">
-                                    We've sent a verification link to <span className="text-primary font-bold">{email}</span>.
                                     <br /><br />
                                     Please check your inbox (and spam folder) and verify your email to secure your account and access Koprly.
+                    </p>
+
+                    <Button
+                        className="w-full"
+                        onClick={() => switchMode('signin')}
+                    >
+                        Back to Login
+                    </Button>
+                </motion.div>
+                ) : (
+                <motion.div
+                    key="auth-form"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                >
+                    {/* Tab Selector */}
+                    {!isForgotPassword && (
+                        <div className="flex border-b border-border-color">
+                            <button
+                                type="button"
+                                onClick={() => switchMode('signin')}
+                                className={`flex-1 py-4 text-center font-semibold transition-all relative ${authMode === 'signin'
+                                    ? 'text-primary'
+                                    : 'text-text-secondary hover:text-text-primary'
+                                    }`}
+                            >
+                                Login
+                                {authMode === 'signin' && (
+                                    <motion.div
+                                        layoutId="activeTab"
+                                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                                    />
+                                )}
+                            </button>
+                            <button
+                                type="button"
+                            >
+                                {/* Google Button */}
+                                <button
+                                    type="button"
+                                    onClick={handleGoogleLogin}
+                                    disabled={isGoogleLoading}
+                                    className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-border-color bg-surface hover:bg-surface/80 transition-all hover:scale-[0.98] active:scale-[0.96] disabled:opacity-50 disabled:cursor-not-allowed group"
+                                >
+                                    {isGoogleLoading ? (
+                                        <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                        <GoogleIcon />
+                                    )}
+                                    <span className="font-medium group-hover:text-primary transition-colors">
+                                        {isGoogleLoading ? 'Connecting...' : 'Continue with Google'}
+                                    </span>
+                                </button>
+
+                                <p className="text-xs text-center text-text-secondary/60">
+                                    Already have an account? You'll be logged in automatically.
                                 </p>
 
-                                <Button
-                                    className="w-full"
-                                    onClick={() => switchMode('signin')}
-                                >
-                                    Back to Login
-                                </Button>
+                                {/* Divider */}
+                                <div className="flex items-center gap-4 my-4">
+                                    <div className="flex-1 h-px bg-border-color" />
+                                    <span className="text-text-secondary text-sm">or continue with email</span>
+                                    <div className="flex-1 h-px bg-border-color" />
+                                </div>
                             </motion.div>
-                        ) : (
-                            <motion.div
-                                key="auth-form"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                            >
-                                {/* Tab Selector */}
-                                {!isForgotPassword && (
-                                    <div className="flex border-b border-border-color">
-                                        <button
-                                            type="button"
-                                            onClick={() => switchMode('signin')}
-                                            className={`flex-1 py-4 text-center font-semibold transition-all relative ${authMode === 'signin'
-                                                ? 'text-primary'
-                                                : 'text-text-secondary hover:text-text-primary'
-                                                }`}
-                                        >
-                                            Login
-                                            {authMode === 'signin' && (
-                                                <motion.div
-                                                    layoutId="activeTab"
-                                                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-                                                />
-                                            )}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => switchMode('signup')}
-                                            className={`flex-1 py-4 text-center font-semibold transition-all relative ${authMode === 'signup'
-                                                ? 'text-primary'
-                                                : 'text-text-secondary hover:text-text-primary'
-                                                }`}
-                                        >
-                                            Register
-                                            {authMode === 'signup' && (
-                                                <motion.div
-                                                    layoutId="activeTab"
-                                                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-                                                />
-                                            )}
-                                        </button>
-                                    </div>
-                                )}
+                        )}
 
-                                <div className="p-8">
-                                    {/* Header */}
-                                    <div className="text-center mb-6 relative">
-                                        {isForgotPassword && (
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setIsForgotPassword(false);
-                                                    setMessage(null);
-                                                    setError(null);
-                                                }}
-                                                className="absolute left-0 top-1 text-gray-400 hover:text-text-primary transition-colors"
-                                            >
-                                                <ArrowLeft size={20} />
-                                            </button>
-                                        )}
-                                        <h2 className="text-2xl font-semibold">
-                                            {isForgotPassword
-                                                ? 'Reset Password'
-                                                : authMode === 'signup'
-                                                    ? 'Create Account'
-                                                    : 'Welcome Back'}
-                                        </h2>
-                                        <p className="text-text-secondary text-sm mt-1">
-                                            {isForgotPassword
-                                                ? "Enter your email to receive a reset link"
-                                                : authMode === 'signup'
-                                                    ? 'Start your financial journey today'
-                                                    : 'Sign in to continue tracking your finances'}
-                                        </p>
-                                    </div>
-
-                                    {/* Social Login Buttons (Sign Up mode only) */}
-                                    {authMode === 'signup' && !isForgotPassword && (
+                            {/* Email/Password Form */}
+                            <form onSubmit={handleAuth} className="space-y-4">
+                                <Input
+                                    label="Email"
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                />
+                                <AnimatePresence>
+                                    {!isForgotPassword && (
                                         <motion.div
                                             initial={{ opacity: 0, height: 0 }}
                                             animate={{ opacity: 1, height: 'auto' }}
                                             exit={{ opacity: 0, height: 0 }}
-                                            className="space-y-3 mb-6"
+                                            className="overflow-hidden"
                                         >
-                                            {/* Google Button */}
-                                            <button
-                                                type="button"
-                                                onClick={handleGoogleLogin}
-                                                disabled={isGoogleLoading}
-                                                className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-border-color bg-surface hover:bg-surface/80 transition-all hover:scale-[0.98] active:scale-[0.96] disabled:opacity-50 disabled:cursor-not-allowed group"
-                                            >
-                                                {isGoogleLoading ? (
-                                                    <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                                                ) : (
-                                                    <GoogleIcon />
-                                                )}
-                                                <span className="font-medium group-hover:text-primary transition-colors">
-                                                    {isGoogleLoading ? 'Connecting...' : 'Continue with Google'}
-                                                </span>
-                                            </button>
-
-                                            <p className="text-xs text-center text-text-secondary/60">
-                                                Already have an account? You'll be logged in automatically.
-                                            </p>
-
-                                            {/* Divider */}
-                                            <div className="flex items-center gap-4 my-4">
-                                                <div className="flex-1 h-px bg-border-color" />
-                                                <span className="text-text-secondary text-sm">or continue with email</span>
-                                                <div className="flex-1 h-px bg-border-color" />
-                                            </div>
+                                            <Input
+                                                label="Password"
+                                                type={showPassword ? "text" : "password"}
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                required={!isForgotPassword}
+                                                minLength={6}
+                                                rightIcon={
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowPassword(!showPassword)}
+                                                        className="focus:outline-none text-text-secondary hover:text-primary transition-colors cursor-pointer"
+                                                        tabIndex={-1}
+                                                    >
+                                                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                                    </button>
+                                                }
+                                            />
                                         </motion.div>
                                     )}
+                                </AnimatePresence>
 
-                                    {/* Email/Password Form */}
-                                    <form onSubmit={handleAuth} className="space-y-4">
-                                        <Input
-                                            label="Email"
-                                            type="email"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            required
-                                        />
-                                        <AnimatePresence>
-                                            {!isForgotPassword && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, height: 0 }}
-                                                    animate={{ opacity: 1, height: 'auto' }}
-                                                    exit={{ opacity: 0, height: 0 }}
-                                                    className="overflow-hidden"
-                                                >
-                                                    <Input
-                                                        label="Password"
-                                                        type={showPassword ? "text" : "password"}
-                                                        value={password}
-                                                        onChange={(e) => setPassword(e.target.value)}
-                                                        required={!isForgotPassword}
-                                                        minLength={6}
-                                                        rightIcon={
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setShowPassword(!showPassword)}
-                                                                className="focus:outline-none text-text-secondary hover:text-primary transition-colors cursor-pointer"
-                                                                tabIndex={-1}
-                                                            >
-                                                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                                                            </button>
-                                                        }
-                                                    />
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
+                                {error && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="p-3 rounded-lg bg-error/10 text-error text-sm text-center"
+                                    >
+                                        {error}
+                                    </motion.div>
+                                )}
+                                {message && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="p-3 rounded-lg bg-success/10 text-success text-sm text-center"
+                                    >
+                                        {message}
+                                    </motion.div>
+                                )}
 
-                                        {error && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: -10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                className="p-3 rounded-lg bg-error/10 text-error text-sm text-center"
-                                            >
-                                                {error}
-                                            </motion.div>
-                                        )}
-                                        {message && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: -10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                className="p-3 rounded-lg bg-success/10 text-success text-sm text-center"
-                                            >
-                                                {message}
-                                            </motion.div>
-                                        )}
+                                <Button type="submit" className="w-full" isLoading={isLoading}>
+                                    {isForgotPassword
+                                        ? 'Send Reset Link'
+                                        : authMode === 'signup'
+                                            ? 'Create Account'
+                                            : 'Login'}
+                                </Button>
+                            </form>
 
-                                        <Button type="submit" className="w-full" isLoading={isLoading}>
-                                            {isForgotPassword
-                                                ? 'Send Reset Link'
-                                                : authMode === 'signup'
-                                                    ? 'Create Account'
-                                                    : 'Login'}
-                                        </Button>
-                                    </form>
-
-                                    {/* Footer Links */}
-                                    {!isForgotPassword && (
-                                        <div className="mt-6 text-center">
-                                            {authMode === 'signin' && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setIsForgotPassword(true);
-                                                        setMessage(null);
-                                                        setError(null);
-                                                    }}
-                                                    className="text-sm text-text-secondary hover:text-primary transition-colors"
-                                                >
-                                                    Forgot password?
-                                                </button>
-                                            )}
-                                        </div>
+                            {/* Footer Links */}
+                            {!isForgotPassword && (
+                                <div className="mt-6 text-center">
+                                    {authMode === 'signin' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsForgotPassword(true);
+                                                setMessage(null);
+                                                setError(null);
+                                            }}
+                                            className="text-sm text-text-secondary hover:text-primary transition-colors"
+                                        >
+                                            Forgot password?
+                                        </button>
                                     )}
                                 </div>
-                            </motion.div>
+                            )}
+                        </div>
+                </motion.div>
                         )}
-                    </AnimatePresence>
-                </Card>
-            </div>
-        </AppLayout>
+            </AnimatePresence>
+        </Card>
+            </div >
+        </AppLayout >
     );
 }

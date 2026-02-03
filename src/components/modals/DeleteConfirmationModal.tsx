@@ -10,6 +10,7 @@ interface DeleteConfirmationModalProps {
     categoryName: string;
     transactionCount: number;
     totalAmount: number;
+    currencySymbol?: string;
     isSubmitting?: boolean;
 }
 
@@ -20,6 +21,7 @@ export const DeleteConfirmationModal = ({
     categoryName,
     transactionCount,
     totalAmount,
+    currencySymbol = '$',
     isSubmitting = false
 }: DeleteConfirmationModalProps) => {
     const hasTransactions = transactionCount > 0;
@@ -66,7 +68,7 @@ export const DeleteConfirmationModal = ({
                                         <p className="font-semibold text-text-primary mb-1">Warning: Data Loss</p>
                                         <ul className="list-disc list-inside space-y-1 text-xs">
                                             <li><span className="font-bold">{transactionCount}</span> transactions will be deleted</li>
-                                            <li>Total value: <span className="font-bold">{formatMoney(totalAmount)}</span></li>
+                                            <li>Total value: <span className="font-bold">{formatMoney(totalAmount, currencySymbol)}</span></li>
                                         </ul>
                                         <p className="mt-2 text-error text-xs font-medium">
                                             This action cannot be undone.
