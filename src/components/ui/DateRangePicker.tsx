@@ -12,7 +12,10 @@ interface DateRangePickerProps {
     onChange: (start: string | null, end: string | null) => void;
 }
 
+import { useAppStore } from '../../store/useAppStore';
+
 export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange }: DateRangePickerProps) => {
+    const { theme } = useAppStore();
     const containerRef = useRef<HTMLDivElement>(null);
     // Internal state for pending selection
     const [tempStart, setTempStart] = useState<string | null>(startDate);
@@ -129,6 +132,8 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
         onClose();
     };
 
+    const isLight = theme === 'light';
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -147,31 +152,34 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 10 }}
                             transition={{ duration: 0.2, ease: "easeOut" }}
-                            className="bg-white dark:bg-[#1C1C1E] !text-black dark:!text-white rounded-[32px] shadow-[0_30px_60px_rgba(0,0,0,0.25)] w-full max-w-sm overflow-hidden border border-black/5 dark:border-white/10 pointer-events-auto !bg-white dark:!bg-[#1C1C1E]"
+                            className={`bg-white dark:bg-[#1C1C1E] rounded-[32px] shadow-[0_30px_60px_rgba(0,0,0,0.25)] w-full max-w-sm overflow-hidden border pointer-events-auto ${isLight
+                                    ? 'bg-white border-black/5 text-gray-900'
+                                    : 'bg-[#1C1C1E] border-white/10 text-white'
+                                }`}
                         >
                             {/* Header */}
-                            <div className="flex items-center justify-between p-4 border-b border-black/5 dark:border-white/5">
-                                <h3 className="font-bold text-lg !text-black dark:!text-white">Select Range</h3>
-                                <button onClick={onClose} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                            <div className={`flex items-center justify-between p-4 border-b ${isLight ? 'border-gray-100' : 'border-white/5'}`}>
+                                <h3 className={`font-bold text-lg ${isLight ? 'text-gray-900' : 'text-white'}`}>Select Range</h3>
+                                <button onClick={onClose} className={`p-2 rounded-full transition-colors ${isLight ? 'hover:bg-gray-100 text-gray-500' : 'hover:bg-white/10 text-gray-400'}`}>
                                     <X size={20} />
                                 </button>
                             </div>
 
                             {/* Calendar Header aka Month Nav */}
                             <div className="flex items-center justify-between px-4 py-3">
-                                <h3 className="font-bold text-base !text-black dark:!text-white">
+                                <h3 className={`font-bold text-base ${isLight ? 'text-gray-900' : 'text-white'}`}>
                                     {format(currentMonth, 'MMMM yyyy')}
                                 </h3>
                                 <div className="flex gap-1">
                                     <button
                                         onClick={prevMonth}
-                                        className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                                        className={`p-1.5 rounded-full transition-colors ${isLight ? 'hover:bg-gray-100 text-gray-500' : 'hover:bg-white/10 text-white'}`}
                                     >
                                         <ChevronLeft size={20} />
                                     </button>
                                     <button
                                         onClick={nextMonth}
-                                        className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                                        className={`p-1.5 rounded-full transition-colors ${isLight ? 'hover:bg-gray-100 text-gray-500' : 'hover:bg-white/10 text-white'}`}
                                     >
                                         <ChevronRight size={20} />
                                     </button>
@@ -186,7 +194,7 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                             )}
 
                             {/* Days Header */}
-                            <div className="grid grid-cols-7 mb-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider px-4">
+                            <div className={`grid grid-cols-7 mb-2 text-center text-xs font-medium uppercase tracking-wider px-4 ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>
                                 {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
                                     <div key={d} className="py-1">{d}</div>
                                 ))}
@@ -210,11 +218,11 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                                             {/* Range Background */}
                                             {inRange && (
                                                 <div className={cn(
-                                                    "absolute inset-y-0.5 bg-primary/20",
+                                                    "absolute inset-y-0.5",
+                                                    isLight ? "bg-primary/20" : "bg-primary/20",
                                                     isStart && "left-1/2 right-0 rounded-l-full",
                                                     isEnd && "left-0 right-1/2 rounded-r-full",
                                                     (!isStart && !isEnd) && "inset-x-0",
-                                                    // Handle hover state connection
                                                     (tempStart && !tempEnd && isSameDay(day, hoverDate as Date)) && "left-0 right-1/2 rounded-r-full"
                                                 )} />
                                             )}
@@ -224,11 +232,11 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                                                 disabled={disabled}
                                                 className={cn(
                                                     "relative h-9 w-9 mx-auto rounded-full flex items-center justify-center text-sm transition-all z-10",
-                                                    !isCurrentMonth && "text-gray-400 opacity-50",
-                                                    disabled && "text-gray-300 dark:text-gray-700 cursor-not-allowed decoration-slice line-through opacity-30",
+                                                    !isCurrentMonth && (isLight ? "text-gray-300 opacity-50" : "text-gray-600 opacity-50"),
+                                                    disabled && (isLight ? "text-gray-300 opacity-30 cursor-not-allowed line-through" : "text-gray-700 opacity-30 cursor-not-allowed line-through"),
                                                     (isStart || isEnd)
                                                         ? "ring-2 ring-primary bg-primary/10 text-primary font-bold z-20"
-                                                        : !disabled && "hover:bg-black/5 dark:hover:bg-white/10",
+                                                        : !disabled && (isLight ? "hover:bg-gray-100 text-gray-700" : "hover:bg-white/10 text-white"),
                                                     isToday(day) && !isStart && !isEnd && "text-primary font-bold border border-primary/30",
                                                 )}
                                             >
@@ -240,8 +248,8 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                             </div>
 
                             {/* Actions */}
-                            <div className="p-4 border-t border-black/10 dark:border-white/5 flex flex-col gap-4 bg-white dark:bg-[#1C1C1E]">
-                                <div className="flex justify-between items-center text-sm font-medium text-gray-900 dark:text-gray-100">
+                            <div className={`p-4 border-t flex flex-col gap-4 ${isLight ? 'bg-white border-gray-100' : 'bg-[#1C1C1E] border-white/5'}`}>
+                                <div className={`flex justify-between items-center text-sm font-medium ${isLight ? 'text-gray-900' : 'text-gray-100'}`}>
                                     <div className="flex gap-1">
                                         <span className="text-gray-500">Start:</span>
                                         <span>{tempStart ? format(new Date(tempStart), 'MMM d, yyyy') : '-'}</span>
@@ -254,7 +262,10 @@ export const DateRangePicker = ({ isOpen, onClose, startDate, endDate, onChange 
                                 <div className="flex justify-between gap-3">
                                     <button
                                         onClick={handleReset}
-                                        className="flex-1 py-3 rounded-2xl border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors font-bold text-sm text-gray-700 dark:text-gray-300"
+                                        className={`flex-1 py-3 rounded-2xl border transition-colors font-bold text-sm ${isLight
+                                                ? 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                                                : 'border-white/10 hover:bg-white/5 text-gray-300'
+                                            }`}
                                     >
                                         Reset
                                     </button>

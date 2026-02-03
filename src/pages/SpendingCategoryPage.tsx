@@ -15,7 +15,7 @@ interface SpendingCategoryPageProps {
 type DateFilter = '1d' | '7d' | '30d';
 
 export default function SpendingCategoryPage({ onBack }: SpendingCategoryPageProps) {
-    const { currency, setBottomMenuVisible, dateFormat } = useAppStore();
+    const { currency, setBottomMenuVisible, dateFormat, theme } = useAppStore();
     const [categories, setCategories] = useState<Category[]>([]);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -128,7 +128,10 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                     transition={{ duration: 0.2 }}
-                                    className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#151515] border border-gray-100 dark:border-white/10 rounded-2xl shadow-xl overflow-hidden z-50"
+                                    className={`absolute right-0 mt-2 w-48 border rounded-2xl shadow-xl overflow-hidden z-50 ${theme === 'light'
+                                        ? 'bg-white border-gray-100'
+                                        : 'bg-[#151515] border-white/10'
+                                        }`}
                                 >
                                     {filterOptions.map((option) => (
                                         <button
@@ -138,15 +141,15 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                                                 setShowFilterMenu(false);
                                             }}
                                             className={`w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between group ${dateFilter === option.value
-                                                ? 'bg-emerald-50 text-emerald-600 dark:bg-primary/10 dark:text-primary font-bold'
-                                                : 'text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
+                                                ? (theme === 'light' ? 'bg-emerald-50 text-emerald-600 font-bold' : 'bg-primary/10 text-primary font-bold')
+                                                : (theme === 'light' ? 'text-gray-900 hover:bg-gray-50' : 'text-gray-300 hover:bg-white/5')
                                                 }`}
                                         >
                                             <span>{option.label}</span>
                                             {dateFilter === option.value && (
                                                 <motion.div
                                                     layoutId="activeFilter"
-                                                    className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-primary"
+                                                    className={`w-1.5 h-1.5 rounded-full ${theme === 'light' ? 'bg-emerald-600' : 'bg-primary'}`}
                                                 />
                                             )}
                                         </button>
