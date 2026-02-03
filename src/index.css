@@ -171,7 +171,8 @@ input[type="date"]::-webkit-datetime-edit-year-field:focus {
   outline: none;
 }
 
+
 .mask-linear-fade {
-  mask-image: linear-gradient(to right, black 75%, transparent 95%);
-  -webkit-mask-image: linear-gradient(to right, black 75%, transparent 95%);
+  mask-image: linear-gradient(to right, black 65%, transparent 85%);
+  -webkit-mask-image: linear-gradient(to right, black 65%, transparent 85%);
 }
