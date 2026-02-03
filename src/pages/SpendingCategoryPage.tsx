@@ -128,7 +128,7 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                     transition={{ duration: 0.2 }}
-                                    className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#151515] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50"
+                                    className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#151515] border border-gray-100 dark:border-white/10 rounded-2xl shadow-xl overflow-hidden z-50"
                                 >
                                     {filterOptions.map((option) => (
                                         <button
@@ -138,15 +138,15 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                                                 setShowFilterMenu(false);
                                             }}
                                             className={`w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between group ${dateFilter === option.value
-                                                ? 'bg-primary/10 text-primary font-bold'
-                                                : 'text-text-primary hover:bg-white/5 dark:hover:bg-white/10'
+                                                ? 'bg-green-50 text-green-600 dark:bg-primary/10 dark:text-primary font-bold'
+                                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
                                                 }`}
                                         >
                                             <span>{option.label}</span>
                                             {dateFilter === option.value && (
                                                 <motion.div
                                                     layoutId="activeFilter"
-                                                    className="w-1.5 h-1.5 rounded-full bg-primary"
+                                                    className="w-1.5 h-1.5 rounded-full bg-green-600 dark:bg-primary"
                                                 />
                                             )}
                                         </button>
