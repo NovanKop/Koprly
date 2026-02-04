@@ -1,424 +1,292 @@
 ---
-name: ui-ux-design-audit
-description: Professional UI/UX design audit skill for comprehensive design quality assessment. Use when auditing design components, checking design consistency, validating light/dark mode implementations, reviewing user flows, or conducting design system reviews. Triggers include: (1) Design component audits, (2) Design consistency checks, (3) Theme/mode validation, (4) User flow analysis, (5) Design system compliance, (6) Visual hierarchy review, (7) Interaction pattern assessment.
+name: ui-ux-pro-max
+description: UI/UX design intelligence. 50 styles, 21 palettes, 50 font pairings, 20 charts, 9 stacks.
 ---
+# ui-ux-pro-max
 
-# UI/UX Design Audit Skill
+Comprehensive design guide for web and mobile applications. Contains 67 styles, 96 color palettes, 57 font pairings, 99 UX guidelines, and 25 chart types across 13 technology stacks. Searchable database with priority-based recommendations.
 
-Comprehensive design quality assessment for web applications covering components, consistency, theming, and user flows.
+## Prerequisites
 
-## Audit Workflow
+Check if Python is installed:
 
-Execute audits in this order:
-
-1. **Design System Audit** → Components and tokens
-2. **Consistency Audit** → Visual uniformity
-3. **Theme Audit** → Light/dark mode
-4. **Flow Audit** → Page-by-page UX
-
----
-
-## Phase 1: Design System Audit
-
-### Component Inventory
-
-Catalog all UI components:
-
-```
-├── Navigation
-│   ├── Header/Navbar
-│   ├── Bottom Menu/Tab Bar
-│   ├── Sidebar
-│   └── Breadcrumbs
-├── Content
-│   ├── Cards
-│   ├── Lists
-│   ├── Tables
-│   ├── Modals/Dialogs
-│   └── Empty States
-├── Forms
-│   ├── Input fields
-│   ├── Buttons
-│   ├── Selects/Dropdowns
-│   ├── Checkboxes/Radios
-│   └── Date pickers
-├── Feedback
-│   ├── Loaders/Spinners
-│   ├── Toast/Notifications
-│   ├── Progress indicators
-│   └── Error states
-└── Data Display
-    ├── Charts/Graphs
-    ├── Badges/Tags
-    ├── Avatars
-    └── Icons
+```bash
+python3 --version || python --version
 ```
 
-### Design Token Checklist
+If Python is not installed, install it based on user's OS:
 
-| Token Type | Check Items |
-|------------|-------------|
-| **Colors** | Primary, secondary, success, warning, error, neutral scale |
-| **Typography** | Font family, sizes (xs→2xl), weights, line heights |
-| **Spacing** | Consistent scale (4px, 8px, 12px, 16px, 24px, 32px, 48px) |
-| **Borders** | Radius scale, border widths, border colors |
-| **Shadows** | Elevation levels (sm, md, lg, xl) |
-| **Transitions** | Duration standards, easing functions |
-
-### Component State Matrix
-
-For each component, verify states exist:
-
-| State | Visual Treatment |
-|-------|------------------|
-| **Default** | Base appearance |
-| **Hover** | Subtle highlight (desktop) |
-| **Active/Pressed** | Stronger feedback |
-| **Focus** | Visible ring/outline |
-| **Disabled** | Reduced opacity (0.5-0.6) |
-| **Loading** | Spinner or skeleton |
-| **Error** | Error color + message |
-| **Success** | Success color + feedback |
-
----
-
-## Phase 2: Design Consistency Audit
-
-### Visual Consistency Checklist
-
-```markdown
-## Typography
-- [ ] Heading sizes consistent across pages
-- [ ] Body text uses same font/size
-- [ ] Line heights uniform for same text types
-- [ ] Font weights follow hierarchy (bold for emphasis)
-
-## Colors
-- [ ] Primary color used consistently for CTAs
-- [ ] Error states all use same red
-- [ ] Success states all use same green
-- [ ] Text colors match (primary, secondary, muted)
-
-## Spacing
-- [ ] Card padding consistent (e.g., always 16px or 24px)
-- [ ] Section margins uniform
-- [ ] Gap between elements follows scale
-- [ ] Page margins consistent
-
-## Borders & Shadows
-- [ ] Border radius matches (e.g., all cards use 12px)
-- [ ] Shadow intensity consistent for same elevation
-- [ ] Border colors uniform
-
-## Icons
-- [ ] Same icon set throughout (Lucide, Heroicons, etc.)
-- [ ] Consistent sizing (16px, 20px, 24px)
-- [ ] Stroke width uniform
+**macOS:**
+```bash
+brew install python3
 ```
 
-### Pattern Consistency Matrix
-
-| Pattern | Check |
-|---------|-------|
-| **Page Headers** | Same structure, spacing, back button position |
-| **Card Layouts** | Consistent internal padding, title placement |
-| **List Items** | Same height, icon alignment, text truncation |
-| **Form Layouts** | Label position, input heights, button placement |
-| **Modal Structure** | Header, body, footer consistency |
-| **Empty States** | Icon + message + action pattern |
-
-### Interaction Consistency
-
+**Ubuntu/Debian:**
+```bash
+sudo apt update && sudo apt install python3
 ```
-Verify same interactions behave identically:
-├── Tap/click feedback timing
-├── Transition durations (recommend 200-300ms)
-├── Animation easing (recommend ease-out)
-├── Scroll behaviors
-├── Gesture responses
-└── Loading patterns
+
+**Windows:**
+```powershell
+winget install Python.Python.3.12
 ```
 
 ---
 
-## Phase 3: Theme Audit (Light/Dark Mode)
+## How to Use This Skill
 
-### Color Mapping Table
+When user requests UI/UX work (design, build, create, implement, review, fix, improve), follow this workflow:
 
-| Semantic Name | Light Mode | Dark Mode | Ratio Check |
-|---------------|------------|-----------|-------------|
-| Background | #FFFFFF | #0A0A0F | — |
-| Surface | #F5F5F5 | #1A1A2E | — |
-| Surface Highlight | #EBEBEB | #2A2A40 | — |
-| Text Primary | #1A1A1A | #FFFFFF | ≥7:1 |
-| Text Secondary | #666666 | #A0A0A0 | ≥4.5:1 |
-| Border | #E0E0E0 | #2A2A2E | — |
-| Primary | #007AFF | #007AFF | Check both |
-| Error | #FF3B30 | #FF453A | Check both |
-| Success | #34C759 | #30D158 | Check both |
+### Step 1: Analyze User Requirements
 
-### Theme Validation Checklist
+Extract key information from user request:
+- **Product type**: SaaS, e-commerce, portfolio, dashboard, landing page, etc.
+- **Style keywords**: minimal, playful, professional, elegant, dark mode, etc.
+- **Industry**: healthcare, fintech, gaming, education, etc.
+- **Stack**: React, Vue, Next.js, or default to `html-tailwind`
 
-```markdown
-## Contrast (WCAG AA Minimum)
-- [ ] Normal text: 4.5:1 contrast ratio
-- [ ] Large text (18px+): 3:1 contrast ratio
-- [ ] UI components: 3:1 against background
-- [ ] Focus indicators: 3:1 minimum
+### Step 2: Generate Design System (REQUIRED)
 
-## Readability
-- [ ] Text clearly readable on all backgrounds
-- [ ] Important info not lost in either mode
-- [ ] Charts/graphs visible in both modes
-- [ ] Image contrast appropriate
+**Always start with `--design-system`** to get comprehensive recommendations with reasoning:
 
-## Consistency
-- [ ] All screens support both modes
-- [ ] No hardcoded colors bypassing theme
-- [ ] Icons visible in both modes
-- [ ] Shadows appropriate for each mode
-
-## Transitions
-- [ ] Smooth theme switching (no flash)
-- [ ] State preserved during switch
-- [ ] User preference remembered
+```bash
+python3 skills/ui-ux-pro-max/scripts/search.py "<product_type> <industry> <keywords>" --design-system [-p "Project Name"]
 ```
 
-### Common Theme Issues
+This command:
+1. Searches 5 domains in parallel (product, style, color, landing, typography)
+2. Applies reasoning rules from `ui-reasoning.csv` to select best matches
+3. Returns complete design system: pattern, style, colors, typography, effects
+4. Includes anti-patterns to avoid
 
-| Issue | Detection | Fix |
-|-------|-----------|-----|
-| Hardcoded colors | Search for `#` in styles | Use CSS variables |
-| Missing dark variant | Component looks wrong in dark | Add dark mode styles |
-| Poor contrast | Text hard to read | Adjust color values |
-| Invisible icons | Icons disappear | Use currentColor or theme-aware colors |
-| White flash | FOUC on theme change | Set theme before render |
-
----
-
-## Phase 4: User Flow Audit
-
-### Page-by-Page Assessment Template
-
-```markdown
-## [Page Name]
-
-### Purpose
-[What is the primary goal of this page?]
-
-### Entry Points
-- [How users arrive at this page]
-
-### Key Actions
-1. [Primary action]
-2. [Secondary actions]
-
-### Exit Points
-- [Where users go next]
-
-### UX Checklist
-- [ ] Clear page title/header
-- [ ] Primary action is obvious
-- [ ] Loading states implemented
-- [ ] Empty states handled
-- [ ] Error states handled
-- [ ] Navigation is clear
-- [ ] Back/escape path exists
+**Example:**
+```bash
+python3 skills/ui-ux-pro-max/scripts/search.py "beauty spa wellness service" --design-system -p "Serenity Spa"
 ```
 
-### Critical User Flows
+### Step 2b: Persist Design System (Master + Overrides Pattern)
 
-Audit these end-to-end journeys:
+To save the design system for hierarchical retrieval across sessions, add `--persist`:
 
-```
-1. Onboarding Flow
-   Landing → Sign Up → Verification → Profile Setup → Dashboard
-
-2. Core Action Flow
-   Dashboard → [Primary Feature] → Confirmation → Success
-
-3. Settings Flow
-   Dashboard → Settings → [Change] → Save → Confirmation
-
-4. Error Recovery Flow
-   Any Page → Error → Error Message → Recovery Action → Success
+```bash
+python3 skills/ui-ux-pro-max/scripts/search.py "<query>" --design-system --persist -p "Project Name"
 ```
 
-### Flow Quality Metrics
+This creates:
+- `design-system/MASTER.md` — Global Source of Truth with all design rules
+- `design-system/pages/` — Folder for page-specific overrides
 
-| Metric | Target | How to Measure |
-|--------|--------|----------------|
-| Steps to complete | Minimize | Count clicks/taps to goal |
-| Cognitive load | Low | Count decisions per screen |
-| Error recovery | Easy | Test wrong inputs |
-| Progress visibility | Clear | Check progress indicators |
-| Reversibility | Possible | Test undo/back actions |
-
-### Navigation Hierarchy Audit
-
-```
-Verify clear navigation structure:
-├── Primary Nav (always visible)
-│   ├── Dashboard
-│   ├── Core Feature 1
-│   ├── Core Feature 2
-│   └── Settings
-├── Secondary Nav (contextual)
-│   └── Sub-pages within features
-└── Tertiary Nav (modals/overlays)
-    └── Quick actions, confirmations
+**With page-specific override:**
+```bash
+python3 skills/ui-ux-pro-max/scripts/search.py "<query>" --design-system --persist -p "Project Name" --page "dashboard"
 ```
 
----
+This also creates:
+- `design-system/pages/dashboard.md` — Page-specific deviations from Master
 
-## Audit Report Template
+**How hierarchical retrieval works:**
+1. When building a specific page (e.g., "Checkout"), first check `design-system/pages/checkout.md`
+2. If the page file exists, its rules **override** the Master file
+3. If not, use `design-system/MASTER.md` exclusively
 
-```markdown
-# UI/UX Design Audit Report
+### Step 3: Supplement with Detailed Searches (as needed)
 
-**App**: [Name] | **Version**: [X.X.X] | **Date**: [YYYY-MM-DD]
-**Auditor**: [Name]
+After getting the design system, use domain searches to get additional details:
 
-## Executive Summary
-- Overall Score: [X/10]
-- Critical Issues: [X]
-- Improvements Needed: [X]
-- Best Practices Followed: [X]
+```bash
+python3 skills/ui-ux-pro-max/scripts/search.py "<keyword>" --domain <domain> [-n <max_results>]
+```
 
----
+**When to use detailed searches:**
 
-## Design System
+| Need | Domain | Example |
+|------|--------|---------|
+| More style options | `style` | `--domain style "glassmorphism dark"` |
+| Chart recommendations | `chart` | `--domain chart "real-time dashboard"` |
+| UX best practices | `ux` | `--domain ux "animation accessibility"` |
+| Alternative fonts | `typography` | `--domain typography "elegant luxury"` |
+| Landing structure | `landing` | `--domain landing "hero social-proof"` |
 
-### Component Coverage
-| Component | Exists | States Complete | Consistent |
-|-----------|--------|-----------------|------------|
-| Buttons | ✅/❌ | ✅/❌ | ✅/❌ |
-| Inputs | ✅/❌ | ✅/❌ | ✅/❌ |
-| Cards | ✅/❌ | ✅/❌ | ✅/❌ |
-| [etc.] | | | |
+### Step 4: Stack Guidelines (Default: html-tailwind)
 
-### Design Tokens
-- Colors: [Complete/Partial/Missing]
-- Typography: [Complete/Partial/Missing]
-- Spacing: [Consistent/Inconsistent]
-- Shadows: [Defined/Ad-hoc]
+Get implementation-specific best practices. If user doesn't specify a stack, **default to `html-tailwind`**.
 
----
+```bash
+python3 skills/ui-ux-pro-max/scripts/search.py "<keyword>" --stack html-tailwind
+```
 
-## Consistency Score
-
-| Area | Score | Notes |
-|------|-------|-------|
-| Typography | /10 | |
-| Colors | /10 | |
-| Spacing | /10 | |
-| Components | /10 | |
-| Interactions | /10 | |
+Available stacks: `html-tailwind`, `react`, `nextjs`, `vue`, `svelte`, `swiftui`, `react-native`, `flutter`, `shadcn`, `jetpack-compose`
 
 ---
 
-## Theme Implementation
+## Search Reference
 
-### Light Mode
-- Contrast: [Pass/Fail]
-- Readability: [Good/Fair/Poor]
-- Issues: [List]
+### Available Domains
 
-### Dark Mode
-- Contrast: [Pass/Fail]
-- Readability: [Good/Fair/Poor]
-- Issues: [List]
+| Domain | Use For | Example Keywords |
+|--------|---------|------------------|
+| `product` | Product type recommendations | SaaS, e-commerce, portfolio, healthcare, beauty, service |
+| `style` | UI styles, colors, effects | glassmorphism, minimalism, dark mode, brutalism |
+| `typography` | Font pairings, Google Fonts | elegant, playful, professional, modern |
+| `color` | Color palettes by product type | saas, ecommerce, healthcare, beauty, fintech, service |
+| `landing` | Page structure, CTA strategies | hero, hero-centric, testimonial, pricing, social-proof |
+| `chart` | Chart types, library recommendations | trend, comparison, timeline, funnel, pie |
+| `ux` | Best practices, anti-patterns | animation, accessibility, z-index, loading |
+| `react` | React/Next.js performance | waterfall, bundle, suspense, memo, rerender, cache |
+| `web` | Web interface guidelines | aria, focus, keyboard, semantic, virtualize |
+| `prompt` | AI prompts, CSS keywords | (style name) |
 
----
+### Available Stacks
 
-## User Flows
-
-| Flow | Steps | Friction Points | Rating |
-|------|-------|-----------------|--------|
-| Onboarding | X | [List] | /10 |
-| [Core Flow] | X | [List] | /10 |
-| Settings | X | [List] | /10 |
-
----
-
-## Issues Found
-
-### Critical (Must Fix)
-1. [Issue + Location + Impact]
-
-### High Priority
-1. [Issue + Location + Impact]
-
-### Medium Priority
-1. [Issue + Location + Impact]
-
-### Low Priority (Polish)
-1. [Issue + Location + Impact]
+| Stack | Focus |
+|-------|-------|
+| `html-tailwind` | Tailwind utilities, responsive, a11y (DEFAULT) |
+| `react` | State, hooks, performance, patterns |
+| `nextjs` | SSR, routing, images, API routes |
+| `vue` | Composition API, Pinia, Vue Router |
+| `svelte` | Runes, stores, SvelteKit |
+| `swiftui` | Views, State, Navigation, Animation |
+| `react-native` | Components, Navigation, Lists |
+| `flutter` | Widgets, State, Layout, Theming |
+| `shadcn` | shadcn/ui components, theming, forms, patterns |
+| `jetpack-compose` | Composables, Modifiers, State Hoisting, Recomposition |
 
 ---
 
-## Recommendations
+## Example Workflow
 
-### Immediate Actions
-1. [Action item]
+**User request:** "Làm landing page cho dịch vụ chăm sóc da chuyên nghiệp"
 
-### Short-term Improvements
-1. [Action item]
+### Step 1: Analyze Requirements
+- Product type: Beauty/Spa service
+- Style keywords: elegant, professional, soft
+- Industry: Beauty/Wellness
+- Stack: html-tailwind (default)
 
-### Long-term Enhancements
-1. [Action item]
+### Step 2: Generate Design System (REQUIRED)
+
+```bash
+python3 skills/ui-ux-pro-max/scripts/search.py "beauty spa wellness service elegant" --design-system -p "Serenity Spa"
+```
+
+**Output:** Complete design system with pattern, style, colors, typography, effects, and anti-patterns.
+
+### Step 3: Supplement with Detailed Searches (as needed)
+
+```bash
+# Get UX guidelines for animation and accessibility
+python3 skills/ui-ux-pro-max/scripts/search.py "animation accessibility" --domain ux
+
+# Get alternative typography options if needed
+python3 skills/ui-ux-pro-max/scripts/search.py "elegant luxury serif" --domain typography
+```
+
+### Step 4: Stack Guidelines
+
+```bash
+python3 skills/ui-ux-pro-max/scripts/search.py "layout responsive form" --stack html-tailwind
+```
+
+**Then:** Synthesize design system + detailed searches and implement the design.
+
+---
+
+## Output Formats
+
+The `--design-system` flag supports two output formats:
+
+```bash
+# ASCII box (default) - best for terminal display
+python3 skills/ui-ux-pro-max/scripts/search.py "fintech crypto" --design-system
+
+# Markdown - best for documentation
+python3 skills/ui-ux-pro-max/scripts/search.py "fintech crypto" --design-system -f markdown
 ```
 
 ---
 
-## Quick Reference: Design Quality Signals
+## Tips for Better Results
 
-### ✅ Good Design Signs
-- Consistent spacing rhythm
-- Clear visual hierarchy
-- Obvious interactive elements
-- Smooth transitions
-- Proper loading states
-- Helpful empty states
-- Clear error messages
-
-### ❌ Poor Design Signs
-- Inconsistent padding/margins
-- Competing visual elements
-- Hidden or unclear CTAs
-- Jarring animations
-- Missing loading states
-- "No data" without guidance
-- Technical error messages
+1. **Be specific with keywords** - "healthcare SaaS dashboard" > "app"
+2. **Search multiple times** - Different keywords reveal different insights
+3. **Combine domains** - Style + Typography + Color = Complete design system
+4. **Always check UX** - Search "animation", "z-index", "accessibility" for common issues
+5. **Use stack flag** - Get implementation-specific best practices
+6. **Iterate** - If first search doesn't match, try different keywords
 
 ---
 
-## Tools & Commands
+## Common Rules for Professional UI
 
-### Contrast Checking
-```javascript
-// Get computed color values
-getComputedStyle(element).color
-getComputedStyle(element).backgroundColor
+These are frequently overlooked issues that make UI look unprofessional:
 
-// Online tools
-// - WebAIM Contrast Checker
-// - Stark (Figma plugin)
-```
+### Icons & Visual Elements
 
-### Design Token Extraction
-```javascript
-// Extract CSS custom properties
-Array.from(document.styleSheets)
-  .flatMap(sheet => Array.from(sheet.cssRules))
-  .filter(rule => rule.style?.cssText?.includes('--'))
-```
+| Rule | Do | Don't |
+|------|----|----- |
+| **No emoji icons** | Use SVG icons (Heroicons, Lucide, Simple Icons) | Use emojis like 🎨 🚀 ⚙️ as UI icons |
+| **Stable hover states** | Use color/opacity transitions on hover | Use scale transforms that shift layout |
+| **Correct brand logos** | Research official SVG from Simple Icons | Guess or use incorrect logo paths |
+| **Consistent icon sizing** | Use fixed viewBox (24x24) with w-6 h-6 | Mix different icon sizes randomly |
 
-### Component Inventory Script
-```javascript
-// Count unique component classes
-[...new Set(
-  [...document.querySelectorAll('[class]')]
-    .flatMap(el => [...el.classList])
-)].sort()
-```
+### Interaction & Cursor
+
+| Rule | Do | Don't |
+|------|----|----- |
+| **Cursor pointer** | Add `cursor-pointer` to all clickable/hoverable cards | Leave default cursor on interactive elements |
+| **Hover feedback** | Provide visual feedback (color, shadow, border) | No indication element is interactive |
+| **Smooth transitions** | Use `transition-colors duration-200` | Instant state changes or too slow (>500ms) |
+
+### Light/Dark Mode Contrast
+
+| Rule | Do | Don't |
+|------|----|----- |
+| **Glass card light mode** | Use `bg-white/80` or higher opacity | Use `bg-white/10` (too transparent) |
+| **Text contrast light** | Use `#0F172A` (slate-900) for text | Use `#94A3B8` (slate-400) for body text |
+| **Muted text light** | Use `#475569` (slate-600) minimum | Use gray-400 or lighter |
+| **Border visibility** | Use `border-gray-200` in light mode | Use `border-white/10` (invisible) |
+
+### Layout & Spacing
+
+| Rule | Do | Don't |
+|------|----|----- |
+| **Floating navbar** | Add `top-4 left-4 right-4` spacing | Stick navbar to `top-0 left-0 right-0` |
+| **Content padding** | Account for fixed navbar height | Let content hide behind fixed elements |
+| **Consistent max-width** | Use same `max-w-6xl` or `max-w-7xl` | Mix different container widths |
+
+---
+
+## Pre-Delivery Checklist
+
+Before delivering UI code, verify these items:
+
+### Visual Quality
+- [ ] No emojis used as icons (use SVG instead)
+- [ ] All icons from consistent icon set (Heroicons/Lucide)
+- [ ] Brand logos are correct (verified from Simple Icons)
+- [ ] Hover states don't cause layout shift
+- [ ] Use theme colors directly (bg-primary) not var() wrapper
+
+### Interaction
+- [ ] All clickable elements have `cursor-pointer`
+- [ ] Hover states provide clear visual feedback
+- [ ] Transitions are smooth (150-300ms)
+- [ ] Focus states visible for keyboard navigation
+
+### Light/Dark Mode
+- [ ] Light mode text has sufficient contrast (4.5:1 minimum)
+- [ ] Glass/transparent elements visible in light mode
+- [ ] Borders visible in both modes
+- [ ] Test both modes before delivery
+
+### Layout
+- [ ] Floating elements have proper spacing from edges
+- [ ] No content hidden behind fixed navbars
+- [ ] Responsive at 375px, 768px, 1024px, 1440px
+- [ ] No horizontal scroll on mobile
+
+### Accessibility
+- [ ] All images have alt text
+- [ ] Form inputs have labels
+- [ ] Color is not the only indicator
+- [ ] `prefers-reduced-motion` respected

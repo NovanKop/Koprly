@@ -11,7 +11,7 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
         {
             id: 'home',
             icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                     <rect x="3" y="3" width="7" height="7" rx="1.5" />
                     <rect x="14" y="3" width="7" height="7" rx="1.5" />
                     <rect x="3" y="14" width="7" height="7" rx="1.5" />
@@ -21,23 +21,23 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
         },
         {
             id: 'report',
-            icon: <PieChart size={24} />
+            icon: <PieChart size={20} />
         },
         {
             id: 'budget',
-            icon: <Wallet size={24} />
+            icon: <Wallet size={20} />
         },
         {
             id: 'settings',
-            icon: <Settings size={22} />
+            icon: <Settings size={20} />
         }
     ] as const;
 
     // Calculate active index for smooth sliding animation
     const activeIndex = menuItems.findIndex(item => item.id === currentView);
 
-    // Button: p-4 = 16px*2 + 24px icon = 56px, gap-2 = 8px
-    const buttonWidth = 56;
+    // Button: p-4 = 16px*2 + 20px icon = 52px, gap-2 = 8px
+    const buttonWidth = 52;
     const gap = 8;
     const circleX = activeIndex >= 0 ? activeIndex * (buttonWidth + gap) + 8 : 0;
 
@@ -52,7 +52,7 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
                 {/* Single Sliding Circle Indicator */}
                 {activeIndex >= 0 && (
                     <motion.div
-                        className="absolute w-13 h-13 rounded-full bg-gradient-to-br from-primary via-primary/80 to-secondary shadow-lg shadow-primary/30"
+                        className="absolute w-[52px] h-[52px] rounded-full bg-gradient-to-br from-primary via-primary/80 to-secondary shadow-lg shadow-primary/30"
                         animate={{
                             x: circleX,
                             y: '-50%'
