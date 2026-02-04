@@ -3,21 +3,17 @@ import { useAuth } from '../context/AuthContext';
 import confetti from 'canvas-confetti';
 import { api } from '../lib/api';
 import { useAppStore } from '../store/useAppStore';
-import { CATEGORY_ICONS } from '../lib/constants';
 import type { Category, Transaction, Wallet, Profile } from '../types';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Plus, AlertTriangle, Trash2, X, Pencil, Eye, EyeOff, ChevronRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowLeft, Plus, AlertTriangle, Pencil, Eye, EyeOff, ChevronRight } from 'lucide-react';
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval, subMonths, isBefore } from 'date-fns';
-import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/glass/GlassCard';
 import { ProgressBarGlow } from '../components/glass/ProgressBarGlow';
 import { BudgetSkeleton } from '../components/skeletons/BudgetSkeleton';
-import { DeleteConfirmationModal } from '../components/modals/DeleteConfirmationModal';
 import { SmartResetModal } from '../components/modals/SmartResetModal';
 
 import { CategoryIcon } from '../components/ui/CategoryIcon';
 import { MonthSelector } from '../components/MonthSelector';
-import { formatIDR, parseIDR } from '../utils/currencyFormatter';
 import { AddCategoryModal } from '../components/AddCategoryModal';
 
 
@@ -35,7 +31,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     const { user } = useAuth();
     const { currency, setBottomMenuVisible, showPrivacy, setShowPrivacy } = useAppStore();
     const [loading, setLoading] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
+    const [, setSubmitting] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [wallets, setWallets] = useState<Wallet[]>([]);
