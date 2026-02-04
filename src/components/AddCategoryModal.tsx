@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trash2, Pencil } from 'lucide-react';
+import { X, Trash2, Pencil, ChevronDown } from 'lucide-react';
 import { api } from '../lib/api';
 import { Button } from './ui/Button';
 import { CategoryIcon } from './ui/CategoryIcon';
 import { CATEGORY_ICONS, CATEGORY_COLORS } from '../lib/constants';
+import { normalizeIconName } from '../lib/iconMapping';
 import { formatMoney } from '../lib/utils';
 import type { Category, Transaction } from '../types';
 import { DeleteConfirmationModal } from './modals/DeleteConfirmationModal';
@@ -41,12 +42,21 @@ export function AddCategoryModal({
     const [budget, setBudget] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showScrollHint, setShowScrollHint] = useState(false);
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    const handleScroll = () => {
+        if (!scrollRef.current) return;
+        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+        const reachedBottom = scrollHeight - scrollTop - clientHeight < 20;
+        setShowScrollHint(!reachedBottom);
+    };
 
     useEffect(() => {
         if (isOpen) {
             if (initialCategory) {
                 setName(initialCategory.name);
-                setIcon(initialCategory.icon);
+                setIcon(normalizeIconName(initialCategory.icon));
                 setColor(initialCategory.color);
                 setBudget(initialCategory.monthly_budget ? initialCategory.monthly_budget.toString() : '');
             } else {
@@ -56,6 +66,14 @@ export function AddCategoryModal({
                 setColor(CATEGORY_COLORS[0]);
                 setBudget('');
             }
+
+            // Initial scroll check
+            setTimeout(() => {
+                if (scrollRef.current) {
+                    const { scrollHeight, clientHeight } = scrollRef.current;
+                    setShowScrollHint(scrollHeight > clientHeight);
+                }
+            }, 300);
         }
     }, [isOpen, initialCategory]);
 
@@ -139,149 +157,171 @@ export function AddCategoryModal({
                             </div>
 
                             {/* Form */}
-                            <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+                            <div className="relative">
+                                <div
+                                    ref={scrollRef}
+                                    onScroll={handleScroll}
+                                    className="p-6 space-y-6 max-h-[60vh] overflow-y-auto scroll-smooth custom-scrollbar"
+                                >
 
-                                {/* Budget Allocation Visualization (Optional) */}
-                                {originalBudget > 0 && (
-                                    <div className={`p-3 rounded-xl border ${(() => {
-                                        const currentCatBudget = initialCategory?.monthly_budget || 0;
-                                        const newCatBudget = budget ? parseFloat(budget) : 0;
-                                        const projectedTotal = totalCategoryBudgets - currentCatBudget + newCatBudget;
-                                        const wouldBeOver = projectedTotal > originalBudget;
-                                        return wouldBeOver ? 'bg-error/10 border-error/30' : 'bg-surface border-border-color';
-                                    })()
-                                        }`}>
-                                        {showAllocationMessage && (
-                                            <div className="mb-3 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-600 dark:text-blue-400">
-                                                Adjust your allocation budget in the Budget Page &gt; Edit Category.
+                                    {/* Budget Allocation Visualization (Optional) */}
+                                    {originalBudget > 0 && (
+                                        <div className={`p-3 rounded-xl border ${(() => {
+                                            const currentCatBudget = initialCategory?.monthly_budget || 0;
+                                            const newCatBudget = budget ? parseFloat(budget) : 0;
+                                            const projectedTotal = totalCategoryBudgets - currentCatBudget + newCatBudget;
+                                            const wouldBeOver = projectedTotal > originalBudget;
+                                            return wouldBeOver ? 'bg-error/10 border-error/30' : 'bg-surface border-border-color';
+                                        })()
+                                            }`}>
+                                            {showAllocationMessage && (
+                                                <div className="mb-3 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-600 dark:text-blue-400">
+                                                    Adjust your allocation budget in the Budget Page &gt; Edit Category.
+                                                </div>
+                                            )}
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-xs text-text-secondary">Budget Allocation</span>
+                                                <span className="text-xs font-semibold">
+                                                    {(() => {
+                                                        const currentCatBudget = initialCategory?.monthly_budget || 0;
+                                                        const newCatBudget = budget ? parseFloat(budget) : 0;
+                                                        const projectedTotal = totalCategoryBudgets - currentCatBudget + newCatBudget;
+                                                        const pct = originalBudget > 0 ? Math.round((projectedTotal / originalBudget) * 100) : 0;
+                                                        return `${pct}%`;
+                                                    })()}
+                                                </span>
                                             </div>
-                                        )}
-                                        <div className="flex items-center justify-between mb-1">
-                                            <span className="text-xs text-text-secondary">Budget Allocation</span>
-                                            <span className="text-xs font-semibold">
+                                            <div className="h-2 bg-border-color rounded-full overflow-hidden mb-1">
+                                                <div
+                                                    className="h-full rounded-full transition-all duration-300"
+                                                    style={{
+                                                        width: `${Math.min((() => {
+                                                            const currentCatBudget = initialCategory?.monthly_budget || 0;
+                                                            const newCatBudget = budget ? parseFloat(budget) : 0;
+                                                            const projectedTotal = totalCategoryBudgets - currentCatBudget + newCatBudget;
+                                                            return originalBudget > 0 ? (projectedTotal / originalBudget) * 100 : 0;
+                                                        })(), 100)}%`,
+                                                        backgroundColor: (() => {
+                                                            const currentCatBudget = initialCategory?.monthly_budget || 0;
+                                                            const newCatBudget = budget ? parseFloat(budget) : 0;
+                                                            const projectedTotal = totalCategoryBudgets - currentCatBudget + newCatBudget;
+                                                            const pct = originalBudget > 0 ? (projectedTotal / originalBudget) * 100 : 0;
+                                                            return projectedTotal > originalBudget ? '#FF3B30' : pct > 80 ? '#FF9500' : '#34C759';
+                                                        })()
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="flex justify-between text-xs">
+                                                <span className="text-text-secondary">
+                                                    {formatMoney((() => {
+                                                        const currentCatBudget = initialCategory?.monthly_budget || 0;
+                                                        const newCatBudget = budget ? parseFloat(budget) : 0;
+                                                        return totalCategoryBudgets - currentCatBudget + newCatBudget;
+                                                    })())} / {formatMoney(originalBudget)}
+                                                </span>
                                                 {(() => {
                                                     const currentCatBudget = initialCategory?.monthly_budget || 0;
                                                     const newCatBudget = budget ? parseFloat(budget) : 0;
                                                     const projectedTotal = totalCategoryBudgets - currentCatBudget + newCatBudget;
-                                                    const pct = originalBudget > 0 ? Math.round((projectedTotal / originalBudget) * 100) : 0;
-                                                    return `${pct}%`;
+                                                    const remaining = originalBudget - projectedTotal;
+                                                    if (remaining < 0) {
+                                                        return <span className="text-error font-semibold">{formatMoney(Math.abs(remaining))} over!</span>;
+                                                    }
+                                                    return <span className="text-success">{formatMoney(remaining)} left</span>;
                                                 })()}
-                                            </span>
+                                            </div>
                                         </div>
-                                        <div className="h-2 bg-border-color rounded-full overflow-hidden mb-1">
-                                            <div
-                                                className="h-full rounded-full transition-all duration-300"
-                                                style={{
-                                                    width: `${Math.min((() => {
-                                                        const currentCatBudget = initialCategory?.monthly_budget || 0;
-                                                        const newCatBudget = budget ? parseFloat(budget) : 0;
-                                                        const projectedTotal = totalCategoryBudgets - currentCatBudget + newCatBudget;
-                                                        return originalBudget > 0 ? (projectedTotal / originalBudget) * 100 : 0;
-                                                    })(), 100)}%`,
-                                                    backgroundColor: (() => {
-                                                        const currentCatBudget = initialCategory?.monthly_budget || 0;
-                                                        const newCatBudget = budget ? parseFloat(budget) : 0;
-                                                        const projectedTotal = totalCategoryBudgets - currentCatBudget + newCatBudget;
-                                                        const pct = originalBudget > 0 ? (projectedTotal / originalBudget) * 100 : 0;
-                                                        return projectedTotal > originalBudget ? '#FF3B30' : pct > 80 ? '#FF9500' : '#34C759';
-                                                    })()
+                                    )}
+
+                                    {/* Monthly Budget */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-text-secondary mb-2">Monthly Budget</label>
+                                        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-surface border border-border-color focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors">
+                                            <span className="text-text-secondary">{currencySymbol}</span>
+                                            <input
+                                                type="text"
+                                                value={budget.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
+                                                onChange={(e) => {
+                                                    const rawValue = e.target.value.replace(/\./g, "").replace(/[^0-9]/g, "");
+                                                    setBudget(rawValue);
                                                 }}
+                                                placeholder="0"
+                                                className="flex-1 bg-transparent outline-none"
                                             />
+                                            <Pencil size={16} className="text-text-secondary opacity-50" />
                                         </div>
-                                        <div className="flex justify-between text-xs">
-                                            <span className="text-text-secondary">
-                                                {formatMoney((() => {
-                                                    const currentCatBudget = initialCategory?.monthly_budget || 0;
-                                                    const newCatBudget = budget ? parseFloat(budget) : 0;
-                                                    return totalCategoryBudgets - currentCatBudget + newCatBudget;
-                                                })())} / {formatMoney(originalBudget)}
-                                            </span>
-                                            {(() => {
-                                                const currentCatBudget = initialCategory?.monthly_budget || 0;
-                                                const newCatBudget = budget ? parseFloat(budget) : 0;
-                                                const projectedTotal = totalCategoryBudgets - currentCatBudget + newCatBudget;
-                                                const remaining = originalBudget - projectedTotal;
-                                                if (remaining < 0) {
-                                                    return <span className="text-error font-semibold">{formatMoney(Math.abs(remaining))} over!</span>;
-                                                }
-                                                return <span className="text-success">{formatMoney(remaining)} left</span>;
-                                            })()}
+                                        <p className="text-xs text-text-secondary mt-1">Leave empty to only track spending</p>
+                                    </div>
+
+                                    {/* Name */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-text-secondary mb-2">Category Name</label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                placeholder="e.g. Groceries"
+                                                className="w-full px-4 py-3 pr-10 rounded-xl bg-surface border border-border-color focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                                            />
+                                            <Pencil size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 pointer-events-none" />
                                         </div>
                                     </div>
-                                )}
 
-                                {/* Monthly Budget */}
-                                <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-2">Monthly Budget</label>
-                                    <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-surface border border-border-color focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors">
-                                        <span className="text-text-secondary">{currencySymbol}</span>
-                                        <input
-                                            type="text"
-                                            value={budget.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
-                                            onChange={(e) => {
-                                                const rawValue = e.target.value.replace(/\./g, "").replace(/[^0-9]/g, "");
-                                                setBudget(rawValue);
-                                            }}
-                                            placeholder="0"
-                                            className="flex-1 bg-transparent outline-none"
-                                        />
-                                        <Pencil size={16} className="text-text-secondary opacity-50" />
+                                    {/* Icon Picker */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-text-secondary mb-2">Icon</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {CATEGORY_ICONS.map((ic) => (
+                                                <button
+                                                    key={ic}
+                                                    type="button"
+                                                    onClick={() => setIcon(ic)}
+                                                    className="focus:outline-none"
+                                                >
+                                                    <CategoryIcon
+                                                        iconName={ic}
+                                                        variant="picker"
+                                                        isActive={icon === ic}
+                                                        activeColor={color}
+                                                    />
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <p className="text-xs text-text-secondary mt-1">Leave empty to only track spending</p>
-                                </div>
 
-                                {/* Name */}
-                                <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-2">Category Name</label>
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                            placeholder="e.g. Groceries"
-                                            className="w-full px-4 py-3 pr-10 rounded-xl bg-surface border border-border-color focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-                                        />
-                                        <Pencil size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 pointer-events-none" />
-                                    </div>
-                                </div>
-
-                                {/* Icon Picker */}
-                                <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-2">Icon</label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {CATEGORY_ICONS.map((ic) => (
-                                            <button
-                                                key={ic}
-                                                type="button"
-                                                onClick={() => setIcon(ic)}
-                                                className="focus:outline-none"
-                                            >
-                                                <CategoryIcon
-                                                    iconName={ic}
-                                                    variant="picker"
-                                                    isActive={icon === ic}
-                                                    activeColor={color}
+                                    {/* Color Picker */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-text-secondary mb-2">Color</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {CATEGORY_COLORS.map((c) => (
+                                                <button
+                                                    key={c}
+                                                    type="button"
+                                                    onClick={() => setColor(c)}
+                                                    className={`w-8 h-8 rounded-full transition-transform ${color === c ? 'scale-125 ring-2 ring-white' : 'hover:scale-110'}`}
+                                                    style={{ backgroundColor: c }}
                                                 />
-                                            </button>
-                                        ))}
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Color Picker */}
-                                <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-2">Color</label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {CATEGORY_COLORS.map((c) => (
-                                            <button
-                                                key={c}
-                                                type="button"
-                                                onClick={() => setColor(c)}
-                                                className={`w-8 h-8 rounded-full transition-transform ${color === c ? 'scale-125 ring-2 ring-white' : 'hover:scale-110'}`}
-                                                style={{ backgroundColor: c }}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
+                                {/* Scroll Indicator */}
+                                <AnimatePresence>
+                                    {showScrollHint && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -10 }}
+                                            className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none"
+                                        >
+                                            <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-1 rounded-full border border-border-color shadow-xl animate-bounce">
+                                                <ChevronDown size={20} className="text-primary" />
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
 
                             {/* Footer */}

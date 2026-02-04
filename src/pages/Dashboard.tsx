@@ -20,6 +20,7 @@ import { BottomMenu } from '../components/BottomMenu';
 import { useAppStore } from '../store/useAppStore';
 import { formatMoney } from '../lib/utils';
 import { formatDate } from '../utils/dateFormatter';
+import { formatIDR, parseIDR } from '../utils/currencyFormatter';
 import { MAX_WALLETS, WALLET_ICONS, WALLET_COLORS } from '../lib/constants';
 import NotificationBell from '../components/NotificationBell';
 import { useTransactionManager } from '../hooks/useTransactionManager';
@@ -27,6 +28,7 @@ import { EditTransactionModal } from '../components/EditTransactionModal';
 import { AddCategoryModal } from '../components/AddCategoryModal';
 import { DashboardSkeleton } from '../components/skeletons/DashboardSkeleton';
 import { KoprlystGuide } from '../components/guide/KoprlystGuide';
+import { BalanceWarningModal } from '../components/modals/BalanceWarningModal';
 import type { Category, Transaction, Profile, Wallet as WalletType, Notification } from '../types';
 
 
@@ -106,6 +108,7 @@ export default function Dashboard() {
     const [showEditTransaction, setShowEditTransaction] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [activeIconPickerIndex, setActiveIconPickerIndex] = useState<number | null>(null);
+    const [showBalanceWarning, setShowBalanceWarning] = useState(false);
 
 
 
@@ -126,27 +129,27 @@ export default function Dashboard() {
     const loadData = useCallback(async () => {
         if (!user) return;
         try {
-            // Load profile
-            const profileData = await api.getProfile();
+            const [profileData, initialCats, walletsData, txns] = await Promise.all([
+                api.getProfile(),
+                api.getCategories(),
+                api.getWallets(),
+                api.getTransactions()
+            ]);
+
             setProfile(profileData);
 
-            // Load categories
-            let cats = await api.getCategories();
+            let cats = initialCats;
             if (cats.length === 0) {
-                await api.createDefaultCategories(user.id);
+                await api.createDefaultCategories(user!.id);
                 cats = await api.getCategories();
             }
             setCategories(cats);
 
-            // Load Wallets
-            const walletsData = await api.getWallets();
             setWallets(walletsData);
             if (walletsData.length > 0) setSelectedWallet(walletsData[0].id);
 
-            // Load transactions
-            const txns = await api.getTransactions();
             // Sort by date descending
-            txns.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            txns.sort((a: Transaction, b: Transaction) => new Date(b.date).getTime() - new Date(a.date).getTime());
             setTransactions(txns);
 
         } catch (error) {
@@ -176,7 +179,8 @@ export default function Dashboard() {
                     disableForReducedMotion: true,
                 });
                 // Auto-dismiss after 4 seconds
-                setTimeout(() => setShowWelcome(false), 4000);
+                const timer = setTimeout(() => setShowWelcome(false), 4000);
+                return () => clearTimeout(timer);
             }
         }
     }, [profile?.onboarding_complete, loading]);
@@ -296,14 +300,19 @@ export default function Dashboard() {
 
             await loadData();
             setShowWalletModal(false);
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error(e);
-            if (e.message?.includes('Could not find the table') || e.message?.includes('relation "public.wallets" does not exist')) {
+            let errorMessage = 'An unexpected error occurred';
+            if (e instanceof Error) {
+                errorMessage = e.message;
+            }
+
+            if (errorMessage.includes('Could not find the table') || errorMessage.includes('relation "public.wallets" does not exist')) {
                 alert('Database Setup Required: The "wallets" table is missing. Please run the provided SQL script in your Supabase Dashboard.');
-            } else if (e.message?.includes('foreign key constraint')) {
+            } else if (errorMessage.includes('foreign key constraint')) {
                 alert('Cannot delete this wallet because it has transactions. Please reassign or delete the transactions first.');
             } else {
-                alert(`Error saving wallets: ${e.message} `);
+                alert(`Error saving wallets: ${errorMessage} `);
             }
         } finally {
             setSubmitting(false);
@@ -316,42 +325,59 @@ export default function Dashboard() {
 
 
 
-    const handleAddExpense = useCallback(async () => {
-        const rawAmount = amount.replace(/\./g, '');
-        if (!rawAmount || !selectedCategory) return;
+    const handleProceedWithExpense = useCallback(async () => {
+        const numericAmount = parseIDR(amount);
         setSubmitting(true);
         try {
             await api.addExpense({
-                amount: parseFloat(rawAmount),
+                amount: numericAmount,
                 description,
                 category_id: selectedCategory,
-                wallet_id: selectedWallet || undefined, // Sanitize empty string to undefined
+                wallet_id: selectedWallet || undefined,
                 user_id: user!.id,
                 date: transactionDate
-            } as any);
+            });
 
             setAmount('');
             setDescription('');
             setSelectedCategory('');
             setTransactionDate(new Date().toISOString().split('T')[0]);
             setShowAddExpense(false);
+            setShowBalanceWarning(false);
 
             await loadData();
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error(e);
-            alert(`Error adding expense: ${e.message || JSON.stringify(e)} `);
+            const msg = e instanceof Error ? e.message : 'Unknown error';
+            alert(`Error adding expense: ${msg}`);
         } finally {
             setSubmitting(false);
         }
     }, [amount, selectedCategory, description, selectedWallet, user, transactionDate, loadData]);
 
+    const handleAddExpense = useCallback(async () => {
+        const numericAmount = parseIDR(amount);
+        if (numericAmount <= 0 || !selectedCategory) return;
+
+        // Check wallet balance
+        if (selectedWallet) {
+            const wallet = wallets.find(w => w.id === selectedWallet);
+            if (wallet && numericAmount > wallet.balance) {
+                setShowBalanceWarning(true);
+                return;
+            }
+        }
+
+        await handleProceedWithExpense();
+    }, [amount, selectedCategory, selectedWallet, wallets, handleProceedWithExpense]);
+
     const handleAddIncome = useCallback(async () => {
-        const rawAmount = amount.replace(/\./g, '');
-        if (!rawAmount) return;
+        const numericAmount = parseIDR(amount);
+        if (numericAmount <= 0) return;
         setSubmitting(true);
         try {
             await api.addIncome({
-                amount: parseFloat(rawAmount),
+                amount: numericAmount,
                 description,
                 wallet_id: selectedWallet || undefined, // Sanitize empty string to undefined
                 user_id: user!.id,
@@ -364,9 +390,10 @@ export default function Dashboard() {
             setShowAddIncome(false);
 
             await loadData();
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error(e);
-            alert(`Error adding income: ${e.message || JSON.stringify(e)} `);
+            const msg = e instanceof Error ? e.message : 'Unknown error';
+            alert(`Error adding income: ${msg} `);
         } finally {
             setSubmitting(false);
         }
@@ -390,13 +417,14 @@ export default function Dashboard() {
         setShowEditTransaction(true);
     }, []);
 
-    const handleUpdateSubmit = async (original: Transaction, updates: any) => {
+    const handleUpdateSubmit = async (original: Transaction, updates: { amount: number; description: string; date: string; category_id?: string; wallet_id?: string }) => {
         try {
             await updateTransaction(original, updates);
             setShowEditTransaction(false);
             setEditingTransaction(null);
-        } catch (error: any) {
-            alert(`Error updating transaction: ${error.message}`);
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'Unknown error';
+            alert(`Error updating transaction: ${msg}`);
         }
     };
 
@@ -405,7 +433,8 @@ export default function Dashboard() {
             await deleteTransaction(txn);
             setShowEditTransaction(false);
             setEditingTransaction(null);
-        } catch (error: any) {
+        } catch (error: unknown) {
+            console.error(error);
             alert('Failed to delete transaction');
         }
     };
@@ -567,7 +596,7 @@ export default function Dashboard() {
                                 }}
                                 className="px-5"
                             >
-                                <div className="relative px-6 py-5 rounded-[32px] overflow-hidden glass-panel bg-white/70 backdrop-blur-xl dark:bg-white/5 dark:backdrop-blur-none border border-white/40 dark:border-white/10 shadow-[0_2px_8px_0_rgba(0,0,0,0.04)] dark:shadow-2xl transition-all duration-300 hover:shadow-primary/10">
+                                <div className="relative px-6 py-5 rounded-[32px] overflow-hidden glass-panel bg-white/80 backdrop-blur-xl dark:bg-white/5 dark:backdrop-blur-none border border-white/40 dark:border-white/10 shadow-[0_2px_8px_0_rgba(0,0,0,0.04)] dark:shadow-2xl transition-all duration-300 hover:shadow-primary/10">
                                     {/* Background Gradient Mesh - Dynamic based on theme */}
                                     <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-blue-600/20 dark:bg-blue-600/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
                                     <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-green-500/20 dark:bg-green-500/10 rounded-full blur-[60px] translate-y-1/3 -translate-x-1/3" />
@@ -579,6 +608,7 @@ export default function Dashboard() {
                                             <button
                                                 onClick={() => setShowPrivacy(!showPrivacy)}
                                                 className="text-text-secondary hover:text-text-primary transition-colors focus:outline-none"
+                                                aria-label={showPrivacy ? "Hide balance" : "Show balance"}
                                             >
                                                 {showPrivacy ? <Eye size={14} /> : <EyeOff size={14} />}
                                             </button>
@@ -656,40 +686,58 @@ export default function Dashboard() {
                                                         setSelectedWallet(wallet.id);
                                                         openWalletModal();
                                                     }}
-                                                    className={`min-w-[160px] p-5 rounded-[20px] ${!wallet.color ? gradientClass : ''} border border-white/10 snap-start flex flex-col justify-between h-[110px] relative overflow-hidden group shadow-lg`}
+                                                    className={`min-w-[180px] p-5 rounded-[20px] ${!wallet.color ? gradientClass : ''} border border-white/10 snap-start flex flex-col justify-between h-[120px] relative overflow-hidden group shadow-2xl transition-all duration-300 hover:shadow-primary/20`}
                                                     style={{ backgroundColor: wallet.color || undefined }}
                                                 >
-                                                    <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                    <div className="flex items-center gap-2 text-white/90 relative z-10">
+                                                    {/* Glass Overlay & Shine Effect */}
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-60 pointer-events-none" />
+                                                    <div className="absolute -inset-full bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-[-20deg] animate-pulse duration-[3000ms] pointer-events-none" />
+
+                                                    {/* Large Dynamic Watermark Icon */}
+                                                    <div className="absolute -right-4 -bottom-4 opacity-15 rotate-[15deg] pointer-events-none text-white transition-transform duration-500 group-hover:scale-110 group-hover:rotate-[20deg]">
                                                         {(() => {
                                                             const IconComponent = WALLET_ICONS.find(i => i.type === wallet.type)?.Icon || CreditCard;
-                                                            return <IconComponent size={18} />;
+                                                            return <IconComponent size={100} strokeWidth={1.5} />;
                                                         })()}
-                                                        <span className="text-sm font-bold truncate">{wallet.name}</span>
                                                     </div>
-                                                    <div className="relative z-10">
-                                                        <p className="text-xl font-numeric text-white mb-2">
-                                                            {showPrivacy ? formatMoney(wallet.balance, currency) : '••••'}
-                                                        </p>
-                                                        {/* Usage Bar */}
-                                                        {(() => {
-                                                            // Calculate usage based on (Current Balance / (Current Balance + Experiments))
-                                                            const walletExpenses = transactions
-                                                                .filter(t => t.wallet_id === wallet.id && t.type === 'expense')
-                                                                .reduce((sum, t) => sum + Number(t.amount), 0);
 
-                                                            const totalFunds = Number(wallet.balance) + walletExpenses;
-                                                            const percentage = totalFunds > 0 ? (walletExpenses / totalFunds) * 100 : 0;
+                                                    {/* Content Layer */}
+                                                    <div className="relative z-10 flex flex-col h-full justify-between">
+                                                        <div className="space-y-0">
+                                                            <h4 className="text-sm font-bold text-white tracking-wide truncate uppercase opacity-90">{wallet.name}</h4>
+                                                            <p className="text-lg font-black text-white tracking-tight leading-tight font-numeric">
+                                                                {showPrivacy ? formatMoney(wallet.balance, currency) : '••••'}
+                                                            </p>
+                                                        </div>
 
-                                                            return (
-                                                                <div className="h-1 bg-black/20 rounded-full overflow-hidden w-full">
-                                                                    <div
-                                                                        className="h-full bg-white/40 backdrop-blur-sm rounded-full transition-all duration-500"
-                                                                        style={{ width: `${percentage}%` }}
-                                                                    />
-                                                                </div>
-                                                            );
-                                                        })()}
+                                                        {/* Usage Progress Section */}
+                                                        <div>
+                                                            {(() => {
+                                                                // Calculate usage based on (Expenses / (Balance + Expenses))
+                                                                const walletExpenses = transactions
+                                                                    .filter(t => t.wallet_id === wallet.id && t.type === 'expense')
+                                                                    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+                                                                const totalFunds = Number(wallet.balance) + walletExpenses;
+                                                                const percentage = totalFunds > 0 ? Math.min((walletExpenses / totalFunds) * 100, 100) : 0;
+
+                                                                return (
+                                                                    <div className="">
+                                                                        <div className="h-1 bg-black/20 rounded-full overflow-hidden w-full border border-white/5 backdrop-blur-sm">
+                                                                            <motion.div
+                                                                                initial={{ width: 0 }}
+                                                                                animate={{ width: `${percentage}%` }}
+                                                                                transition={{ duration: 1, ease: "easeOut" }}
+                                                                                className="h-full bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.4)] relative"
+                                                                            >
+                                                                                {/* Progress Glow */}
+                                                                                <div className="absolute right-0 top-0 bottom-0 w-2 bg-white blur-[2px]" />
+                                                                            </motion.div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })()}
+                                                        </div>
                                                     </div>
                                                 </motion.div>
                                             );
@@ -698,6 +746,7 @@ export default function Dashboard() {
                                             whileTap={{ scale: 0.98 }}
                                             onClick={openWalletModal}
                                             className="min-w-[60px] rounded-[24px] bg-surface border border-border-color flex items-center justify-center snap-start hover:bg-surface/80 transition-colors"
+                                            aria-label="Add new wallet"
                                         >
                                             <Plus size={24} className="text-text-secondary" />
                                         </motion.button>
@@ -773,6 +822,7 @@ export default function Dashboard() {
                                                 <button
                                                     onClick={() => setShowAddExpense(false)}
                                                     className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                                                    aria-label="Close expense form"
                                                 >
                                                     <X size={20} className="text-text-secondary" />
                                                 </button>
@@ -782,10 +832,7 @@ export default function Dashboard() {
                                                 type="text"
                                                 inputMode="numeric"
                                                 value={amount}
-                                                onChange={(e) => {
-                                                    const val = e.target.value.replace(/\D/g, '');
-                                                    setAmount(val ? new Intl.NumberFormat('id-ID').format(parseInt(val)) : '');
-                                                }}
+                                                onChange={(e) => setAmount(formatIDR(e.target.value))}
                                             />
                                             <Input
                                                 label="Description"
@@ -865,10 +912,7 @@ export default function Dashboard() {
                                                 type="text"
                                                 inputMode="numeric"
                                                 value={amount}
-                                                onChange={(e) => {
-                                                    const val = e.target.value.replace(/\D/g, '');
-                                                    setAmount(val ? new Intl.NumberFormat('id-ID').format(parseInt(val)) : '');
-                                                }}
+                                                onChange={(e) => setAmount(formatIDR(e.target.value))}
                                             />
                                             <Input
                                                 label="Description"
@@ -1217,10 +1261,9 @@ export default function Dashboard() {
                                                                 <input
                                                                     type="text"
                                                                     inputMode="numeric"
-                                                                    value={wallet.balance ? wallet.balance.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ''}
+                                                                    value={formatIDR(wallet.balance)}
                                                                     onChange={(e) => {
-                                                                        const val = e.target.value.replace(/\D/g, '');
-                                                                        updateEditingWallet(index, 'balance', val);
+                                                                        updateEditingWallet(index, 'balance', parseIDR(e.target.value).toString());
                                                                     }}
                                                                     placeholder="0"
                                                                     className={`w-full bg-transparent border-none p-0 text-lg font-bold focus:ring-0 ${wallet.color ? 'text-white placeholder:text-white/30' : 'text-text-primary placeholder:text-text-secondary/30'}`}
@@ -1358,6 +1401,17 @@ export default function Dashboard() {
                         <BottomMenu currentView={currentView} onNavigate={handleNavigate} />
                     )}
                 </AnimatePresence>
+
+                <BalanceWarningModal
+                    isOpen={showBalanceWarning}
+                    onClose={() => setShowBalanceWarning(false)}
+                    onConfirm={handleProceedWithExpense}
+                    walletName={wallets.find(w => w.id === selectedWallet)?.name || 'Selected Wallet'}
+                    currentBalance={wallets.find(w => w.id === selectedWallet)?.balance || 0}
+                    expenseAmount={parseIDR(amount)}
+                    currency={currency}
+                    isSubmitting={submitting}
+                />
             </div >
         </div >
     );

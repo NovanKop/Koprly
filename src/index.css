@@ -176,3 +176,21 @@ input[type="date"]::-webkit-datetime-edit-year-field:focus {
   mask-image: linear-gradient(to right, black 65%, transparent 85%);
   -webkit-mask-image: linear-gradient(to right, black 65%, transparent 85%);
 }
+
+/* Custom Scrollbar for Liquid Glass */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}

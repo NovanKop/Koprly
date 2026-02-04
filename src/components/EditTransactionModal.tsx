@@ -7,6 +7,7 @@ import { DatePicker } from './ui/DatePicker';
 import { CategorySelector } from './CategorySelector';
 import { WalletSelector } from './WalletSelector';
 import type { Transaction, Category, Wallet } from '../types';
+import { formatIDR, parseIDR } from '../utils/currencyFormatter';
 
 interface EditTransactionModalProps {
     isOpen: boolean;
@@ -39,7 +40,7 @@ export function EditTransactionModal({
 
     useEffect(() => {
         if (transaction && isOpen) {
-            setAmount(transaction.amount.toString());
+            setAmount(formatIDR(transaction.amount));
             setDescription(transaction.description || '');
             setDate(transaction.date);
             setWalletId(transaction.wallet_id || '');
@@ -50,7 +51,7 @@ export function EditTransactionModal({
     const handleSubmit = async () => {
         if (!transaction || !amount) return;
         await onUpdate(transaction, {
-            amount: parseFloat(amount),
+            amount: parseIDR(amount),
             description,
             date,
             wallet_id: walletId,
@@ -105,9 +106,10 @@ export function EditTransactionModal({
                             {/* Form Fields */}
                             <Input
                                 label="Amount"
-                                type="number"
+                                type="text"
+                                inputMode="numeric"
                                 value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
+                                onChange={(e) => setAmount(formatIDR(e.target.value))}
                             />
                             <Input
                                 label="Description"

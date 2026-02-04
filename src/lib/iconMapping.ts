@@ -91,3 +91,20 @@ export const AVAILABLE_ICONS = [
     'pill', 'gamepad-2', 'coffee', 'plug', 'gift',
     'dumbbell', 'paw-print', 'laptop', 'graduation-cap', 'palette'
 ];
+
+/**
+ * Normalizes an icon name or emoji to the standardized kebab-case name used in AVAILABLE_ICONS.
+ * If no match is found, returns the input as-is.
+ */
+export const normalizeIconName = (icon: string): string => {
+    if (!icon) return AVAILABLE_ICONS[0];
+
+    // If it's already a direct match in AVAILABLE_ICONS, return it
+    if (AVAILABLE_ICONS.includes(icon)) return icon;
+
+    // Otherwise, find which AVAILABLE_ICON resolves to the same component
+    const targetComponent = getIconComponent(icon);
+    const match = AVAILABLE_ICONS.find(ic => getIconComponent(ic) === targetComponent);
+
+    return match || icon;
+};

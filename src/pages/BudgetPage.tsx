@@ -17,6 +17,8 @@ import { SmartResetModal } from '../components/modals/SmartResetModal';
 
 import { CategoryIcon } from '../components/ui/CategoryIcon';
 import { MonthSelector } from '../components/MonthSelector';
+import { formatIDR, parseIDR } from '../utils/currencyFormatter';
+import { AddCategoryModal } from '../components/AddCategoryModal';
 
 
 // Helper to generate last 12 months for dropdown - Deprecated/Replaced
@@ -28,8 +30,6 @@ import { MonthSelector } from '../components/MonthSelector';
 interface BudgetPageProps {
     onBack: () => void;
 }
-
-const CATEGORY_COLORS = ['#34C759', '#FF9500', '#007AFF', '#5856D6', '#FF2D55', '#FF3B30', '#AF52DE', '#8E8E93', '#00C7BE', '#FFD60A'];
 
 export default function BudgetPage({ onBack }: BudgetPageProps) {
     const { user } = useAuth();
@@ -55,29 +55,19 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     };
 
     // Category Modal States
-    const [showAddCategory, setShowAddCategory] = useState(false);
-    const [showEditCategory, setShowEditCategory] = useState(false);
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-
-    // Delete Confirmation State
-    const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
-
-    // Form States
-    const [categoryName, setCategoryName] = useState('');
-    const [categoryIcon, setCategoryIcon] = useState('🛒');
-    const [categoryColor, setCategoryColor] = useState('#34C759');
-    const [categoryBudget, setCategoryBudget] = useState('');
 
     // Budget Edit Limit State
     const [showEditBudget, setShowEditBudget] = useState(false);
 
     // Manage Bottom Menu visibility
     useEffect(() => {
-        const isAnyModalOpen = showAddCategory || showEditCategory || showEditBudget;
+        const isAnyModalOpen = showCategoryModal || showEditBudget;
         setBottomMenuVisible(!isAnyModalOpen);
 
         return () => setBottomMenuVisible(true); // Reset on unmount
-    }, [showAddCategory, showEditCategory, showEditBudget, setBottomMenuVisible]);
+    }, [showCategoryModal, showEditBudget, setBottomMenuVisible]);
 
 
 
@@ -177,7 +167,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     // Congratulation Effect - Fires ONLY when user returns to dashboard with 100% allocation
     useEffect(() => {
         // Do not trigger while editing/adding (wait until modal closes)
-        if (showEditCategory || showAddCategory) return;
+        if (showCategoryModal) return;
 
         const isFullBudget = originalBudget > 0 && Math.abs(totalCategoryBudgets - originalBudget) < 1;
         // Check if value actually changed (to avoid re-firing on random renders)
@@ -196,7 +186,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
 
         // Update ref for next comparison
         prevTotalRef.current = totalCategoryBudgets;
-    }, [totalCategoryBudgets, originalBudget, showEditCategory, showAddCategory]);
+    }, [totalCategoryBudgets, originalBudget, showCategoryModal]);
     const budgetAllocationPercent = originalBudget > 0 ? Math.round((totalCategoryBudgets / originalBudget) * 100) : 0;
     const isBudgetOverAllocated = totalCategoryBudgets > originalBudget;
 
@@ -208,88 +198,6 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
             maximumFractionDigits: 0,
         }).format(amount);
     };
-
-
-    const resetForm = () => {
-        setCategoryName('');
-        setCategoryIcon('🛒');
-        setCategoryColor('#34C759');
-        setCategoryBudget('');
-    };
-
-    const handleAddCategory = async () => {
-        if (!user || !categoryName.trim()) return;
-        setSubmitting(true);
-        try {
-            // Parse budget value - set to undefined if empty
-            const budgetValue = categoryBudget && categoryBudget.trim()
-                ? parseFloat(categoryBudget)
-                : undefined;
-
-            const newCategory = await api.createCategory({
-                name: categoryName.trim(),
-                icon: categoryIcon,
-                color: categoryColor,
-                monthly_budget: budgetValue,
-                user_id: user.id
-            });
-
-            // Optimistically add the new category to local state
-            setCategories(prevCategories => [...prevCategories, newCategory]);
-
-            setShowAddCategory(false);
-            resetForm();
-
-            // Reload data in background to sync any other changes
-            loadData();
-        } catch (error) {
-            console.error('Failed to create category:', error);
-            alert('Failed to create category. Please try again.');
-            // Reload on error to ensure data consistency
-            await loadData();
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    const handleEditCategory = async () => {
-        if (!editingCategory) return;
-        setSubmitting(true);
-        try {
-            // Parse budget value - set to undefined if empty to clear the field
-            const budgetValue = categoryBudget && categoryBudget.trim()
-                ? parseFloat(categoryBudget)
-                : undefined;
-
-            const updatedCategory = await api.updateCategory(editingCategory.id, {
-                name: categoryName.trim(),
-                icon: categoryIcon,
-                color: categoryColor,
-                monthly_budget: budgetValue
-            });
-
-            // Update the local state with the server response (not optimistic)
-            setCategories(prevCategories =>
-                prevCategories.map(cat =>
-                    cat.id === editingCategory.id ? updatedCategory : cat
-                )
-            );
-
-            // No loadData() here - the above update is sufficient and avoids race condition
-
-            setEditingCategory(null);
-            setShowEditCategory(false);
-        } catch (error) {
-            console.error('Error updating category:', error);
-            alert('Failed to update category');
-            // Reload data on error to revert any partial changes
-            loadData();
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-
 
     const handleSaveSmartReset = async (amount: number, day: number) => {
         if (!user) return;
@@ -318,11 +226,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     const openEditModal = (cat: Category) => {
         if (isReadOnly) return;
         setEditingCategory(cat);
-        setCategoryName(cat.name);
-        setCategoryIcon(cat.icon);
-        setCategoryColor(cat.color);
-        setCategoryBudget(cat.monthly_budget?.toString() || '');
-        setShowEditCategory(true);
+        setShowCategoryModal(true);
     };
 
 
@@ -535,8 +439,8 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                     {!isReadOnly && (
                         <button
                             onClick={() => {
-                                resetForm();
-                                setShowAddCategory(true);
+                                setEditingCategory(null);
+                                setShowCategoryModal(true);
                             }}
                             className="text-sm font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
                         >
@@ -623,239 +527,22 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                 </div>
             </motion.div>
 
-            {/* Add/Edit Category Modal */}
-            <AnimatePresence>
-                {(showAddCategory || showEditCategory) && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center px-4 pb-6"
-                        onClick={() => {
-                            setShowAddCategory(false);
-                            setShowEditCategory(false);
-                            setEditingCategory(null);
-                        }}
-                    >
-                        <motion.div
-                            initial={{ opacity: 0, y: 100 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 100 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-full max-w-lg bg-background rounded-[32px] border border-border-color overflow-hidden shadow-2xl"
-                        >
-                            {/* Header */}
-                            <div className="p-6 border-b border-border-color flex items-center justify-between">
-                                <h3 className="text-lg font-bold">
-                                    {showEditCategory ? 'Edit Category' : 'Add Category'}
-                                </h3>
-                                <button
-                                    onClick={() => {
-                                        setShowAddCategory(false);
-                                        setShowEditCategory(false);
-                                        setEditingCategory(null);
-                                    }}
-                                    className="p-2 rounded-full hover:bg-surface transition-colors"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
-
-                            {/* Form */}
-                            <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
-                                {/* Budget Allocation Bar in Modal */}
-                                {originalBudget > 0 && (
-                                    <div className={`p-3 rounded-xl border ${(() => {
-                                        // Calculate what allocation would be with current form value
-                                        const currentCatBudget = editingCategory?.monthly_budget || 0;
-                                        const newCatBudget = categoryBudget ? parseFloat(categoryBudget) : 0;
-                                        const projectedTotal = totalCategoryBudgets - currentCatBudget + newCatBudget;
-                                        const wouldBeOver = projectedTotal > originalBudget;
-                                        return wouldBeOver ? 'bg-error/10 border-error/30' : 'bg-surface border-border-color';
-                                    })()
-                                        }`}>
-                                        <div className="flex items-center justify-between mb-1">
-                                            <span className="text-xs text-text-secondary">Budget Allocation</span>
-                                            <span className="text-xs font-semibold">
-                                                {(() => {
-                                                    const currentCatBudget = editingCategory?.monthly_budget || 0;
-                                                    const newCatBudget = categoryBudget ? parseFloat(categoryBudget) : 0;
-                                                    const projectedTotal = totalCategoryBudgets - currentCatBudget + newCatBudget;
-                                                    const pct = originalBudget > 0 ? Math.round((projectedTotal / originalBudget) * 100) : 0;
-                                                    return `${pct}%`;
-                                                })()}
-                                            </span>
-                                        </div>
-                                        <div className="h-2 bg-border-color rounded-full overflow-hidden mb-1">
-                                            <div
-                                                className="h-full rounded-full transition-all duration-300"
-                                                style={{
-                                                    width: `${Math.min((() => {
-                                                        const currentCatBudget = editingCategory?.monthly_budget || 0;
-                                                        const newCatBudget = categoryBudget ? parseFloat(categoryBudget) : 0;
-                                                        const projectedTotal = totalCategoryBudgets - currentCatBudget + newCatBudget;
-                                                        return originalBudget > 0 ? (projectedTotal / originalBudget) * 100 : 0;
-                                                    })(), 100)}%`,
-                                                    backgroundColor: (() => {
-                                                        const currentCatBudget = editingCategory?.monthly_budget || 0;
-                                                        const newCatBudget = categoryBudget ? parseFloat(categoryBudget) : 0;
-                                                        const projectedTotal = totalCategoryBudgets - currentCatBudget + newCatBudget;
-                                                        const pct = originalBudget > 0 ? (projectedTotal / originalBudget) * 100 : 0;
-                                                        return projectedTotal > originalBudget ? '#FF3B30' : pct > 80 ? '#FF9500' : '#34C759';
-                                                    })()
-                                                }}
-                                            />
-                                        </div>
-                                        <div className="flex justify-between text-xs">
-                                            <span className="text-text-secondary">
-                                                {formatMoney((() => {
-                                                    const currentCatBudget = editingCategory?.monthly_budget || 0;
-                                                    const newCatBudget = categoryBudget ? parseFloat(categoryBudget) : 0;
-                                                    return totalCategoryBudgets - currentCatBudget + newCatBudget;
-                                                })())} / {formatMoney(originalBudget)}
-                                            </span>
-                                            {(() => {
-                                                const currentCatBudget = editingCategory?.monthly_budget || 0;
-                                                const newCatBudget = categoryBudget ? parseFloat(categoryBudget) : 0;
-                                                const projectedTotal = totalCategoryBudgets - currentCatBudget + newCatBudget;
-                                                const remaining = originalBudget - projectedTotal;
-                                                if (remaining < 0) {
-                                                    return <span className="text-error font-semibold">{formatMoney(Math.abs(remaining))} over!</span>;
-                                                }
-                                                return <span className="text-success">{formatMoney(remaining)} left</span>;
-                                            })()}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Budget */}
-                                <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-2">Monthly Budget</label>
-                                    <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-surface border border-border-color focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors">
-                                        <span className="text-text-secondary">{currencySymbol}</span>
-                                        <input
-                                            type="text"
-                                            value={categoryBudget.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
-                                            onChange={(e) => {
-                                                const rawValue = e.target.value.replace(/\./g, "").replace(/[^0-9]/g, "");
-                                                setCategoryBudget(rawValue);
-                                            }}
-                                            placeholder="0"
-                                            className="flex-1 bg-transparent outline-none"
-                                        />
-                                        <Pencil size={16} className="text-text-secondary opacity-50" />
-                                    </div>
-                                    <p className="text-xs text-text-secondary mt-1">Leave empty to only track spending</p>
-                                </div>
-
-                                {/* Name */}
-                                <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-2">Category Name</label>
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            value={categoryName}
-                                            onChange={(e) => setCategoryName(e.target.value)}
-                                            placeholder="e.g. Groceries"
-                                            className="w-full px-4 py-3 pr-10 rounded-xl bg-surface border border-border-color focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-                                        />
-                                        <Pencil size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 pointer-events-none" />
-                                    </div>
-                                </div>
-
-                                {/* Icon Picker */}
-                                <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-2">Icon</label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {CATEGORY_ICONS.map((icon) => (
-                                            <button
-                                                key={icon}
-                                                type="button"
-                                                onClick={() => setCategoryIcon(icon)}
-                                                className="focus:outline-none"
-                                            >
-                                                <CategoryIcon
-                                                    iconName={icon}
-                                                    variant="picker"
-                                                    isActive={categoryIcon === icon}
-                                                    activeColor={categoryColor}
-                                                />
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Color Picker */}
-                                <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-2">Color</label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {CATEGORY_COLORS.map((color) => (
-                                            <button
-                                                key={color}
-                                                type="button"
-                                                onClick={() => setCategoryColor(color)}
-                                                className={`w-8 h-8 rounded-full transition-transform ${categoryColor === color ? 'scale-125 ring-2 ring-white' : 'hover:scale-110'}`}
-                                                style={{ backgroundColor: color }}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Footer */}
-                            <div className="p-6 border-t border-border-color flex gap-4">
-                                {showEditCategory && editingCategory && (
-                                    <Button
-                                        variant="secondary"
-                                        className="!bg-error/10 !text-error !border-error/20 hover:!bg-error/20 !aspect-square !w-12 flex items-center justify-center"
-                                        onClick={() => {
-                                            setCategoryToDelete(editingCategory);
-                                            // Don't close edit modal yet, only close it if delete is confirmed
-                                        }}
-                                    >
-                                        <Trash2 size={20} />
-                                    </Button>
-                                )}
-                                <Button
-                                    className="flex-1"
-                                    onClick={showEditCategory ? handleEditCategory : handleAddCategory}
-                                    disabled={!categoryName.trim()}
-                                    isLoading={submitting}
-                                >
-                                    {showEditCategory ? 'Save Changes' : 'Add Category'}
-                                </Button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Smart Delete Confirmation Modal */}
-            <DeleteConfirmationModal
-                isOpen={!!categoryToDelete}
-                onClose={() => setCategoryToDelete(null)}
-                // Execute actual delete logic
-                onConfirm={async () => {
-                    if (!categoryToDelete) return;
-                    setSubmitting(true);
-                    try {
-                        await api.deleteCategory(categoryToDelete.id);
-                        await loadData();
-                        setShowEditCategory(false);
-                        setEditingCategory(null);
-                        setCategoryToDelete(null);
-                    } catch (error) {
-                        console.error('Failed to delete:', error);
-                        alert('Failed to delete category');
-                    } finally {
-                        setSubmitting(false);
-                    }
+            {/* Category Modal - Shared Component */}
+            <AddCategoryModal
+                isOpen={showCategoryModal}
+                onClose={() => {
+                    setShowCategoryModal(false);
+                    setEditingCategory(null);
                 }}
-                categoryName={categoryToDelete?.name || ''}
-                transactionCount={transactions.filter(t => t.category_id === categoryToDelete?.id).length}
-                totalAmount={transactions.filter(t => t.category_id === categoryToDelete?.id).reduce((sum, t) => sum + Number(t.amount), 0)}
+                onSuccess={async () => {
+                    await loadData();
+                }}
+                user_id={user?.id || ''}
                 currencySymbol={currencySymbol}
-                isSubmitting={submitting}
+                originalBudget={originalBudget}
+                totalCategoryBudgets={totalCategoryBudgets}
+                initialCategory={editingCategory}
+                transactions={transactions}
             />
 
             {/* Smart Reset Budget Modal */}

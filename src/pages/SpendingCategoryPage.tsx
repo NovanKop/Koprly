@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { api } from '../lib/api';
 import type { Category, Transaction } from '../types';
@@ -23,6 +23,22 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
     const [showFilterMenu, setShowFilterMenu] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    const loadData = useCallback(async () => {
+        try {
+            setLoading(true);
+            const [cats, txns] = await Promise.all([
+                api.getCategories(),
+                api.getTransactions()
+            ]);
+            setCategories(cats || []);
+            setTransactions(txns || []);
+        } catch (error: unknown) {
+            console.error('Error loading data:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         // Hide bottom menu when this page is active
         setBottomMenuVisible(false);
@@ -33,22 +49,7 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
             // Restore bottom menu when leaving
             setBottomMenuVisible(true);
         };
-    }, [setBottomMenuVisible]);
-
-    const loadData = async () => {
-        try {
-            const [cats, txns] = await Promise.all([
-                api.getCategories(),
-                api.getTransactions()
-            ]);
-            setCategories(cats || []);
-            setTransactions(txns || []);
-        } catch (error) {
-            console.error('Error loading data:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [setBottomMenuVisible, loadData]);
 
     const toggleCategory = (categoryId: string) => {
         const newExpanded = new Set(expandedCategories);
@@ -60,26 +61,33 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
         setExpandedCategories(newExpanded);
     };
 
-    const getFilteredTransactions = (categoryId: string) => {
+    const categoriesWithStats = useMemo(() => {
         const now = new Date();
         const filterDays = dateFilter === '1d' ? 1 : dateFilter === '7d' ? 7 : 30;
         const startDate = startOfDay(subDays(now, filterDays));
         const endDate = endOfDay(now);
 
-        return transactions.filter(txn => {
-            const txnDate = parseISO(txn.date);
-            const withinDateRange = isWithinInterval(txnDate, { start: startDate, end: endDate });
-            const matchesCategory = txn.category_id === categoryId;
-            const isExpense = txn.type === 'expense';
+        return categories.map(category => {
+            const filteredTxns = transactions.filter(txn => {
+                const txnDate = parseISO(txn.date);
+                return isWithinInterval(txnDate, { start: startDate, end: endDate }) &&
+                    txn.category_id === category.id &&
+                    txn.type === 'expense';
+            });
 
-            return withinDateRange && matchesCategory && isExpense;
-        });
-    };
+            const spending = filteredTxns.reduce((sum, txn) => sum + txn.amount, 0);
+            const budget = category.monthly_budget || 0;
+            const progress = budget > 0 ? Math.min((spending / budget) * 100, 100) : 0;
 
-    const getCategorySpending = (categoryId: string) => {
-        const filtered = getFilteredTransactions(categoryId);
-        return filtered.reduce((sum, txn) => sum + txn.amount, 0);
-    };
+            return {
+                ...category,
+                spending,
+                filteredTxns,
+                budget,
+                progress
+            };
+        }).filter(cat => cat.spending > 0 || cat.budget > 0);
+    }, [categories, transactions, dateFilter]);
 
     const formatMoney = (amount: number) => {
         if (currency === 'IDR') {
@@ -104,7 +112,8 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                     <div className="flex items-center gap-3">
                         <button
                             onClick={onBack}
-                            className="p-2 hover:bg-surface rounded-full transition-colors"
+                            className="p-2 hover:bg-surface rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
+                            aria-label="Go back to dashboard"
                         >
                             <ArrowLeft size={24} />
                         </button>
@@ -115,7 +124,8 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                     <div className="relative">
                         <button
                             onClick={() => setShowFilterMenu(!showFilterMenu)}
-                            className="p-2 hover:bg-surface rounded-full transition-colors"
+                            className="p-2 hover:bg-surface rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
+                            aria-label="Filter spending by date range"
                         >
                             <Filter size={20} />
                         </button>
@@ -172,24 +182,24 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                         No categories found
                     </div>
                 ) : (
-                    categories.map((category) => {
+                    categoriesWithStats.map((category: Category & { spending: number; budget: number; progress: number; filteredTxns: Transaction[] }) => {
                         const isExpanded = expandedCategories.has(category.id);
-                        const spending = getCategorySpending(category.id);
-                        const filteredTxns = getFilteredTransactions(category.id);
-                        const budget = category.monthly_budget || 0;
-                        const progress = budget > 0 ? Math.min((spending / budget) * 100, 100) : 0;
+                        const { spending, filteredTxns, budget, progress } = category;
 
                         return (
                             <motion.div
                                 key={category.id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="backdrop-blur-xl bg-surface border border-border-color rounded-[20px] overflow-hidden"
+                                layout
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="backdrop-blur-xl bg-surface border border-border-color rounded-[24px] overflow-hidden shadow-sm"
                             >
                                 {/* Category Header */}
                                 <button
                                     onClick={() => toggleCategory(category.id)}
-                                    className="w-full p-4 flex items-center gap-3 hover:bg-surface-highlight transition-colors"
+                                    className="w-full p-4 flex items-center gap-4 hover:bg-surface-highlight/40 transition-colors text-left focus:outline-none"
+                                    aria-expanded={isExpanded}
+                                    aria-label={`${category.name}, total spending ${formatMoney(spending)}`}
                                 >
                                     <CategoryIcon
                                         iconName={category.icon}
@@ -197,27 +207,28 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                                         categoryColor={category.color}
                                     />
 
-                                    <div className="flex-1 text-left">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <span className="font-semibold">{category.name}</span>
-                                            <span className={`font-bold ${spending > 0 ? 'text-error' : 'text-text-primary'}`}>
+                                    <div className="flex-1">
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <span className="font-bold text-base">{category.name}</span>
+                                            <span className={`font-black tracking-tight ${spending > 0 ? 'text-error' : 'text-text-primary'}`}>
                                                 {spending > 0 ? '-' : ''}{formatMoney(spending)}
                                             </span>
                                         </div>
 
                                         {budget > 0 && (
-                                            <div className="space-y-1">
-                                                <div className="w-full bg-surface-highlight rounded-full h-2 overflow-hidden">
+                                            <div className="space-y-1.5">
+                                                <div className="w-full bg-surface-highlight/30 rounded-full h-1.5 overflow-hidden">
                                                     <motion.div
                                                         initial={{ width: 0 }}
                                                         animate={{ width: `${progress}%` }}
-                                                        transition={{ duration: 0.5 }}
+                                                        transition={{ duration: 0.8, ease: "easeOut" }}
                                                         className={`h-full rounded-full ${progress >= 100 ? 'bg-error' : progress >= 80 ? 'bg-warning' : 'bg-success'
-                                                            }`}
+                                                            } shadow-[0_0_10px_rgba(34,197,94,0.3)]`}
                                                     />
                                                 </div>
-                                                <div className="text-xs text-text-secondary">
-                                                    {formatMoney(spending)} of {formatMoney(budget)}
+                                                <div className="flex justify-between text-[10px] text-text-secondary font-bold uppercase tracking-tighter">
+                                                    <span>{formatMoney(spending)} spent</span>
+                                                    <span>Target: {formatMoney(budget)}</span>
                                                 </div>
                                             </div>
                                         )}
@@ -225,9 +236,9 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
 
                                     <motion.div
                                         animate={{ rotate: isExpanded ? 90 : 0 }}
-                                        transition={{ duration: 0.2 }}
+                                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
                                     >
-                                        <ChevronRight size={20} className="text-text-secondary" />
+                                        <ChevronRight size={18} className="text-text-secondary opacity-60" />
                                     </motion.div>
                                 </button>
 
@@ -241,30 +252,22 @@ export default function SpendingCategoryPage({ onBack }: SpendingCategoryPagePro
                                             transition={{ duration: 0.3 }}
                                             className="border-t border-border-color"
                                         >
-                                            <div className="p-4 space-y-2">
+                                            <div className="p-4 space-y-2 max-h-[320px] overflow-y-auto custom-scrollbar">
                                                 {filteredTxns.length === 0 ? (
                                                     <div className="text-center text-text-secondary py-4 text-sm">
                                                         No transactions in the selected period
                                                     </div>
                                                 ) : (
-                                                    filteredTxns.map((txn) => (
+                                                    filteredTxns.map((txn: Transaction) => (
                                                         <div
                                                             key={txn.id}
-                                                            className="flex items-center justify-between p-3 bg-surface-highlight rounded-xl"
+                                                            className="flex items-center justify-between p-3 bg-surface-highlight/50 hover:bg-surface-highlight transition-colors rounded-xl"
                                                         >
-                                                            <div className="flex items-center gap-3">
-                                                                <CategoryIcon
-                                                                    iconName={category.icon}
-                                                                    variant="default"
-                                                                    className="text-primary"
-                                                                    style={{ color: category.color }}
-                                                                />
-                                                                <div>
-                                                                    <div className="font-medium">{txn.description || 'No description'}</div>
-                                                                    <div className="text-xs text-text-secondary font-medium font-sans">{formatDate(txn.date, dateFormat)}</div>
-                                                                </div>
+                                                            <div className="flex flex-col gap-0.5">
+                                                                <div className="font-medium text-sm text-text-primary">{txn.description || 'No description'}</div>
+                                                                <div className="text-[11px] text-text-secondary font-medium">{formatDate(txn.date, dateFormat)}</div>
                                                             </div>
-                                                            <div className="font-bold text-error">-{formatMoney(txn.amount)}</div>
+                                                            <div className="font-bold text-error text-sm">-{formatMoney(txn.amount)}</div>
                                                         </div>
                                                     ))
                                                 )}

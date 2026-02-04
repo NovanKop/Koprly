@@ -76,12 +76,13 @@ export const BottomMenu = ({ currentView, onNavigate }: BottomMenuProps) => {
                     return (
                         <motion.button
                             key={item.id}
-                            onClick={() => onNavigate(item.id as any)}
+                            onClick={() => onNavigate(item.id)}
                             className="relative p-4 rounded-full flex items-center justify-center outline-none"
                             style={{ zIndex: 10 }}
                             whileHover={{ scale: 1.2 }}
                             whileTap={{ scale: 0.9 }}
                             transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                            aria-label={`Navigate to ${item.id}`}
                         >
                             {/* Icon */}
                             <span className={`relative z-10 transition-colors duration-200 ${isActive ? 'text-white' : 'text-text-secondary mix-blend-overlay'}`}>

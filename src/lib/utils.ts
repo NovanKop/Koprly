@@ -25,10 +25,16 @@ export function formatDate(date: string | Date, format: 'DD/MM/YYYY' | 'MM/DD/YY
 }
 
 export function formatMoney(amount: number, currency: string = 'IDR'): string {
+    const isNegative = amount < 0;
+    const absAmount = Math.abs(amount);
+
     if (currency === 'IDR') {
-        return `Rp${amount.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+        const formatted = absAmount.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        return isNegative ? `-Rp${formatted}` : `Rp${formatted}`;
     }
-    return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    const formatted = absAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return isNegative ? `-$${formatted}` : `$${formatted}`;
 }
 
 export function formatTime(date: string | Date): string {

@@ -93,19 +93,7 @@ export function useTransactionManager({ wallets, userId, onRefresh }: UseTransac
 
         setSubmitting(true);
         try {
-            // Revert balance before deleting
-            if (transaction.wallet_id) {
-                const wallet = wallets.find(w => w.id === transaction.wallet_id);
-                if (wallet) {
-                    const revertAmount = transaction.type === 'expense'
-                        ? Number(transaction.amount)
-                        : -Number(transaction.amount);
-
-                    await api.updateWallet(transaction.wallet_id, {
-                        balance: Number(wallet.balance) + Number(revertAmount)
-                    });
-                }
-            }
+            // DB trigger handles balance updates automatically
 
             await api.deleteTransaction(transaction.id);
             await onRefresh();
