@@ -20,6 +20,8 @@ interface AddCategoryModalProps {
     originalBudget?: number;
     totalCategoryBudgets?: number;
     initialCategory?: Category | null;
+    onLocalSave?: (category: Partial<Category>) => Promise<void> | void;
+    onLocalDelete?: (categoryId: string) => Promise<void> | void;
     showAllocationMessage?: boolean;
     transactions?: Transaction[];
 }
@@ -33,6 +35,8 @@ export function AddCategoryModal({
     originalBudget = 0,
     totalCategoryBudgets = 0,
     initialCategory = null,
+    onLocalSave,
+    onLocalDelete,
     showAllocationMessage = false,
     transactions = []
 }: AddCategoryModalProps) {
@@ -89,12 +93,21 @@ export function AddCategoryModal({
                 user_id
             };
 
-            if (initialCategory) {
-                await api.updateCategory(initialCategory.id, categoryData);
+            if (onLocalSave) {
+                // Local Mode (Onboarding)
+                await onLocalSave({
+                    id: initialCategory?.id, // Pass ID if editing
+                    ...categoryData
+                });
             } else {
-                await api.createCategory(categoryData);
+                // API Mode
+                if (initialCategory) {
+                    await api.updateCategory(initialCategory.id, categoryData);
+                } else {
+                    await api.createCategory(categoryData);
+                }
+                await onSuccess();
             }
-            await onSuccess();
             onClose();
         } catch (error) {
             console.error('Failed to save category:', error);
@@ -106,6 +119,9 @@ export function AddCategoryModal({
 
     const handleDelete = async () => {
         if (!initialCategory) return;
+        // If local mode, we might not want the full confirmation modal if it relies on DB constraints, 
+        // OR we just use it anyway. For onboarding, strict DB checks aren't needed but UI confirmation is good.
+        // However, the DeleteConfirmationModal takes 'transactionCount' which we might not have for local items.
         setShowDeleteConfirm(true);
     };
 
@@ -113,8 +129,12 @@ export function AddCategoryModal({
         if (!initialCategory) return;
         setSubmitting(true);
         try {
-            await api.deleteCategory(initialCategory.id);
-            await onSuccess();
+            if (onLocalDelete) {
+                await onLocalDelete(initialCategory.id);
+            } else {
+                await api.deleteCategory(initialCategory.id);
+                await onSuccess();
+            }
             onClose();
         } catch (error) {
             console.error('Failed to delete category:', error);

@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { DatePicker } from '../components/ui/DatePicker';
-import { Wallet, Plus, Loader2, TrendingUp, TrendingDown, ChevronRight, X, Eye, EyeOff, CreditCard, Flame, Pencil } from 'lucide-react';
+import { Wallet, Plus, Loader2, TrendingUp, TrendingDown, ChevronRight, X, Eye, EyeOff, CreditCard, Flame, Pencil, ArrowLeft, Trash2 } from 'lucide-react';
 import { MiniSparkline } from '../components/ui/MiniSparkline';
 import { api } from '../lib/api';
 import confetti from 'canvas-confetti';
@@ -96,21 +96,15 @@ export default function Dashboard() {
 
     // Wallet Modal State
     const [showWalletModal, setShowWalletModal] = useState(false);
-    const [editingWallets, setEditingWallets] = useState<{
-        id?: string;
-        name: string;
-        balance: string;
-        type: string;
-        color: string;
-    }[]>([]);
+    const [editingWallets, setEditingWallets] = useState<any[]>([]);
+    const [activeModalWalletIndex, setActiveModalWalletIndex] = useState(0);
 
-    // Edit Transaction State
     const [showEditTransaction, setShowEditTransaction] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [activeIconPickerIndex, setActiveIconPickerIndex] = useState<number | null>(null);
     const [showBalanceWarning, setShowBalanceWarning] = useState(false);
-
-
+    const [showDeleteWalletConfirm, setShowDeleteWalletConfirm] = useState(false);
+    const [walletToDelete, setWalletToDelete] = useState<number | null>(null);
 
     // Manage Bottom Menu visibility for Dashboard (Home) View
     useEffect(() => {
@@ -126,8 +120,24 @@ export default function Dashboard() {
         window.scrollTo(0, 0);
     }, [currentView]);
 
-    const loadData = useCallback(async () => {
+    const loadData = useCallback(async (forceRefresh = false) => {
         if (!user) return;
+
+        // Check if data was recently loaded (within last 2 minutes)
+        // Skip reload unless explicitly forced
+        const lastLoadTime = sessionStorage.getItem('koprly_data_last_loaded');
+        const now = Date.now();
+        const TWO_MINUTES = 2 * 60 * 1000;
+
+        if (!forceRefresh && lastLoadTime) {
+            const timeSinceLoad = now - parseInt(lastLoadTime, 10);
+            if (timeSinceLoad < TWO_MINUTES) {
+                console.log('Data is fresh, skipping reload (loaded', Math.round(timeSinceLoad / 1000), 'seconds ago)');
+                setLoading(false);
+                return;
+            }
+        }
+
         try {
             const [profileData, initialCats, walletsData, txns] = await Promise.all([
                 api.getProfile(),
@@ -151,6 +161,9 @@ export default function Dashboard() {
             // Sort by date descending
             txns.sort((a: Transaction, b: Transaction) => new Date(b.date).getTime() - new Date(a.date).getTime());
             setTransactions(txns);
+
+            // Mark data as freshly loaded
+            sessionStorage.setItem('koprly_data_last_loaded', now.toString());
 
         } catch (error) {
             console.error("Failed to load data", error);
@@ -217,7 +230,7 @@ export default function Dashboard() {
         }
     };
 
-    const openWalletModal = useCallback(() => {
+    const openWalletModal = useCallback((walletIndex?: number) => {
         // Initialize with existing wallets
         if (wallets.length > 0) {
             setEditingWallets(wallets.map(w => ({
@@ -231,17 +244,16 @@ export default function Dashboard() {
             // Add one empty wallet by default
             setEditingWallets([{ name: 'My Wallet', balance: '', type: 'card', color: '#007AFF' }]);
         }
+        setActiveModalWalletIndex(walletIndex !== undefined ? walletIndex : 0);
         setShowWalletModal(true);
     }, [wallets]);
 
     const addNewWallet = useCallback(() => {
         if (editingWallets.length >= MAX_WALLETS) return;
         setEditingWallets(prev => [...prev, {
-            name: `Wallet ${prev.length + 1} `,
-            balance: '',
-            type: 'card',
             color: WALLET_COLORS[prev.length % WALLET_COLORS.length]
         }]);
+        setActiveModalWalletIndex(editingWallets.length);
     }, [editingWallets.length]);
 
     const updateEditingWallet = useCallback((index: number, field: string, value: string) => {
@@ -298,7 +310,7 @@ export default function Dashboard() {
                 }
             }
 
-            await loadData();
+            await loadData(true); // Force refresh after wallet update
             setShowWalletModal(false);
         } catch (e: unknown) {
             console.error(e);
@@ -345,7 +357,7 @@ export default function Dashboard() {
             setShowAddExpense(false);
             setShowBalanceWarning(false);
 
-            await loadData();
+            await loadData(true); // Force refresh after adding expense
         } catch (e: unknown) {
             console.error(e);
             const msg = e instanceof Error ? e.message : 'Unknown error';
@@ -389,7 +401,7 @@ export default function Dashboard() {
             setTransactionDate(new Date().toISOString().split('T')[0]);
             setShowAddIncome(false);
 
-            await loadData();
+            await loadData(true); // Force refresh after adding income
         } catch (e: unknown) {
             console.error(e);
             const msg = e instanceof Error ? e.message : 'Unknown error';
@@ -403,7 +415,7 @@ export default function Dashboard() {
 
 
     const refreshData = async () => {
-        await loadData();
+        await loadData(true); // Always force refresh when explicitly called
     };
 
     const { updateTransaction, deleteTransaction, submitting: transactionSubmitting } = useTransactionManager({
@@ -586,9 +598,9 @@ export default function Dashboard() {
                             }}
                         >
 
-                            {/* Total Budget Card */}
-                            {/* Total Budget Card */}
-                            {/* Total Budget Card */}
+                            {/* Total Balance Card */}
+                            {/* Total Balance Card */}
+                            {/* Total Balance Card */}
                             <motion.div
                                 variants={{
                                     hidden: { opacity: 0, y: 20 },
@@ -669,9 +681,14 @@ export default function Dashboard() {
                                             const isBCA = wallet.name.toLowerCase().includes('bca');
                                             const isJago = wallet.name.toLowerCase().includes('jago');
 
-                                            let gradientClass = "bg-gradient-to-br from-gray-800 to-gray-900"; // Default Dark
+                                            let gradientClass = "bg-gradient-to-br from-[#1E293B] to-[#0F172A] dark:from-gray-800 dark:to-gray-900"; // Default
                                             if (isBCA) gradientClass = "bg-gradient-to-br from-blue-600 to-blue-900";
                                             else if (isJago) gradientClass = "bg-gradient-to-br from-emerald-500 to-emerald-800";
+
+                                            // Handle light mode default when no color is set
+                                            const defaultCardStyle = !wallet.color
+                                                ? "bg-gradient-to-br from-[#F8F9FB] to-[#E2E8F0] dark:from-gray-800 dark:to-gray-900 border-primary/10 dark:border-white/10"
+                                                : "border-white/10";
 
                                             // Light mode override classes could be handled better, but strict gradient was requested.
                                             // We'll use the specific gradients as they look good in both modes usually, 
@@ -683,10 +700,11 @@ export default function Dashboard() {
                                                     key={wallet.id}
                                                     whileTap={{ scale: 0.98 }}
                                                     onClick={() => {
+                                                        const walletIndex = wallets.findIndex(w => w.id === wallet.id);
                                                         setSelectedWallet(wallet.id);
-                                                        openWalletModal();
+                                                        openWalletModal(walletIndex);
                                                     }}
-                                                    className={`min-w-[180px] p-5 rounded-[20px] ${!wallet.color ? gradientClass : ''} border border-white/10 snap-start flex flex-col justify-between h-[120px] relative overflow-hidden group shadow-2xl transition-all duration-300 hover:shadow-primary/20`}
+                                                    className={`min-w-[180px] p-5 rounded-[20px] ${!wallet.color ? (isBCA || isJago ? gradientClass : 'bg-gradient-to-br from-[#F8F9FB] to-[#E2E8F0] dark:from-gray-800 dark:to-gray-900') : ''} border ${!wallet.color ? 'border-primary/10 dark:border-white/10' : 'border-white/10'} snap-start flex flex-col justify-between h-[120px] relative overflow-hidden group shadow-xl dark:shadow-2xl transition-all duration-300 hover:shadow-primary/20`}
                                                     style={{ backgroundColor: wallet.color || undefined }}
                                                 >
                                                     {/* Glass Overlay & Shine Effect */}
@@ -704,8 +722,8 @@ export default function Dashboard() {
                                                     {/* Content Layer */}
                                                     <div className="relative z-10 flex flex-col h-full justify-between">
                                                         <div className="space-y-0">
-                                                            <h4 className="text-sm font-bold text-white tracking-wide truncate uppercase opacity-90">{wallet.name}</h4>
-                                                            <p className="text-lg font-black text-white tracking-tight leading-tight font-numeric">
+                                                            <h4 className={`text-sm font-bold tracking-wide truncate uppercase opacity-90 ${!wallet.color && !isBCA && !isJago ? 'text-[#1A1A1A] dark:text-white' : 'text-white'}`}>{wallet.name}</h4>
+                                                            <p className={`text-lg font-black tracking-tight leading-tight font-numeric ${!wallet.color && !isBCA && !isJago ? 'text-[#1A1A1A] dark:text-white' : 'text-white'}`}>
                                                                 {showPrivacy ? formatMoney(wallet.balance, currency) : '••••'}
                                                             </p>
                                                         </div>
@@ -1170,7 +1188,7 @@ export default function Dashboard() {
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
-                                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4"
+                                    className="fixed inset-0 bg-black/10 dark:bg-black/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4"
                                     onClick={() => setShowWalletModal(false)}
                                 >
                                     <motion.div
@@ -1178,150 +1196,217 @@ export default function Dashboard() {
                                         animate={{ scale: 1, y: 0 }}
                                         exit={{ scale: 0.9, y: 20 }}
                                         onClick={(e) => e.stopPropagation()}
-                                        className="w-full max-w-md rounded-[28px] bg-surface backdrop-blur-xl border border-border-color overflow-hidden shadow-2xl"
+                                        className="w-full max-w-md rounded-[28px] bg-white/90 backdrop-blur-2xl dark:bg-[#121820] overflow-hidden shadow-2xl border border-black/10 dark:border-white/5"
                                     >
-                                        {/* Header with Total Budget */}
-                                        <div className="p-6 bg-gradient-to-br from-primary/5 to-secondary/5 border-b border-border-color">
-                                            <h3 className="text-xl font-bold text-center mb-1 text-text-primary">Manage Wallets</h3>
-                                            <p className="text-sm font-medium text-text-secondary text-center mb-6">Max 4 wallets</p>
-                                            <div className="text-center">
-                                                <p className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-1 opacity-80">Total Budget</p>
-                                                <p className="text-4xl font-bold text-text-primary tracking-tight">{formatMoney(getEditingTotal(), currency)}</p>
+                                        {/* Header with Total Balance */}
+                                        <div className="p-8 pb-4 text-center">
+                                            <h3 className="text-2xl font-black text-black dark:text-white mb-1">Manage Wallets</h3>
+                                            <p className="text-[10px] font-black text-text-secondary/30 dark:text-text-secondary/50 uppercase tracking-[0.4em] mb-12">Max 4 wallets</p>
+
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black text-text-secondary/40 dark:text-text-secondary/60 uppercase tracking-[0.2em]">Total Balance</p>
+                                                <p className="text-[40px] font-black text-black dark:text-white tracking-tight font-numeric leading-none">{formatMoney(getEditingTotal(), currency)}</p>
                                             </div>
                                         </div>
 
-                                        {/* Wallet List */}
-                                        <div className="p-4 max-h-[50vh] overflow-y-auto space-y-3">
-                                            {editingWallets.map((wallet, index) => (
-                                                <motion.div
-                                                    key={index}
-                                                    initial={{ opacity: 0, x: -10 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    className={`p-4 rounded-2xl border border-border-color shadow-sm relative overflow-visible transition-all duration-300 ${!wallet.color ? 'bg-surface' : 'text-white'}`}
-                                                    style={{ backgroundColor: wallet.color || undefined }}
-                                                >
-                                                    <div className="flex items-start gap-3">
-                                                        {/* Icon Picker */}
-                                                        <div className="relative">
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setActiveIconPickerIndex(activeIconPickerIndex === index ? null : index);
+                                        {/* Wallet Revolving Carousel */}
+                                        <div className="relative py-12 px-4 h-[380px] flex items-center justify-center perspective-1000">
+                                            <div className="relative w-full max-w-[320px] h-full flex items-center justify-center">
+                                                <AnimatePresence mode="popLayout">
+                                                    {editingWallets.map((wallet, idx) => {
+                                                        const offset = idx - activeModalWalletIndex;
+                                                        const isVisible = Math.abs(offset) <= 2;
+
+                                                        if (!isVisible) return null;
+
+                                                        return (
+                                                            <motion.div
+                                                                key={idx}
+                                                                initial={{ opacity: 0, scale: 0.8, x: offset * 100 }}
+                                                                animate={{
+                                                                    opacity: 1 - Math.abs(offset) * 0.3,
+                                                                    scale: 1 - Math.abs(offset) * 0.1,
+                                                                    x: offset * 40,
+                                                                    y: Math.abs(offset) * 15,
+                                                                    zIndex: 10 - Math.abs(offset),
+                                                                    rotate: offset * 2,
                                                                 }}
-                                                                className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl border border-border-color hover:border-primary transition-all relative group ${wallet.color ? 'bg-white/20 text-white border-white/30' : 'bg-surface-highlight text-text-primary'}`}
+                                                                exit={{ opacity: 0, scale: 0.8, x: offset * 100 }}
+                                                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                                                drag="x"
+                                                                dragConstraints={{ left: 0, right: 0 }}
+                                                                onDragEnd={(_, info) => {
+                                                                    if (info.offset.x < -50 && activeModalWalletIndex < editingWallets.length - 1) {
+                                                                        setActiveModalWalletIndex(prev => prev + 1);
+                                                                    } else if (info.offset.x > 50 && activeModalWalletIndex > 0) {
+                                                                        setActiveModalWalletIndex(prev => prev - 1);
+                                                                    }
+                                                                }}
+                                                                className="absolute w-full aspect-[4/3] rounded-[32px] p-6 shadow-2xl cursor-grab active:cursor-grabbing overflow-hidden"
+                                                                style={{
+                                                                    backgroundColor: wallet.color || '#007AFF',
+                                                                    pointerEvents: idx === activeModalWalletIndex ? 'auto' : 'none'
+                                                                }}
                                                             >
-                                                                {(() => {
-                                                                    const IconComponent = WALLET_ICONS.find(i => i.type === wallet.type)?.Icon || CreditCard;
-                                                                    return <IconComponent size={24} />;
-                                                                })()}
-                                                                {/* Edit Indicator Badge */}
-                                                                <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2 border-surface shadow-sm ${wallet.color ? 'bg-white text-primary' : 'bg-primary text-white'}`}>
-                                                                    <Pencil size={10} />
+                                                                {/* Glass Overlay */}
+                                                                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-60 pointer-events-none" />
+
+                                                                {/* Delete Button */}
+                                                                {editingWallets.length > 1 && idx === activeModalWalletIndex && (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setWalletToDelete(activeModalWalletIndex);
+                                                                            setShowDeleteWalletConfirm(true);
+                                                                        }}
+                                                                        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-error/20 backdrop-blur-md flex items-center justify-center text-error hover:bg-error/30 transition-all z-20"
+                                                                    >
+                                                                        <Trash2 size={18} />
+                                                                    </button>
+                                                                )}
+
+                                                                <div className="relative z-10 h-full flex flex-col justify-between">
+                                                                    <div className="flex items-center gap-4 pr-12">
+                                                                        <div className="relative">
+                                                                            <button
+                                                                                onClick={() => setActiveIconPickerIndex(activeIconPickerIndex === idx ? null : idx)}
+                                                                                className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white relative group"
+                                                                            >
+                                                                                {(() => {
+                                                                                    const IconComponent = WALLET_ICONS.find(i => i.type === wallet.type)?.Icon || CreditCard;
+                                                                                    return <IconComponent size={32} />;
+                                                                                })()}
+                                                                                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-lg text-primary">
+                                                                                    <Pencil size={12} />
+                                                                                </div>
+                                                                            </button>
+
+                                                                            <AnimatePresence>
+                                                                                {activeIconPickerIndex === idx && (
+                                                                                    <motion.div
+                                                                                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                                                        exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                                                                                        className="absolute top-full left-0 mt-4 p-4 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-2xl border border-white/20 rounded-[24px] grid grid-cols-3 gap-2 z-[100] shadow-2xl min-w-[200px]"
+                                                                                    >
+                                                                                        {WALLET_ICONS.map(({ type, Icon }) => (
+                                                                                            <button
+                                                                                                key={type}
+                                                                                                onClick={(e) => {
+                                                                                                    e.stopPropagation();
+                                                                                                    updateEditingWallet(idx, 'type', type);
+                                                                                                    setActiveIconPickerIndex(null);
+                                                                                                }}
+                                                                                                className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${wallet.type === type ? 'bg-primary text-white scale-110' : 'bg-surface-highlight text-text-secondary hover:bg-primary/20 hover:text-primary'}`}
+                                                                                            >
+                                                                                                <Icon size={24} />
+                                                                                            </button>
+                                                                                        ))}
+                                                                                    </motion.div>
+                                                                                )}
+                                                                            </AnimatePresence>
+                                                                        </div>
+
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <div className="flex items-center gap-2 mb-0.5">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={wallet.name}
+                                                                                    onChange={(e) => updateEditingWallet(idx, 'name', e.target.value)}
+                                                                                    className="w-full bg-transparent border-none p-0 text-xl font-black text-white placeholder:text-white/40 focus:ring-0"
+                                                                                    placeholder="Wallet Name"
+                                                                                />
+                                                                                <Pencil size={14} className="text-white/60 flex-shrink-0" />
+                                                                            </div>
+                                                                            {idx === 0 && (
+                                                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                                                    <div className="w-1.5 h-1.5 rounded-full bg-white shadow-sm" />
+                                                                                    <p className="text-[10px] font-black text-white uppercase tracking-[0.15em] opacity-80">Primary Wallet</p>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="bg-white/20 backdrop-blur-md rounded-[24px] px-6 py-5 border border-white/20">
+                                                                        <div className="flex items-baseline gap-3">
+                                                                            <span className="text-sm font-black text-white uppercase opacity-70 tracking-tighter">{currencySymbol}</span>
+                                                                            <input
+                                                                                type="text"
+                                                                                inputMode="numeric"
+                                                                                value={formatIDR(wallet.balance)}
+                                                                                onChange={(e) => updateEditingWallet(idx, 'balance', parseIDR(e.target.value).toString())}
+                                                                                className="w-full bg-transparent border-none p-0 text-[32px] font-black text-white placeholder:text-white/30 focus:ring-0 font-numeric leading-none"
+                                                                                placeholder="0"
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="flex gap-3 justify-between items-center pt-2">
+                                                                        <p className="text-[10px] font-black text-white uppercase tracking-[0.3em] opacity-80">Card Color</p>
+                                                                        <div className="flex gap-2">
+                                                                            {WALLET_COLORS.map((color) => (
+                                                                                <button
+                                                                                    key={color}
+                                                                                    onClick={() => updateEditingWallet(idx, 'color', color)}
+                                                                                    className={`w-6 h-6 rounded-full border-2 transition-all ${wallet.color === color ? 'border-white scale-125 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                                                                                    style={{ backgroundColor: color }}
+                                                                                />
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
-                                                            </button>
+                                                            </motion.div>
+                                                        );
+                                                    })}
+                                                </AnimatePresence>
+                                            </div>
+                                        </div>
 
-                                                            {/* Icon Dropdown */}
-                                                            {activeIconPickerIndex === index && (
-                                                                <div className="absolute top-full left-0 mt-2 p-3 bg-white/80 dark:bg-[#121212]/95 backdrop-blur-2xl border border-border-color rounded-2xl grid grid-cols-3 gap-2 z-50 shadow-2xl min-w-[180px]">
-                                                                    <div className="col-span-3 text-[10px] font-bold text-text-secondary uppercase tracking-widest px-1 mb-2">Select Icon</div>
-                                                                    {WALLET_ICONS.map(({ type, Icon, label }) => (
-                                                                        <button
-                                                                            key={type}
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                updateEditingWallet(index, 'type', type);
-                                                                                setActiveIconPickerIndex(null);
-                                                                            }}
-                                                                            className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl hover:bg-primary/20 transition-all group/icon ${wallet.type === type ? 'bg-primary/20 ring-2 ring-primary text-primary' : 'bg-surface-highlight text-text-secondary hover:text-primary'} `}
-                                                                            title={label}
-                                                                        >
-                                                                            <Icon size={24} strokeWidth={wallet.type === type ? 2.5 : 2} />
-                                                                        </button>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                        </div>
+                                        {/* Navigation Dots & Hints */}
+                                        <div className="mt-12 text-center space-y-4">
+                                            <div className="flex justify-center gap-2">
+                                                {editingWallets.map((_, i) => (
+                                                    <div
+                                                        key={i}
+                                                        className={`h-1.5 transition-all duration-300 rounded-full ${i === activeModalWalletIndex ? 'w-10 bg-[#00D09E]' : 'w-1.5 bg-border-color'}`}
+                                                    />
+                                                ))}
+                                            </div>
 
-                                                        {/* Name & Balance */}
-                                                        <div className="flex-1 space-y-3">
-                                                            {/* Wallet Name Input */}
-                                                            <div className="relative group/input">
-                                                                <input
-                                                                    type="text"
-                                                                    value={wallet.name}
-                                                                    onChange={(e) => updateEditingWallet(index, 'name', e.target.value)}
-                                                                    placeholder="Wallet Name"
-                                                                    className={`w-full bg-transparent border-b pb-1 text-sm font-bold focus:outline-none transition-colors pr-6 ${wallet.color ? 'text-white border-white/50 focus:border-white placeholder:text-white/50' : 'text-text-primary border-border-color focus:border-primary placeholder:text-text-secondary/50'}`}
-                                                                />
-                                                                <Pencil size={12} className={`absolute right-0 top-1 opacity-50 group-hover/input:opacity-100 transition-opacity pointer-events-none ${wallet.color ? 'text-white' : 'text-text-secondary'}`} />
-                                                            </div>
+                                            {editingWallets.length > 1 && (
+                                                <div className="flex items-center justify-center gap-6 text-[10px] font-black text-text-secondary/40 dark:text-text-secondary/50 uppercase tracking-[0.3em]">
+                                                    <ArrowLeft size={16} strokeWidth={2.5} className="opacity-40" />
+                                                    <span>Swipe to Switch</span>
+                                                    <ChevronRight size={18} strokeWidth={2.5} className="opacity-40" />
+                                                </div>
+                                            )}
 
-                                                            <div className={`flex items-center gap-2 rounded-xl px-4 py-2 border transition-all ${wallet.color ? 'bg-white/20 border-white/30 focus-within:bg-white/30 focus-within:border-white' : 'bg-surface-highlight/50 border-border-color/50 focus-within:border-primary/50 focus-within:bg-surface-highlight'}`}>
-                                                                <span className={`font-medium ${wallet.color ? 'text-white/80' : 'text-text-secondary'}`}>{currencySymbol}</span>
-                                                                <input
-                                                                    type="text"
-                                                                    inputMode="numeric"
-                                                                    value={formatIDR(wallet.balance)}
-                                                                    onChange={(e) => {
-                                                                        updateEditingWallet(index, 'balance', parseIDR(e.target.value).toString());
-                                                                    }}
-                                                                    placeholder="0"
-                                                                    className={`w-full bg-transparent border-none p-0 text-lg font-bold focus:ring-0 ${wallet.color ? 'text-white placeholder:text-white/30' : 'text-text-primary placeholder:text-text-secondary/30'}`}
-                                                                />
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Delete Button */}
-                                                        {editingWallets.length > 1 && (
-                                                            <button
-                                                                onClick={() => removeEditingWallet(index)}
-                                                                className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-full transition-colors self-center"
-                                                            >
-                                                                <X size={18} />
-                                                            </button>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Color Picker */}
-                                                    <div className="flex gap-2 mt-4 pt-3 border-t border-border-color overflow-x-visible p-1">
-                                                        {WALLET_COLORS.map((color) => (
-                                                            <button
-                                                                key={color}
-                                                                onClick={() => updateEditingWallet(index, 'color', color)}
-                                                                className={`w-6 h-6 rounded-full transition-all flex-shrink-0 ${wallet.color === color ? 'scale-125 ring-2 ring-white dark:ring-white shadow-lg z-10' : 'hover:scale-110 opacity-70 hover:opacity-100'} `}
-                                                                style={{ backgroundColor: color }}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                </motion.div>
-                                            ))}
-
-                                            {/* Add Wallet Button */}
+                                            {/* Dedicated Add Wallet CTA */}
                                             {editingWallets.length < 4 && (
-                                                <button
-                                                    id="add-wallet-button"
+                                                <motion.button
+                                                    whileTap={{ scale: 0.98 }}
                                                     onClick={addNewWallet}
-                                                    className="w-full py-4 rounded-2xl border-2 border-dashed border-border-color text-text-secondary hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 group"
+                                                    className="w-[200px] h-[60px] mx-auto rounded-[24px] border-2 border-dashed border-border-color flex items-center justify-center gap-3 text-text-secondary hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all group"
                                                 >
                                                     <div className="w-8 h-8 rounded-full bg-surface-highlight group-hover:bg-primary/20 flex items-center justify-center transition-colors">
                                                         <Plus size={16} />
                                                     </div>
-                                                    <span className="font-medium">Add New Wallet</span>
-                                                </button>
+                                                    <span className="text-sm font-bold uppercase tracking-widest">Add Wallet</span>
+                                                </motion.button>
                                             )}
                                         </div>
 
                                         {/* Footer */}
-                                        <div className="p-4 border-t border-border-color flex gap-3">
+                                        <div className="p-6 border-t border-black/10 dark:border-white/5 flex gap-4">
                                             <Button
                                                 variant="secondary"
-                                                className="flex-1"
+                                                className="flex-1 bg-black/5 dark:bg-white/5 border-none text-emerald-600 dark:text-emerald-400 hover:bg-black/10 dark:hover:bg-white/10"
                                                 onClick={() => setShowWalletModal(false)}
                                             >
                                                 Cancel
                                             </Button>
                                             <Button
-                                                className="flex-1"
+                                                className="flex-1 bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600 border-none shadow-lg shadow-emerald-500/20"
                                                 onClick={saveWallets}
                                                 isLoading={submitting}
                                             >
@@ -1332,9 +1417,121 @@ export default function Dashboard() {
                                 </motion.div>
                             )}
                         </AnimatePresence>
+
+                        {/* Delete Wallet Confirmation Modal */}
+                        <AnimatePresence>
+                            {showDeleteWalletConfirm && walletToDelete !== null && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                                    onClick={() => setShowDeleteWalletConfirm(false)}
+                                >
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="w-full max-w-md bg-surface border border-border-color rounded-[32px] p-6 shadow-2xl relative overflow-hidden"
+                                    >
+                                        {/* Background Decor */}
+                                        <div className="absolute top-0 right-0 w-[200px] h-[200px] bg-error/5 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+                                        <div className="relative z-10">
+                                            {/* Icon */}
+                                            <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4 bg-error/10 text-error">
+                                                <Trash2 size={24} />
+                                            </div>
+
+                                            {/* Title */}
+                                            <h3 className="text-xl font-bold text-text-primary mb-2">
+                                                Remove Wallet?
+                                            </h3>
+
+                                            {/* Message */}
+                                            <div className="text-text-secondary text-sm leading-relaxed mb-6 space-y-3">
+                                                <p>
+                                                    Are you sure you want to remove <span className="font-bold text-text-primary">"{editingWallets[walletToDelete]?.name || 'this wallet'}"</span>?
+                                                </p>
+
+                                                {(() => {
+                                                    const walletId = editingWallets[walletToDelete]?.id;
+                                                    if (!walletId) {
+                                                        return (
+                                                            <p className="text-xs">This wallet hasn't been saved yet, so it's safe to remove.</p>
+                                                        );
+                                                    }
+
+                                                    const walletTransactions = transactions.filter(t => t.wallet_id === walletId);
+                                                    const hasTransactions = walletTransactions.length > 0;
+
+                                                    if (hasTransactions) {
+                                                        const totalAmount = walletTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
+                                                        return (
+                                                            <div className="p-4 rounded-xl bg-surface-highlight border border-border-color">
+                                                                <p className="font-semibold text-text-primary mb-1">Warning: Cannot Delete</p>
+                                                                <ul className="list-disc list-inside space-y-1 text-xs">
+                                                                    <li><span className="font-bold">{walletTransactions.length}</span> transactions are linked to this wallet</li>
+                                                                    <li>Total value: <span className="font-bold">{formatMoney(totalAmount, currency)}</span></li>
+                                                                </ul>
+                                                                <p className="mt-2 text-error text-xs font-medium">
+                                                                    Please reassign or delete these transactions first.
+                                                                </p>
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    return (
+                                                        <p className="text-xs">This wallet has no transactions, so it's safe to remove.</p>
+                                                    );
+                                                })()}
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="flex gap-3">
+                                                <Button
+                                                    variant="secondary"
+                                                    onClick={() => setShowDeleteWalletConfirm(false)}
+                                                    className="flex-1"
+                                                >
+                                                    Cancel
+                                                </Button>
+                                                <Button
+                                                    onClick={() => {
+                                                        const walletId = editingWallets[walletToDelete]?.id;
+                                                        if (walletId) {
+                                                            const walletTransactions = transactions.filter(t => t.wallet_id === walletId);
+                                                            if (walletTransactions.length > 0) {
+                                                                setShowDeleteWalletConfirm(false);
+                                                                return;
+                                                            }
+                                                        }
+
+                                                        const currentIdx = walletToDelete;
+                                                        if (currentIdx > 0) setActiveModalWalletIndex(currentIdx - 1);
+                                                        removeEditingWallet(currentIdx);
+                                                        setShowDeleteWalletConfirm(false);
+                                                        setWalletToDelete(null);
+                                                    }}
+                                                    className="flex-1 !bg-error hover:!bg-error/90 !text-white !border-none shadow-lg shadow-error/30"
+                                                    disabled={(() => {
+                                                        const walletId = editingWallets[walletToDelete]?.id;
+                                                        if (!walletId) return false;
+                                                        const walletTransactions = transactions.filter(t => t.wallet_id === walletId);
+                                                        return walletTransactions.length > 0;
+                                                    })()}
+                                                >
+                                                    Remove Wallet
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </>
-                )
-                }
+                )}
 
 
                 {

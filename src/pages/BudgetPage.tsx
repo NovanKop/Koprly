@@ -140,7 +140,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
     const allExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
     const allIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
 
-    // Total Budget for DISPLAY = live wallet balance (updates with income/expenses)
+    // Total Balance for DISPLAY = live wallet balance (updates with income/expenses)
 
     // Original Budget = STABLE anchor from user's profile (total_budget)
     // This is what the user set during onboarding - NOT affected by transactions
@@ -277,7 +277,7 @@ export default function BudgetPage({ onBack }: BudgetPageProps) {
                     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
                 }}
             >
-                {/* Total Budget Summary Card - Clickable to manage wallets */}
+                {/* Total Balance Summary Card - Clickable to manage wallets */}
                 {/* Total Balance Card */}
                 <motion.div
                     variants={{

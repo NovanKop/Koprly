@@ -6,6 +6,27 @@
   <link rel="icon" type="image/png" href="/logo.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Koprly</title>
+  <script>
+    // Apply theme immediately to prevent flash of wrong theme
+    // This runs before React loads, ensuring correct theme from the start
+    (function () {
+      try {
+        const savedData = localStorage.getItem('kopr-app-storage');
+        if (savedData) {
+          const { state } = JSON.parse(savedData);
+          if (state?.theme === 'dark') {
+            document.documentElement.classList.add('dark');
+          }
+        } else {
+          // Default to dark mode if no saved preference
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {
+        // Default to dark mode if parsing fails
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
 </head>
 
 <body>
