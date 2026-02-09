@@ -79,7 +79,7 @@ export default function OnboardingPage({ onComplete }: { onComplete: () => void 
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
 
     // Step 4: Budget Period Date Picker
-    const [periodType, setPeriodType] = useState<'monthly' | 'weekly' | 'rolling'>('monthly');
+    const [periodType] = useState<'monthly' | 'weekly' | 'rolling'>('monthly');
     const [resetDay, setResetDay] = useState<number>(1); // 1-31, -1 for Last Day
 
     const [showSuccess, setShowSuccess] = useState(false);
@@ -207,17 +207,17 @@ export default function OnboardingPage({ onComplete }: { onComplete: () => void 
     };
 
     // Update single category budget
-    const updateCategoryBudget = (index: number, value: string) => {
-        const cleaned = value.replace(/[^0-9]/g, '');
-        const updatedCats = [...onboardingCategories];
-        updatedCats[index] = {
-            ...updatedCats[index],
-            monthly_budget: cleaned ? parseInt(cleaned) : 0
-        };
-        setOnboardingCategories(updatedCats);
-        // Turn off auto-allocate if user manually edits
-        if (isAutoAllocated) setIsAutoAllocated(false);
-    };
+    // const updateCategoryBudget = (index: number, value: string) => {
+    //     const cleaned = value.replace(/[^0-9]/g, '');
+    //     const updatedCats = [...onboardingCategories];
+    //     updatedCats[index] = {
+    //         ...updatedCats[index],
+    //     //     monthly_budget: cleaned ? parseInt(cleaned) : 0
+    //     };
+    //     setOnboardingCategories(updatedCats);
+    //     // Turn off auto-allocate if user manually edits
+    //     if (isAutoAllocated) setIsAutoAllocated(false);
+    // };
 
     // Final submission
     const handleSubmit = async () => {
@@ -330,8 +330,8 @@ export default function OnboardingPage({ onComplete }: { onComplete: () => void 
                     animate={{ opacity: 1, scale: 1 }}
                     onClick={() => signOut()}
                     className={`absolute top-4 left-4 flex items-center gap-2 px-4 py-2 rounded-full border transition-all backdrop-blur-md z-50 font-medium ${theme === 'dark'
-                            ? 'bg-[#1e293b] border-white/10 text-gray-300 hover:bg-white/10 shadow-lg'
-                            : 'bg-white border-transparent text-gray-600 hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] shadow-[0_2px_8px_rgba(0,0,0,0.08)]'
+                        ? 'bg-[#1e293b] border-white/10 text-gray-300 hover:bg-white/10 shadow-lg'
+                        : 'bg-white border-transparent text-gray-600 hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] shadow-[0_2px_8px_rgba(0,0,0,0.08)]'
                         }`}
                 >
                     <LogOut size={16} className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} />
@@ -344,8 +344,8 @@ export default function OnboardingPage({ onComplete }: { onComplete: () => void 
                     animate={{ opacity: 1, scale: 1 }}
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                     className={`absolute top-4 right-4 p-3 rounded-full border transition-all backdrop-blur-md z-50 group ${theme === 'dark'
-                            ? 'bg-[#1e293b] border-white/10 hover:bg-white/10 shadow-lg'
-                            : 'bg-white border-transparent hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] shadow-[0_2px_8px_rgba(0,0,0,0.08)]'
+                        ? 'bg-[#1e293b] border-white/10 hover:bg-white/10 shadow-lg'
+                        : 'bg-white border-transparent hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] shadow-[0_2px_8px_rgba(0,0,0,0.08)]'
                         }`}
                 >
                     <AnimatePresence mode="wait">

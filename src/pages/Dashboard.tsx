@@ -684,15 +684,6 @@ export default function Dashboard() {
                                             let gradientClass = "bg-gradient-to-br from-[#1E293B] to-[#0F172A] dark:from-gray-800 dark:to-gray-900"; // Default
                                             if (isBCA) gradientClass = "bg-gradient-to-br from-blue-600 to-blue-900";
                                             else if (isJago) gradientClass = "bg-gradient-to-br from-emerald-500 to-emerald-800";
-
-                                            // Handle light mode default when no color is set
-                                            const defaultCardStyle = !wallet.color
-                                                ? "bg-gradient-to-br from-[#F8F9FB] to-[#E2E8F0] dark:from-gray-800 dark:to-gray-900 border-primary/10 dark:border-white/10"
-                                                : "border-white/10";
-
-                                            // Light mode override classes could be handled better, but strict gradient was requested.
-                                            // We'll use the specific gradients as they look good in both modes usually, 
-                                            // or we could add dark: prefixes if needed. 
                                             // For now, let's Stick to rich gradients for these specific cards.
 
                                             return (
@@ -762,7 +753,7 @@ export default function Dashboard() {
                                         })}
                                         <motion.button
                                             whileTap={{ scale: 0.98 }}
-                                            onClick={openWalletModal}
+                                            onClick={() => openWalletModal()}
                                             className="min-w-[60px] rounded-[24px] bg-surface border border-border-color flex items-center justify-center snap-start hover:bg-surface/80 transition-colors"
                                             aria-label="Add new wallet"
                                         >
