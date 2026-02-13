@@ -25,7 +25,8 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
         setTheme,
         setLanguage,
         setFirstDayOfWeek,
-        setDateFormat
+        setDateFormat,
+        setBottomMenuVisible
     } = useAppStore();
 
     const [profile, setProfile] = useState<Profile | null>(null);
@@ -90,6 +91,11 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
         window.scrollTo(0, 0);
         loadProfile();
     }, []);
+
+    // Hide navbar when feedback modal is open
+    useEffect(() => {
+        setBottomMenuVisible(!showFeedbackModal);
+    }, [showFeedbackModal, setBottomMenuVisible]);
 
     const handleSignOut = async () => {
         try {

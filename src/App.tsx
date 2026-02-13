@@ -15,10 +15,13 @@ function AppContent() {
   const { theme } = useAppStore();
 
   useEffect(() => {
+    const root = window.document.documentElement;
     if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
+      root.classList.add('dark');
+      root.style.backgroundColor = '#0B1218'; // Force dark background
     } else {
-      document.documentElement.classList.remove('dark');
+      root.classList.remove('dark');
+      root.style.backgroundColor = '#F5F7F8'; // Force light background
     }
   }, [theme]);
 

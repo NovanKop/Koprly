@@ -4,9 +4,13 @@ import type { Category, Transaction, NewTransaction, Profile, Wallet, Notificati
 export const api = {
     // Profile
     getProfile: async (): Promise<Profile | null> => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+
         const { data, error } = await supabase
             .from('profiles')
             .select('*')
+            .eq('id', user.id)
             .single();
 
         if (error) {

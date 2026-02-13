@@ -128,10 +128,11 @@ export default function Dashboard() {
         // Check if data was recently loaded (within last 2 minutes)
         // Skip reload unless explicitly forced
         const lastLoadTime = sessionStorage.getItem('koprly_data_last_loaded');
+        const lastUserId = sessionStorage.getItem('koprly_data_user_id');
         const now = Date.now();
         const TWO_MINUTES = 2 * 60 * 1000;
 
-        if (!forceRefresh && lastLoadTime) {
+        if (!forceRefresh && lastLoadTime && lastUserId === user.id) {
             const timeSinceLoad = now - parseInt(lastLoadTime, 10);
             if (timeSinceLoad < TWO_MINUTES) {
                 console.log('Data is fresh, skipping reload (loaded', Math.round(timeSinceLoad / 1000), 'seconds ago)');
@@ -166,6 +167,7 @@ export default function Dashboard() {
 
             // Mark data as freshly loaded
             sessionStorage.setItem('koprly_data_last_loaded', now.toString());
+            sessionStorage.setItem('koprly_data_user_id', user.id);
 
         } catch (error) {
             console.error("Failed to load data", error);
@@ -209,10 +211,25 @@ export default function Dashboard() {
         }
     }, [profile?.onboarding_complete, profile?.onboarding_koprlyst_done, loading]);
 
+    // Simplified: Removed visibility change listener to prevent disruptive reloads.
+    // Data will only reload on explicit navigation or user action.
+
     const handleNavigate = useCallback((view: 'home' | 'report' | 'settings' | 'budget' | 'category' | 'history' | 'notifications') => {
         setCurrentView(view);
-        // Refresh data when returning to home to sync any changes from other pages
+
+        // Only refresh if data is stale when returning to home
         if (view === 'home') {
+            const lastLoadTime = sessionStorage.getItem('koprly_data_last_loaded');
+            const lastUserId = sessionStorage.getItem('koprly_data_user_id');
+            if (lastLoadTime && lastUserId === user?.id) {
+                const timeSinceLoad = Date.now() - parseInt(lastLoadTime, 10);
+                const TWO_MINUTES = 2 * 60 * 1000;
+                if (timeSinceLoad < TWO_MINUTES) {
+                    console.log('Navigating to home, data still fresh, skipping reload');
+                    return; // Skip reload
+                }
+            }
+            console.log('Navigating to home, data is stale, reloading...');
             loadData();
         }
     }, [loadData]);
@@ -563,7 +580,7 @@ export default function Dashboard() {
                             <KoprlystGuide
                                 onComplete={() => {
                                     setShowKoprlyst(false);
-                                    loadData(); // Reload profile to update state
+                                    loadData(true); // Force refresh to update profile state
                                 }}
                             />
                         )}
@@ -575,11 +592,11 @@ export default function Dashboard() {
                                 className="flex items-center gap-4 group"
                             >
                                 <div className="h-12 w-12 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-blue-900/20 ring-4 ring-white/5 group-hover:scale-105 transition-transform">
-                                    {profile?.username?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase() || 'G'}
+                                    {profile?.username?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase() || 'U'}
                                 </div>
                                 <div className="text-left">
                                     <p className="text-xs text-text-secondary font-medium mb-0.5 uppercase tracking-wider">{getCurrentTime()}</p>
-                                    <p className="font-bold text-xl text-text-primary leading-tight">{profile?.username || 'G is my name'}</p>
+                                    <p className="font-bold text-xl text-text-primary leading-tight">{profile?.username || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</p>
                                 </div>
                             </motion.button>
                             <NotificationBell onNotificationClick={handleNotificationClick} />
@@ -966,7 +983,7 @@ export default function Dashboard() {
                                 isOpen={showAddCategoryModal}
                                 onClose={() => setShowAddCategoryModal(false)}
                                 onSuccess={async () => {
-                                    await loadData();
+                                    await loadData(true);
                                 }}
                                 user_id={user?.id || ''}
                                 currencySymbol={currencySymbol}
@@ -1533,7 +1550,6 @@ export default function Dashboard() {
                             <SettingsPage
                                 onBack={() => {
                                     handleNavigate('home');
-                                    loadData();
                                 }}
                                 onNavigateToNotifications={() => handleNavigate('notifications')}
                             />
@@ -1562,7 +1578,6 @@ export default function Dashboard() {
                         <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}>
                             <BudgetPage onBack={() => {
                                 handleNavigate('home');
-                                loadData();
                             }} />
                         </Suspense>
                     )

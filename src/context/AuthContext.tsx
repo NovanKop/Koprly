@@ -43,6 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const signOut = async () => {
         await supabase.auth.signOut();
+        sessionStorage.clear(); // Clear all session data to prevent stale data on re-login
     };
 
     const value = {
