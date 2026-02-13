@@ -1,10 +1,10 @@
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, format, parseISO, eachDayOfInterval, startOfDay, endOfDay } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Calendar, Heart, Lightbulb, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Calendar, TrendingUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useAppStore } from '../store/useAppStore';
-import type { Transaction, Category, Profile } from '../types';
+import type { Transaction, Category } from '../types';
 import { DateRangePicker } from '../components/ui/DateRangePicker';
 import { GlassCard } from '../components/glass/GlassCard';
 import { ProgressBarGlow } from '../components/glass/ProgressBarGlow';
@@ -23,7 +23,6 @@ export default function FinancialReport({ onBack, onNavigate }: FinancialReportP
 
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
-    const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
 
     const weekStart = firstDayOfWeek === 'Monday' ? 1 : 0;
@@ -35,14 +34,12 @@ export default function FinancialReport({ onBack, onNavigate }: FinancialReportP
     const loadData = async () => {
         setLoading(true);
         try {
-            const [txns, cats, prof] = await Promise.all([
+            const [txns, cats] = await Promise.all([
                 api.getTransactions(),
-                api.getCategories(),
-                api.getProfile()
+                api.getCategories()
             ]);
             if (txns) setTransactions(txns);
             if (cats) setCategories(cats);
-            if (prof) setProfile(prof);
         } catch (error) {
             console.error(error);
         } finally {
@@ -77,26 +74,6 @@ export default function FinancialReport({ onBack, onNavigate }: FinancialReportP
 
     const expenses = filteredTransactions.filter(t => t.type === 'expense');
     const totalOutflow = expenses.reduce((sum, t) => sum + Number(t.amount), 0);
-
-    // Health Score logic
-    const totalBudget = profile?.total_budget || 0;
-    const budgetUsed = totalBudget > 0 ? (totalOutflow / totalBudget) * 100 : 0;
-    const healthScore = totalBudget > 0 ? Math.max(0, Math.min(100, Math.round(100 - budgetUsed))) : 50;
-
-    // Top Merchant logic
-    const merchantMap = new Map<string, number>();
-    expenses.forEach(t => {
-        const name = t.description || t.category?.name || 'Unknown';
-        merchantMap.set(name, (merchantMap.get(name) || 0) + Number(t.amount));
-    });
-    let topMerchantName = 'None';
-    let topMerchantAmount = 0;
-    merchantMap.forEach((amount, name) => {
-        if (amount > topMerchantAmount) {
-            topMerchantAmount = amount;
-            topMerchantName = name;
-        }
-    });
 
     // Category Breakdown logic
     const categoryStats = categories.map(cat => {
