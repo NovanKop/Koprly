@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Edit2, Calendar, Moon, Sun, ChevronRight, Check, Pencil, Camera, Image as ImageIcon, Bell, X } from 'lucide-react';
+import { ArrowLeft, Edit2, Calendar, Moon, Sun, ChevronRight, Check, Pencil, Camera, Image as ImageIcon, Bell, X, MessageSquare } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { api } from '../lib/api';
 import type { Profile } from '../types';
 import { GlassCard } from '../components/glass/GlassCard';
 import { GlassButton } from '../components/glass/GlassButton';
+import { FeedbackModal } from '../components/modals/FeedbackModal';
 
 interface SettingsPageProps {
     onBack: () => void;
@@ -31,6 +32,7 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
     const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
     const [isEditingName, setIsEditingName] = useState(false);
     const [newName, setNewName] = useState('');
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
     // Profile Picture State
     const [profilePicture, setProfilePicture] = useState<string | null>(null);
@@ -462,6 +464,28 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
                     </p>
                 </div>
 
+                {/* Help & Support */}
+                <div>
+                    <h3 className="text-xs font-bold text-primary mb-3 uppercase tracking-wider pl-1">Help & Support</h3>
+                    <GlassCard className="rounded-[20px] overflow-hidden">
+                        <div
+                            className="p-4 flex items-center justify-between hover:bg-surface-highlight transition-colors cursor-pointer"
+                            onClick={() => setShowFeedbackModal(true)}
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
+                                    <MessageSquare size={20} />
+                                </div>
+                                <div>
+                                    <p className="font-medium">Send Feedback</p>
+                                    <p className="text-xs text-text-secondary">Report bugs or suggest features</p>
+                                </div>
+                            </div>
+                            <ChevronRight size={16} className="text-gray-400" />
+                        </div>
+                    </GlassCard>
+                </div>
+
                 {/* Danger Zone */}
                 <div>
                     <h3 className="text-xs font-bold text-error mb-3 uppercase tracking-wider pl-1">Danger Zone</h3>
@@ -628,6 +652,12 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
                         </motion.div>
                     </motion.div>
                 )}
+                {/* Feedback Modal */}
+                <FeedbackModal
+                    isOpen={showFeedbackModal}
+                    onClose={() => setShowFeedbackModal(false)}
+                />
+
             </AnimatePresence>
         </motion.div>
     );

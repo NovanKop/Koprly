@@ -108,3 +108,13 @@ export interface NotificationPreferences {
 }
 
 export type NewNotification = Omit<Notification, 'id' | 'created_at'>;
+
+export interface UserFeedback {
+    id: string;
+    user_id: string;
+    category: 'Bug' | 'Feature Request' | 'UI/UX Improvement' | 'Other';
+    message: string;
+    screenshot_url?: string;
+    status: 'pending' | 'in-progress' | 'resolved' | 'ignored';
+    created_at: string;
+}

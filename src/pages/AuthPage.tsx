@@ -67,11 +67,25 @@ export default function AuthPage() {
                 });
                 if (error) throw error;
 
+                // Debug logging
+                console.log('Signup response:', {
+                    user: data.user,
+                    session: data.session,
+                    confirmed_at: data.user?.confirmed_at
+                });
+
                 // If session is null, it means email confirmation is required
                 if (data.user && !data.session) {
                     setIsConfirmationSent(true);
                 } else {
-                    setMessage('Account created successfully!');
+                    // Check if user is actually confirmed (some Supabase configs auto-confirm)
+                    if (data.user?.confirmed_at) {
+                        // Auto-login logic would require session, which 'data' includes if confirmed
+                        setMessage('Account created! Logging you in...');
+                    } else {
+                        // Even if session exists (rare if confirm enabled), show check email
+                        setIsConfirmationSent(true);
+                    }
                 }
             } else {
                 const { error, data } = await supabase.auth.signInWithPassword({
@@ -263,7 +277,7 @@ export default function AuthPage() {
                                     <p className="text-xs text-center text-text-secondary/60">
                                         {authMode === 'signin'
                                             ? "Don't have an account? It takes less than a minute."
-                                            : "Already have an account? You'll be logged in automatically."}
+                                            : "Already have an account? Log in here."}
                                     </p>
 
                                     {/* Divider */}

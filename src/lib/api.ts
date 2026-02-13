@@ -513,4 +513,60 @@ export const api = {
         if (error) throw error;
         return data;
     },
+
+    // ============================================
+    // USER FEEDBACK
+    // ============================================
+
+    submitFeedback: async (feedback: {
+        category: 'Bug' | 'Feature Request' | 'UI/UX Improvement' | 'Other';
+        message: string;
+        attachment?: File;
+        app_version?: string;
+        device_info?: string;
+    }): Promise<void> => {
+        const user = (await supabase.auth.getUser()).data.user;
+        if (!user) throw new Error('No user found');
+
+        let screenshot_url: string | undefined;
+
+        // 1. Upload Attachment (if any)
+        if (feedback.attachment) {
+            // Create a unique filename: user-id/timestamp-filename
+            const fileExt = feedback.attachment.name.split('.').pop();
+            const fileName = `${user.id}/${Date.now()}-feedback.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('feedback_attachments')
+                .upload(fileName, feedback.attachment, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+            // Get the public URL
+            const { data } = supabase.storage
+                .from('feedback_attachments')
+                .getPublicUrl(fileName);
+
+            screenshot_url = data.publicUrl;
+        }
+
+        // 2. Insert Feedback Record
+        const { error: insertError } = await supabase
+            .from('user_feedback')
+            .insert({
+                user_id: user.id,
+                category: feedback.category,
+                message: feedback.message,
+                screenshot_url: screenshot_url,
+                app_version: feedback.app_version || '1.2.0',
+                device_info: feedback.device_info || navigator.userAgent,
+                status: 'pending'
+            });
+
+        if (insertError) throw new Error(`Submission failed: ${insertError.message}`);
+    },
 };
+

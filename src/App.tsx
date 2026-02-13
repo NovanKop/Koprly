@@ -10,7 +10,7 @@ const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
 
 function AppContent() {
   const { session, loading: authLoading } = useAuth();
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileFetched, setProfileFetched] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const { theme } = useAppStore();
 
@@ -24,28 +24,29 @@ function AppContent() {
 
   useEffect(() => {
     if (session?.user) {
-      setProfileLoading(true);
+      setProfileFetched(false);
       api.getProfile().then(data => {
         setProfile(data);
-        setProfileLoading(false);
+        setProfileFetched(true);
       });
     } else {
       setProfile(null);
+      setProfileFetched(false);
     }
   }, [session]);
 
   const handleOnboardingComplete = () => {
     // Refresh profile to update state and redirect
     if (session?.user) {
-      setProfileLoading(true);
+      setProfileFetched(false);
       api.getProfile().then(data => {
         setProfile(data);
-        setProfileLoading(false);
+        setProfileFetched(true);
       });
     }
   };
 
-  if (authLoading || (session && profileLoading)) {
+  if (authLoading || (session && !profileFetched)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
