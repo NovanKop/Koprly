@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Edit2, Calendar, Moon, Sun, ChevronRight, Check, Pencil, Camera, Image as ImageIcon, Bell } from 'lucide-react';
+import { ArrowLeft, Edit2, Calendar, Moon, Sun, ChevronRight, Check, Pencil, Camera, Image as ImageIcon, Bell, X } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { api } from '../lib/api';
 import type { Profile } from '../types';
@@ -17,12 +17,10 @@ interface SettingsPageProps {
 export default function SettingsPage({ onBack }: SettingsPageProps) {
     const { user, signOut } = useAuth();
     const {
-        currency,
         theme,
         language,
         firstDayOfWeek,
         dateFormat,
-        setCurrency,
         setTheme,
         setLanguage,
         setFirstDayOfWeek,
@@ -31,7 +29,8 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
 
     const [profile, setProfile] = useState<Profile | null>(null);
     const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
-    const [showCurrencyConfirm, setShowCurrencyConfirm] = useState(false);
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [newName, setNewName] = useState('');
 
     // Profile Picture State
     const [profilePicture, setProfilePicture] = useState<string | null>(null);
@@ -98,14 +97,7 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
         }
     };
 
-    const toggleCurrency = () => {
-        setShowCurrencyConfirm(true);
-    };
 
-    const confirmCurrencyChange = () => {
-        setCurrency(currency === 'IDR' ? 'USD' : 'IDR');
-        setShowCurrencyConfirm(false);
-    };
 
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
@@ -127,6 +119,24 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
             alert(`Failed to reset account: ${error.message || JSON.stringify(error)}`);
             setIsResetting(false);
         }
+    };
+
+    const handleUpdateName = async () => {
+        if (!newName.trim()) return;
+
+        try {
+            await api.updateProfile({ username: newName });
+            setProfile(prev => prev ? { ...prev, username: newName } : null);
+            setIsEditingName(false);
+        } catch (error) {
+            console.error('Failed to update name:', error);
+            alert('Failed to update name. Please try again.');
+        }
+    };
+
+    const startEditingName = () => {
+        setNewName(profile?.username || user?.email?.split('@')[0] || 'User');
+        setIsEditingName(true);
     };
 
     return (
@@ -240,7 +250,44 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
                             )}
                         </AnimatePresence>
                     </div>
-                    <h2 className="mt-4 text-xl font-bold relative z-0">{profile?.username || 'User'}</h2>
+                    {isEditingName ? (
+                        <div className="mt-4 flex items-center gap-2 relative z-0">
+                            <input
+                                type="text"
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                                className="bg-surface-highlight border border-border-color rounded-xl px-3 py-1 text-lg font-bold text-center w-40 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleUpdateName();
+                                    if (e.key === 'Escape') setIsEditingName(false);
+                                }}
+                            />
+                            <button
+                                onClick={handleUpdateName}
+                                className="p-1.5 rounded-full bg-success/20 text-success hover:bg-success/30 transition-colors"
+                            >
+                                <Check size={16} />
+                            </button>
+                            <button
+                                onClick={() => setIsEditingName(false)}
+                                className="p-1.5 rounded-full bg-error/20 text-error hover:bg-error/30 transition-colors"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="mt-4 flex items-center gap-2 relative z-0 group">
+                            <h2 className="text-xl font-bold">{profile?.username || 'User'}</h2>
+                            <button
+                                onClick={startEditingName}
+                                className="p-1.5 rounded-full bg-surface-highlight text-primary opacity-50 hover:opacity-100 transition-opacity hover:bg-primary/10"
+                                aria-label="Edit Name"
+                            >
+                                <Pencil size={14} />
+                            </button>
+                        </div>
+                    )}
                     <p className="text-sm text-primary font-medium tracking-wide relative z-0">Pro Member</p>
                 </GlassCard>
             </motion.div>
@@ -253,22 +300,21 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
                     <h3 className="text-xs font-bold text-primary mb-3 uppercase tracking-wider pl-1">Preferences</h3>
                     <GlassCard className="rounded-[20px] overflow-hidden">
                         {/* Currency */}
-                        <div
-                            className="p-4 flex items-center justify-between hover:bg-surface-highlight transition-colors cursor-pointer border-b border-border-color"
-                            onClick={toggleCurrency}
-                        >
+                        {/* Currency (Locked) */}
+                        <div className="p-4 flex items-center justify-between opacity-50 cursor-not-allowed border-b border-border-color">
                             <div className="flex items-center gap-4">
                                 <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-400">
                                     <span className="font-bold text-lg max-w-[24px] flex justify-center">$</span>
                                 </div>
                                 <div>
                                     <p className="font-medium">Default Currency</p>
-                                    <p className="text-xs text-gray-400">Used for all calculations</p>
+                                    <p className="text-xs text-gray-400">Rupiah (Rp)</p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 text-gray-400">
-                                <span className="text-sm">{currency === 'IDR' ? 'IDR (Rp)' : 'USD ($)'}</span>
-                                <ChevronRight size={16} />
+                            <div className="flex items-center gap-2">
+                                <span className="px-2 py-1 rounded-lg bg-surface-highlight border border-border-color text-[10px] font-bold text-text-secondary uppercase tracking-wider">
+                                    Coming Soon
+                                </span>
                             </div>
                         </div>
 
@@ -495,47 +541,7 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
                     </motion.div>
                 )}
 
-                {/* Currency Confirmation Modal */}
-                {showCurrencyConfirm && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-6"
-                        onClick={() => setShowCurrencyConfirm(false)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, y: 20 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 0.9, y: 20 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-full max-w-sm p-6 rounded-[32px] bg-surface border border-border-color text-center"
-                        >
-                            <div className="w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center mx-auto mb-4 text-warning">
-                                <span className="text-2xl font-bold">$</span>
-                            </div>
-                            <h3 className="text-xl font-bold mb-2">Change Currency?</h3>
-                            <p className="text-gray-600 dark:text-gray-400 text-sm mb-8 px-4">
-                                The all current balance will convert to the new currency set-up. {currency === 'IDR' ? 'IDR to USD' : 'USD to IDR'}
-                            </p>
 
-                            <div className="space-y-3">
-                                <Button
-                                    className="w-full bg-warning hover:bg-warning/90 text-black border-none h-12 rounded-2xl font-semibold"
-                                    onClick={confirmCurrencyChange}
-                                >
-                                    It's Okay
-                                </Button>
-                                <button
-                                    className="w-full h-12 rounded-2xl bg-surface hover:bg-surface-highlight text-text-primary font-medium transition-colors"
-                                    onClick={() => setShowCurrencyConfirm(false)}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
             </AnimatePresence>
 
             {/* Reset Confirmation & Success Modal */}

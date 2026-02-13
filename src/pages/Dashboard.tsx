@@ -111,10 +111,12 @@ export default function Dashboard() {
         // Only control visibility from here if we are in 'home' view
         // Other views (budget, settings) will handle their own visibility state
         if (currentView === 'home') {
-            const isAnyModalOpen = showWalletModal || showAddExpense || showAddIncome || showEditTransaction;
-            setBottomMenuVisible(!isAnyModalOpen);
+            // Only hide completely for modals that take up full attention (Wallet config, Edit trans)
+            // For Add Expense/Income, we now "collapse" to a button instead of hiding
+            const shouldHideCompletely = showWalletModal || showEditTransaction;
+            setBottomMenuVisible(!shouldHideCompletely);
         }
-    }, [currentView, showWalletModal, showAddExpense, showAddIncome, showEditTransaction, setBottomMenuVisible]);
+    }, [currentView, showWalletModal, showEditTransaction, setBottomMenuVisible]);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -1586,7 +1588,15 @@ export default function Dashboard() {
                 {/* Persistent Bottom Menu */}
                 <AnimatePresence>
                     {isBottomMenuVisible && (
-                        <BottomMenu currentView={currentView} onNavigate={handleNavigate} />
+                        <BottomMenu
+                            currentView={currentView}
+                            onNavigate={handleNavigate}
+                            isCollapsed={showAddExpense || showAddIncome}
+                            onToggleCollapse={() => {
+                                setShowAddExpense(false);
+                                setShowAddIncome(false);
+                            }}
+                        />
                     )}
                 </AnimatePresence>
 
