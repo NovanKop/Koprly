@@ -255,7 +255,7 @@ export function AddCategoryModal({
 
                                     {/* Monthly Budget */}
                                     <div>
-                                        <label className="block text-sm font-medium text-text-secondary mb-2">Monthly Budget</label>
+                                        <label className="block text-sm font-medium text-text-secondary mb-2">Monthly Budget for this Category.</label>
                                         <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-surface border border-border-color focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors">
                                             <span className="text-text-secondary">{currencySymbol}</span>
                                             <input
