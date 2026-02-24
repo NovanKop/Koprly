@@ -133,9 +133,14 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
         if (!newName.trim()) return;
 
         try {
-            await api.updateProfile({ username: newName });
-            setProfile(prev => prev ? { ...prev, username: newName } : null);
+            // Update both username and display_name for consistency across all pages
+            await api.updateProfile({ username: newName, display_name: newName });
+            setProfile(prev => prev ? { ...prev, username: newName, display_name: newName } : null);
             setIsEditingName(false);
+
+            // Invalidate the Dashboard data cache so it picks up the new name
+            sessionStorage.removeItem('koprly_data_last_loaded');
+            sessionStorage.removeItem('koprly_cached_data');
         } catch (error) {
             console.error('Failed to update name:', error);
             alert('Failed to update name. Please try again.');
@@ -143,7 +148,7 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
     };
 
     const startEditingName = () => {
-        setNewName(profile?.username || user?.email?.split('@')[0] || 'User');
+        setNewName(profile?.display_name || profile?.username || user?.email?.split('@')[0] || 'User');
         setIsEditingName(true);
     };
 
@@ -206,7 +211,7 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
                                 />
                             ) : (
                                 <div className="h-full w-full rounded-full bg-primary/20 flex items-center justify-center text-3xl font-bold text-gray-800">
-                                    {profile?.username?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase()}
+                                    {(profile?.display_name || profile?.username)?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase()}
                                 </div>
                             )}
                         </div>
@@ -286,7 +291,7 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
                         </div>
                     ) : (
                         <div className="mt-4 flex items-center gap-2 relative z-0 group">
-                            <h2 className="text-xl font-bold">{profile?.username || 'User'}</h2>
+                            <h2 className="text-xl font-bold">{profile?.display_name || profile?.username || 'User'}</h2>
                             <button
                                 onClick={startEditingName}
                                 className="p-1.5 rounded-full bg-surface-highlight text-primary opacity-50 hover:opacity-100 transition-opacity hover:bg-primary/10"

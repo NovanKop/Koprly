@@ -26,7 +26,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         // Listen for changes on auth state (logged in, signed out, etc.)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        // IMPORTANT: Only update state for meaningful auth events.
+        // TOKEN_REFRESHED fires when the tab regains focus and must be ignored
+        // to prevent full page reloads / data cascade on tab switch.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'TOKEN_REFRESHED') {
+                // Token was silently refreshed — no need to re-render the entire app.
+                // The Supabase client internally stores the new token for future API calls.
+                return;
+            }
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);

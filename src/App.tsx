@@ -25,8 +25,11 @@ function AppContent() {
     }
   }, [theme]);
 
+  // Only re-fetch profile when the actual user changes (login/logout),
+  // NOT on every session object change (e.g., token refresh).
+  const userId = session?.user?.id;
   useEffect(() => {
-    if (session?.user) {
+    if (userId) {
       setProfileFetched(false);
       api.getProfile().then(data => {
         setProfile(data);
@@ -36,7 +39,7 @@ function AppContent() {
       setProfile(null);
       setProfileFetched(false);
     }
-  }, [session]);
+  }, [userId]);
 
   const handleOnboardingComplete = () => {
     // Refresh profile to update state and redirect

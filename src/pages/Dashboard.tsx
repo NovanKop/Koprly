@@ -135,7 +135,27 @@ export default function Dashboard() {
         if (!forceRefresh && lastLoadTime && lastUserId === user.id) {
             const timeSinceLoad = now - parseInt(lastLoadTime, 10);
             if (timeSinceLoad < TWO_MINUTES) {
-                console.log('Data is fresh, skipping reload (loaded', Math.round(timeSinceLoad / 1000), 'seconds ago)');
+                // Restore cached data into React state if state is currently empty
+                // This handles the case where the component remounted but data is still fresh
+                const cachedData = sessionStorage.getItem('koprly_cached_data');
+                if (cachedData) {
+                    try {
+                        const parsed = JSON.parse(cachedData);
+                        if (parsed.userId === user.id) {
+                            // Only restore if React state is empty (component just remounted)
+                            setProfile(prev => prev || parsed.profile);
+                            setCategories(prev => prev.length > 0 ? prev : parsed.categories || []);
+                            setWallets(prev => prev.length > 0 ? prev : parsed.wallets || []);
+                            setTransactions(prev => prev.length > 0 ? prev : parsed.transactions || []);
+                            if (parsed.wallets?.length > 0) {
+                                setSelectedWallet(prev => prev || parsed.wallets[0].id);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Failed to restore cached data', e);
+                    }
+                }
+                console.log('Data is fresh, restored from cache (loaded', Math.round(timeSinceLoad / 1000), 'seconds ago)');
                 setLoading(false);
                 return;
             }
@@ -165,9 +185,21 @@ export default function Dashboard() {
             txns.sort((a: Transaction, b: Transaction) => new Date(b.date).getTime() - new Date(a.date).getTime());
             setTransactions(txns);
 
-            // Mark data as freshly loaded
+            // Mark data as freshly loaded AND cache the actual data
             sessionStorage.setItem('koprly_data_last_loaded', now.toString());
             sessionStorage.setItem('koprly_data_user_id', user.id);
+            try {
+                sessionStorage.setItem('koprly_cached_data', JSON.stringify({
+                    userId: user.id,
+                    profile: profileData,
+                    categories: cats,
+                    wallets: walletsData,
+                    transactions: txns,
+                }));
+            } catch (e) {
+                // sessionStorage might be full; non-critical
+                console.warn('Failed to cache data in sessionStorage', e);
+            }
 
         } catch (error) {
             console.error("Failed to load data", error);
@@ -592,11 +624,11 @@ export default function Dashboard() {
                                 className="flex items-center gap-4 group"
                             >
                                 <div className="h-12 w-12 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-blue-900/20 ring-4 ring-white/5 group-hover:scale-105 transition-transform">
-                                    {profile?.username?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase() || 'U'}
+                                    {(profile?.display_name || profile?.username)?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase() || 'U'}
                                 </div>
                                 <div className="text-left">
                                     <p className="text-xs text-text-secondary font-medium mb-0.5 uppercase tracking-wider">{getCurrentTime()}</p>
-                                    <p className="font-bold text-xl text-text-primary leading-tight">{profile?.username || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</p>
+                                    <p className="font-bold text-xl text-text-primary leading-tight">{profile?.display_name || profile?.username || 'User'}</p>
                                 </div>
                             </motion.button>
                             <NotificationBell onNotificationClick={handleNotificationClick} />
