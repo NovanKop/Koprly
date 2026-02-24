@@ -122,12 +122,6 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                                                     >
                                                         <cat.icon size={24} className={category === cat.id ? 'text-primary' : 'text-gray-400 dark:text-gray-500 group-hover:scale-110 transition-transform'} />
                                                         <span className="text-sm font-medium">{cat.label}</span>
-                                                        {category === cat.id && (
-                                                            <motion.div
-                                                                layoutId="active-indicator"
-                                                                className="absolute inset-0 border-2 border-primary rounded-2xl pointer-events-none"
-                                                            />
-                                                        )}
                                                     </button>
                                                 ))}
                                             </div>
