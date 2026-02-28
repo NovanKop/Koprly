@@ -3,7 +3,8 @@ import { useEffect, useState, lazy, Suspense } from 'react';
 import { api } from './lib/api';
 import type { Profile } from './types';
 import { useAppStore } from './store/useAppStore';
-
+import { PWATutorialBubble } from './components/PWATutorialBubble';
+import { PWAReleaseNotesModal } from './components/modals/PWAReleaseNotesModal';
 const AuthPage = lazy(() => import('./pages/AuthPage'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
@@ -73,16 +74,16 @@ function AppContent() {
       ) : (
         <Dashboard />
       )}
+      <PWATutorialBubble />
+      <PWAReleaseNotesModal profile={profile} onDismiss={() => { }} />
     </Suspense>
   );
 }
-import { PWATutorialBubble } from './components/PWATutorialBubble';
 
 export default function App() {
   return (
     <AuthProvider>
       <AppContent />
-      <PWATutorialBubble />
     </AuthProvider>
   )
 }

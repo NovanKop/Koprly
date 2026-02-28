@@ -46,6 +46,7 @@ export interface Profile {
     onboarding_complete: boolean;        // Track if onboarding finished
     onboarding_koprlyst_done: boolean;   // Track if interactive guide finished
     onboarding_step: number;             // Resume progress (1-4)
+    has_seen_pwa_release_notes?: boolean; // Track if PWA release notes shown
     theme: string;
     date_format?: DateFormat;
     created_at: string;
