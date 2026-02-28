@@ -76,11 +76,13 @@ function AppContent() {
     </Suspense>
   );
 }
+import { PWATutorialBubble } from './components/PWATutorialBubble';
 
 export default function App() {
   return (
     <AuthProvider>
       <AppContent />
+      <PWATutorialBubble />
     </AuthProvider>
   )
 }
