@@ -900,7 +900,26 @@ export default function Dashboard() {
                                                 value={description}
                                                 onChange={(e) => setDescription(e.target.value)}
                                             />
-                                            <div className="relative">
+
+                                            <div className="pt-2">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <label className="text-[10px] font-extrabold text-text-secondary uppercase tracking-[0.1em]">Category</label>
+                                                    <button
+                                                        onClick={() => setShowAddCategoryModal(true)}
+                                                        className="h-6 px-3 rounded-full bg-surface-highlight border border-border-color text-[10px] font-bold text-text-primary hover:text-primary hover:border-primary/50 transition-colors flex items-center gap-1"
+                                                    >
+                                                        <Plus size={10} />
+                                                        NEW
+                                                    </button>
+                                                </div>
+                                                <CategorySelector
+                                                    categories={categories}
+                                                    selectedCategoryId={selectedCategory}
+                                                    onSelect={setSelectedCategory}
+                                                />
+                                            </div>
+
+                                            <div className="relative pt-2">
                                                 <DatePicker
                                                     label="Date"
                                                     value={transactionDate}
@@ -916,23 +935,6 @@ export default function Dashboard() {
                                                 currencySymbol={currencySymbol}
                                             />
 
-                                            <div>
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <label className="text-xs text-gray-400">Category</label>
-                                                    <button
-                                                        onClick={() => setShowAddCategoryModal(true)}
-                                                        className="text-xs font-bold text-primary hover:text-primary-highlight transition-colors flex items-center gap-1"
-                                                    >
-                                                        <Plus size={12} />
-                                                        New
-                                                    </button>
-                                                </div>
-                                                <CategorySelector
-                                                    categories={categories}
-                                                    selectedCategoryId={selectedCategory}
-                                                    onSelect={setSelectedCategory}
-                                                />
-                                            </div>
 
                                             <Button
                                                 className="w-full"

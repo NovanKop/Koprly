@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { ChevronRight } from 'lucide-react';
+import { CategoryIcon } from './ui/CategoryIcon';
+import { X } from 'lucide-react';
 import type { Category } from '../types';
 
 interface CategorySelectorProps {
@@ -9,47 +10,69 @@ interface CategorySelectorProps {
     label?: string;
 }
 
-import { CategoryIcon } from './ui/CategoryIcon';
-
 export function CategorySelector({ categories, selectedCategoryId, onSelect, label }: CategorySelectorProps) {
+    const selectedCategory = categories.find(c => c.id === selectedCategoryId);
+
     return (
         <div>
-            {label && <label className="text-xs text-gray-400 mb-2 block">{label}</label>}
-            <div className="relative">
-                <div className="flex gap-2 overflow-x-auto p-2 scrollbar-hide pr-4 mask-linear-fade">
-                    {categories.map(cat => (
-                        <motion.button
-                            key={cat.id}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => onSelect(cat.id)}
-                            type="button"
-                            className={`
-                            flex-shrink-0 px-4 py-3 rounded-2xl border transition-all backdrop-blur-md
-                            flex items-center gap-3 whitespace-nowrap
-                            ${selectedCategoryId === cat.id
-                                    ? 'bg-primary text-white border-primary shadow-lg shadow-primary/25'
-                                    : 'bg-surface border-border-color text-text-secondary hover:border-primary/40 hover:bg-surface-highlight'
-                                }
-                        `}
-                        >
+            {label && <label className="text-[10px] font-extrabold text-text-secondary uppercase tracking-[0.1em] mb-2 block">{label}</label>}
+            <div className="relative w-full">
+                {selectedCategory ? (
+                    // Selected state: Show only the selected category, filling width, clearly styled
+                    <motion.button
+                        layoutId="category-card"
+                        key="selected-card"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => onSelect('')}
+                        type="button"
+                        className="w-full flex items-center justify-between p-4 rounded-2xl border-2 border-primary bg-primary/5 shadow-[0_0_20px_rgba(34,197,94,0.1)] transition-colors"
+                    >
+                        <div className="flex items-center gap-4">
                             <CategoryIcon
-                                iconName={cat.icon}
-                                variant="small"
-                                className={selectedCategoryId === cat.id ? 'text-white' : undefined}
-                                categoryColor={selectedCategoryId === cat.id ? '#ffffff' : cat.color}
+                                iconName={selectedCategory.icon}
+                                variant="large"
+                                categoryColor={selectedCategory.color}
                             />
-                            <span className="text-sm font-medium">{cat.name}</span>
-                        </motion.button>
-                    ))}
-                    {/* Padding for end of list - Increased for better spacing */}
-                    <div className="w-14 flex-shrink-0" />
-                </div>
-                {/* Scroll Indicator - Clean transparent style - Only show if > 1 item */}
-                {categories.length > 1 && (
-                    <div className="absolute right-0 top-0 bottom-0 w-16 pointer-events-none flex items-center justify-end pr-2">
-                        <ChevronRight className="text-green-500 w-5 h-5 animate-pulse" />
-                    </div>
+                            <div className="text-left">
+                                <span className="block text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-0.5">Selected Category</span>
+                                <span className="text-lg font-bold text-text-primary">{selectedCategory.name}</span>
+                            </div>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-surface-highlight flex items-center justify-center text-text-secondary">
+                            <X size={16} strokeWidth={2.5} />
+                        </div>
+                    </motion.button>
+                ) : (
+                    // Unselected state: Grid of categories
+                    <motion.div
+                        layout
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="grid grid-cols-4 sm:grid-cols-5 gap-3"
+                    >
+                        {categories.map(cat => (
+                            <motion.button
+                                layoutId={selectedCategoryId === cat.id ? "category-card" : undefined}
+                                key={cat.id}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => onSelect(cat.id)}
+                                type="button"
+                                className="flex flex-col items-center justify-center p-3 gap-2 rounded-2xl border border-border-color bg-surface hover:border-primary/40 hover:bg-surface-highlight transition-all"
+                            >
+                                <CategoryIcon
+                                    iconName={cat.icon}
+                                    variant="default"
+                                    categoryColor={cat.color}
+                                />
+                                <span className="text-[11px] font-bold text-text-primary text-center truncate w-full leading-tight">{cat.name}</span>
+                            </motion.button>
+                        ))}
+                    </motion.div>
                 )}
             </div>
         </div>
